@@ -28,9 +28,9 @@ export const load: PageServerLoad = async ({ locals, params, url, parent }) => {
 			.groupBy(dropzoneMemberRoles.role),
 		listAircraft(locals.db, dz.id, { activeOnly: true }),
 		currentCheckin(locals.db, user.id),
-		openLoadsToday(locals.db, dz.id),
+		openLoadsToday(locals.db, dz),
 		getAccount(locals.db, user.id, dz.id),
-		needsSportIndemnity(locals.db, dz.id, user.id)
+		needsSportIndemnity(locals.db, dz, user.id)
 	]);
 	const staffCounts = roleRows
 		.filter((r) => STAFF_ROLES.includes(r.role as DropzoneRole))

@@ -1,9 +1,9 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { addTeamMember, deleteTeam, listBuddies, removeTeamMember, updateTeam } from '#lib/server/domain/teams.ts';
 import { currentCheckin } from '#lib/server/domain/checkins.ts';
 import { openLoadsToday } from '#lib/server/domain/loads.ts';
 import { getPriceMap } from '#lib/server/domain/pricing.ts';
-import { getDropzone } from '#lib/server/domain/dropzone-admin.ts';
+import { requestDropzone } from '#lib/server/request-cache.ts';
 import { domainFail, opt, requireUser, str } from '#lib/server/jumper/forms.ts';
 import { DISCIPLINES, TEAM_COLOURS, findJumpers, teamFor } from '#lib/server/jumper/teams.ts';
 import { TEAM_JUMP_TYPES, priceTable } from '#lib/server/jumper/manifest.ts';
@@ -21,7 +21,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	]);
 	let manifest = null;
 	if (checkin) {
-		const [loads, prices, dz] = await Promise.all([openLoadsToday(locals.db, checkin.dropzone.id), getPriceMap(locals.db, checkin.dropzone.id), getDropzone(locals.db, checkin.dropzone.id)]);
+		const dz = await requestDropzone(locals, checkin.dropzone.id);
+		if (!dz) error(404, 'Dropzone not found');
+		const [loads, prices] = await Promise.all([openLoadsToday(locals.db, dz), getPriceMap(locals.db, dz.id)]);
 		manifest = {
 			dropzone: { name: checkin.dropzone.name, currency: dz.currency },
 			loads: loads.filter((l) => l.isOpen).map((l) => ({ id: l.id, loadNumber: l.loadNumber, free: l.stats.free, aircraftName: l.aircraftName })),

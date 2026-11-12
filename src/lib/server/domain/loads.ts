@@ -840,10 +840,13 @@ export async function moveSlot(
 	]);
 }
 
-/** Today's open loads for the jumper "Join a Load" screen / hangar display. */
-export async function openLoadsToday(db: Database, dropzoneId: string, now = Date.now()): Promise<LoadWithSlots[]> {
-	const dz = await dzRow(db, dropzoneId);
-	return listLoadsForDay(db, dropzoneId, localDate(now, dz.timezone), { onlyOpen: true });
+/**
+ * Today's open loads for the jumper "Join a Load" screen / hangar display. Pass the dropzone row
+ * (id + timezone) when the caller already has it, to skip re-reading it.
+ */
+export async function openLoadsToday(db: Database, dropzone: string | Pick<Dropzone, 'id' | 'timezone'>, now = Date.now()): Promise<LoadWithSlots[]> {
+	const dz = typeof dropzone === 'string' ? await dzRow(db, dropzone) : dropzone;
+	return listLoadsForDay(db, dz.id, localDate(now, dz.timezone), { onlyOpen: true });
 }
 
 /**

@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import { dropzones, slots, users } from '#lib/server/db/schema.ts';
 import * as checkins from '#lib/server/domain/checkins.ts';
@@ -15,6 +15,7 @@ import { CHANGE_JUMP_TYPES, TEAM_JUMP_TYPES, loadCard, priceTable } from '#lib/s
 import { bool, domainFail, num, requireUser, str } from '#lib/server/jumper/forms.ts';
 import { SOLO_JUMP_TYPES, SPORT_EXTRAS, type JumpType, type SlotExtra } from '#lib/domain/constants.ts';
 import { membershipWarnings } from '#lib/server/memberships/service.ts';
+import { requestDropzone } from '#lib/server/request-cache.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, parent, url }) => {
@@ -41,14 +42,15 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	}
 
 	const dzId = open.dropzone.id;
-	const dz = (await db.select().from(dropzones).where(eq(dropzones.id, dzId)).limit(1))[0];
+	const dz = await requestDropzone(locals, dzId);
+	if (!dz) error(404, 'Dropzone not found');
 	const today = localDate(Date.now(), dz.timezone);
 	const [openLoads, mine, prices, myTeams, needsWaiver, account] = await Promise.all([
-		loads.openLoadsToday(db, dzId),
+		loads.openLoadsToday(db, dz),
 		loads.upcomingSlotsForUser(db, user.id, today),
 		getPriceMap(db, dzId),
 		teams.listUserTeams(db, user.id),
-		indemnity.needsSportIndemnity(db, dzId, user.id),
+		indemnity.needsSportIndemnity(db, dz, user.id),
 		getAccount(db, user.id, dzId)
 	]);
 	// Came from another DZ's page ("Check in now" there): offer to move the check-in.

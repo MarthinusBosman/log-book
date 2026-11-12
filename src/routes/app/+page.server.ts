@@ -2,6 +2,7 @@ import { activeDropzone } from '#lib/server/manifest/context.ts';
 import { staffToday } from '#lib/server/manifest/board.ts';
 import { loadJumperDashboard } from '#lib/server/jumper/dashboard.ts';
 import { setupChecklist, setupPending } from '#lib/server/staffadmin/setup.ts';
+import { requestDropzone } from '#lib/server/request-cache.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Cookie set by "Not now" on the dashboard's add-a-photo card. */
@@ -16,7 +17,7 @@ export const load: PageServerLoad = async (event) => {
 	const staffView = ctx && ctx.caps.includes('loads.view') ? ctx : null;
 	const [today, jumper, setup] = await Promise.all([
 		staffView ? staffToday(event.locals.db, staffView.dz, now) : Promise.resolve(null),
-		loadJumperDashboard(event.locals.db, user.id, current?.dropzone.id ?? null),
+		loadJumperDashboard(event.locals.db, user.id, current?.dropzone.id ?? null, now, (id) => requestDropzone(event.locals, id)),
 		ctx && ctx.caps.includes('dz.settings') ? setupChecklist(event.locals.db, ctx.dz) : Promise.resolve(null)
 	]);
 	return {

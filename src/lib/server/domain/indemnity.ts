@@ -9,7 +9,8 @@ import {
 	type IndemnityAnswer,
 	type IndemnitySection,
 	type IndemnitySignature,
-	type IndemnitySnapshot
+	type IndemnitySnapshot,
+	type Dropzone
 } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
 import type { IndemnityAudience, IndemnitySectionType } from '../../domain/constants.ts';
@@ -192,10 +193,21 @@ export async function latestUserSignature(db: Database, dropzoneId: string, user
 	)[0];
 }
 
-/** Does the jumper need to sign before manifesting? (DZ sport form active and not yet signed.) */
-export async function needsSportIndemnity(db: Database, dropzoneId: string, userId: string): Promise<boolean> {
-	const dz = (await db.select({ a: dropzones.indemnitySportActive }).from(dropzones).where(eq(dropzones.id, dropzoneId)).limit(1))[0];
-	if (!dz?.a) return false;
+/**
+ * Does the jumper need to sign before manifesting? (DZ sport form active and not yet signed.)
+ * Pass the dropzone row (id + indemnitySportActive) when the caller already has it.
+ */
+export async function needsSportIndemnity(
+	db: Database,
+	dropzone: string | Pick<Dropzone, 'id' | 'indemnitySportActive'>,
+	userId: string
+): Promise<boolean> {
+	const dropzoneId = typeof dropzone === 'string' ? dropzone : dropzone.id;
+	const active =
+		typeof dropzone === 'string'
+			? (await db.select({ a: dropzones.indemnitySportActive }).from(dropzones).where(eq(dropzones.id, dropzoneId)).limit(1))[0]?.a
+			: dropzone.indemnitySportActive;
+	if (!active) return false;
 	// An active form with no sections has nothing to sign: the sign page says "handled at manifest",
 	// so don't block self-manifest on it either.
 	const section = await db

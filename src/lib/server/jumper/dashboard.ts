@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
-import { dropzones, users } from '../db/schema.ts';
+import { dropzones, users, type Dropzone } from '../db/schema.ts';
 import { currentCheckin } from '../domain/checkins.ts';
 import { aadStatus, repackIntervalDays, repackStatus, listUserRigs } from '../domain/gear.ts';
 import { openLoadsToday, upcomingSlotsForUser } from '../domain/loads.ts';
@@ -13,12 +13,19 @@ import { ASSOCIATION_LABELS, type DueStatus } from '../../domain/constants.ts';
 
 export type JumperAlert = { id: string; tone: 'warning' | 'danger'; title: string; body: string; href: string };
 
-/** Everything the jumper half of /app needs, in one round of queries. */
-export async function loadJumperDashboard(db: Database, userId: string, currentDropzoneId: string | null, now = Date.now()) {
+/**
+ * Everything the jumper half of /app needs, in one round of queries. `dropzoneById` lets the route
+ * share its per-request dropzone cache (the layout already read the current dropzone's row).
+ */
+export async function loadJumperDashboard(
+	db: Database,
+	userId: string,
+	currentDropzoneId: string | null,
+	now = Date.now(),
+	dropzoneById: (id: string) => Promise<Dropzone | undefined> = async (id) => (await db.select().from(dropzones).where(eq(dropzones.id, id)).limit(1))[0]
+) {
 	const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
-	const dz = currentDropzoneId
-		? (await db.select().from(dropzones).where(eq(dropzones.id, currentDropzoneId)).limit(1))[0]
-		: undefined;
+	const dz = currentDropzoneId ? await dropzoneById(currentDropzoneId) : undefined;
 	const tz = dz?.timezone ?? 'UTC';
 	const today = localDate(now, tz);
 	// a day of slack so loads in DZs east of us aren't dropped
@@ -33,7 +40,8 @@ export async function loadJumperDashboard(db: Database, userId: string, currentD
 	const next = upcoming.find((u) => u.load.day >= localDate(now, u.dropzone.timezone)) ?? null;
 
 	const checkedInDzId = checkin?.dropzone.id ?? null;
-	const openLoads = checkedInDzId ? await openLoadsToday(db, checkedInDzId, now) : [];
+	const checkedInDz = checkedInDzId ? (checkedInDzId === dz?.id ? dz : await dropzoneById(checkedInDzId)) : undefined;
+	const openLoads = checkedInDz ? await openLoadsToday(db, checkedInDz, now) : [];
 	const joinable = openLoads.filter((l) => !l.stats.full && !l.slots.some((s) => s.userId === userId));
 
 	// warnings
@@ -99,8 +107,8 @@ export async function loadJumperDashboard(db: Database, userId: string, currentD
 		}
 	}
 	// The DZ you're jumping at (checked in, else the selected one) wants a signed sport waiver first.
-	const waiverDz = checkin?.dropzone ?? (dz ? { id: dz.id, name: dz.name } : null);
-	if (waiverDz && (await needsSportIndemnity(db, waiverDz.id, userId))) {
+	const waiverDz = checkedInDz ?? dz ?? null;
+	if (waiverDz && (await needsSportIndemnity(db, waiverDz, userId))) {
 		alerts.unshift({
 			id: 'waiver',
 			tone: 'warning',
