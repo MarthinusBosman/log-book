@@ -87,6 +87,14 @@ test('owner runs the back office', async ({ page }) => {
 	const csv = await page.request.get('/app/reports/export?kind=wallet');
 	expect(csv.status()).toBe(200);
 	expect(await csv.text()).toContain('Top-ups');
+	// On a phone the bar lists stack the bar under its label so names aren't cut short.
+	await page.setViewportSize({ width: 390, height: 844 });
+	const row = page.getByRole('list', { name: 'Top-ups by method' }).getByRole('listitem').first();
+	const label = (await row.locator('span[title]').boundingBox())!;
+	const bar = (await row.locator('svg').boundingBox())!;
+	expect(bar.y).toBeGreaterThanOrEqual(label.y + label.height - 1);
+	expect(bar.width).toBeGreaterThan(label.width);
+	await page.setViewportSize({ width: 1280, height: 900 });
 	await go(page, '/app/reports/print');
 	await expect(page.getByRole('heading', { name: 'Jump Report' })).toBeVisible();
 });
