@@ -87,7 +87,7 @@
 		</form>
 		{#if data.day !== data.today}<Button href="/app/manifest" variant="ghost" size="sm">Today</Button>{/if}
 		<Button href="/app/display{data.day !== data.today ? `?day=${data.day}` : ''}" variant="secondary" size="md">
-			<Icon name="display" class="size-4" /> <span class="hidden sm:inline">Display</span>
+			<Icon name="display" class="size-4" /> <span class="sr-only sm:not-sr-only">Display</span>
 		</Button>
 		{#if data.canManifest}
 			<Button onclick={() => (createOpen = true)} data-testid="new-load"><Icon name="plus" class="size-4" /> New load</Button>

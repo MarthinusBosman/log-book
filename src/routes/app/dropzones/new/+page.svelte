@@ -2,6 +2,7 @@
 	import { onMount, untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { Button, Card, Input, Select } from '#lib/ui/index.ts';
+	import { CURRENCIES, currencyForCountry } from '#lib/domain/currency.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -16,7 +17,15 @@
 	const tzOptions = $derived(
 		[...new Set([timezone, ...data.timezones])].map((t) => ({ value: t, label: t.replace(/_/g, ' ') }))
 	);
-	const currencies = ['USD', 'EUR', 'GBP', 'ZAR', 'AUD', 'NZD', 'CAD', 'CHF', 'SEK', 'NOK', 'DKK', 'BRL'];
+	// Currency follows the country until the owner picks one themselves.
+	let country = $state(untrack(() => form?.country) ?? '');
+	let currency = $state(untrack(() => form?.currency) ?? 'USD');
+	let currencyTouched = $state(untrack(() => !!form?.currency));
+	function onCountry() {
+		const guess = currencyForCountry(country);
+		if (guess && !currencyTouched) currency = guess;
+	}
+	const currencyOptions = $derived([...new Set([currency, ...CURRENCIES])].map((c) => ({ value: c, label: c })));
 </script>
 
 <svelte:head><title>New dropzone</title></svelte:head>
@@ -45,13 +54,15 @@
 					placeholder="ZA"
 					maxlength={2}
 					hint="2-letter ISO code"
-					value={form?.country ?? ''}
+					bind:value={country}
+					oninput={onCountry}
 				/>
 				<Select
 					label="Currency"
 					name="currency"
-					value={form?.currency ?? 'USD'}
-					options={currencies.map((c) => ({ value: c, label: c }))}
+					bind:value={currency}
+					onchange={() => (currencyTouched = true)}
+					options={currencyOptions}
 				/>
 			</div>
 			<Select

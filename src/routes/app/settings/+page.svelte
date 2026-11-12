@@ -4,6 +4,7 @@
 	import Textarea from '#lib/components/staffadmin/Textarea.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
 	import { IMAGE_PRESETS, downscaleInput } from '#lib/client/resize-image.ts';
+	import { CURRENCIES } from '#lib/domain/currency.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -17,7 +18,6 @@
 		['sat', 'Sat'],
 		['sun', 'Sun']
 	] as const;
-	const CURRENCIES = ['ZAR', 'USD', 'EUR', 'GBP', 'AUD', 'NZD', 'CAD', 'NAD', 'BWP', 'KES', 'CHF', 'NOK', 'SEK'];
 
 	let saving = $state(false);
 	let uploading = $state(false);

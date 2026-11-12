@@ -46,7 +46,7 @@
 		<header class="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
 			<h2 class="font-semibold tracking-tight">Next load</h2>
 			<div class="flex items-center gap-2">
-				<Button href="/app/display" size="sm" variant="ghost"><Icon name="display" class="size-4" /> <span class="hidden sm:inline">Display</span></Button>
+				<Button href="/app/display" size="sm" variant="ghost"><Icon name="display" class="size-4" /> <span class="sr-only sm:not-sr-only">Display</span></Button>
 				<Button href="/app/manifest" size="sm" variant="secondary">Open manifest</Button>
 			</div>
 		</header>

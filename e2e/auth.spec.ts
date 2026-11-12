@@ -29,6 +29,14 @@ test('signup → dashboard → logout → login → dashboard', async ({ page })
 	// Create a dropzone so the staff navigation + switcher are populated.
 	await page.goto('/app/dropzones/new');
 	await page.getByLabel('Dropzone name').fill(`Skydive E2E ${test.info().project.name} ${Date.now()}`);
+	// Currency follows the country until the owner picks one (retry: needs hydration).
+	const country = page.locator('input[name=country]');
+	const currency = page.locator('select[name=currency]');
+	await expect(async () => {
+		await country.fill('');
+		await country.pressSequentially('za');
+		await expect(currency).toHaveValue('ZAR', { timeout: 1000 });
+	}).toPass();
 	// Timezone is a picker; a forged unknown zone is refused (it used to 500 the new DZ's dashboard).
 	const tz = page.locator('select[name=timezone]');
 	await expect(tz.locator('option[value="Africa/Johannesburg"]')).toHaveCount(1);
@@ -45,6 +53,8 @@ test('signup → dashboard → logout → login → dashboard', async ({ page })
 	await expect(page).toHaveURL(/\/app$/);
 	// A brand-new dropzone gets the owner's setup checklist; every step links to its settings page.
 	await expect(page.getByTestId('setup-checklist')).toContainText('0 of 7 done');
+	// The icon-only Display button (phones) keeps its accessible name.
+	await expect(page.getByTestId('next-load').getByRole('link', { name: 'Display' })).toBeVisible();
 	await expect(page.getByTestId('setup-checklist').getByRole('link', { name: /Add your aircraft/ })).toHaveAttribute('href', '/app/aircraft');
 	await page.screenshot({ path: `test-results/dashboard-${test.info().project.name}.png`, fullPage: true });
 
