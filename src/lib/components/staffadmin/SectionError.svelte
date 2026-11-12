@@ -7,6 +7,7 @@
 
 <EmptyState
 	class="mt-4"
+	level={1}
 	title={page.status === 403 ? 'No access' : page.status === 404 ? 'Off the landing area' : 'Something went wrong'}
 	description={!page.error?.message || /^not found$/i.test(page.error.message) ? (page.status === 404 ? 'This page doesn’t exist. Check the link or head back.' : 'Please try again.') : page.error.message}
 >

@@ -22,7 +22,7 @@
 	</EmptyState>
 {:else}
 	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2" data-testid="rig-list">
-		{#each data.active as rig (rig.id)}<RigCard {rig} />{/each}
+		{#each data.active as rig (rig.id)}<RigCard {rig} level={2} />{/each}
 	</div>
 	{#if data.retired.length}
 		<h2 class="mt-8 mb-3 text-sm font-semibold tracking-wider text-muted uppercase">Retired</h2>

@@ -111,7 +111,7 @@
 		<div class="min-w-0 flex-1">
 			<div class="flex flex-wrap items-center gap-x-2 gap-y-1">
 				{#if detail}
-					<h2 class="font-semibold tracking-tight">Load {load.loadNumber}</h2>
+					<h1 class="font-semibold tracking-tight">Load {load.loadNumber}</h1>
 				{:else}
 					<a href="/app/manifest/{load.id}" class="font-semibold tracking-tight hover:text-primary">Load {load.loadNumber}</a>
 				{/if}

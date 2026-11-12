@@ -11,6 +11,21 @@ async function signup(page: Page, name: string) {
 	await expect(page).toHaveURL(/\/app$/);
 }
 
+/** Visible headings that skip a level (h1 → h3) or come before the page's h1; [] when the outline is sound. */
+async function headingSkips(page: Page) {
+	return page.locator('h1, h2, h3, h4, h5, h6').evaluateAll((hs) => {
+		let prev = 0;
+		const skips: string[] = [];
+		for (const h of hs) {
+			if (!h.getClientRects().length) continue;
+			const level = Number(h.tagName[1]);
+			if (level > prev + 1) skips.push(`${prev ? `h${prev}` : 'start'} → ${h.tagName.toLowerCase()} “${h.textContent?.trim().slice(0, 30)}”`);
+			prev = level;
+		}
+		return skips;
+	});
+}
+
 async function logout(page: Page) {
 	await page.goto('/logout');
 	await page.getByRole('button', { name: 'Log out' }).click();
@@ -42,6 +57,12 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	await expect(page.getByTestId('toggle-sport')).toHaveText('Switch off');
 	await page.goto('/app');
 	await expect(page.getByTestId('setup-checklist')).toContainText('1 of 7 done');
+
+	// Screen-reader heading outline: no skipped levels on card-heavy staff pages
+	for (const path of ['/app/pricelist', '/app/settings', '/app/waivers?tab=sport', '/app/my-gear']) {
+		await page.goto(path);
+		expect(await headingSkips(page), path).toEqual([]);
+	}
 	await logout(page);
 
 	// Jumper: no staff items anywhere in the navigation
@@ -73,6 +94,7 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	await page.goto('/app/pricelist');
 	await expect(page.getByRole('heading', { name: 'No access' })).toBeVisible();
 	await page.goto('/app/definitely/not/here');
-	await expect(page.getByRole('heading', { name: 'Off the landing area' })).toBeVisible();
+	await expect(page.getByRole('heading', { name: 'Off the landing area', level: 1 })).toBeVisible();
+	expect(await headingSkips(page)).toEqual([]);
 	await expect(page.getByRole('link', { name: 'Back to dashboard' })).toBeVisible();
 });

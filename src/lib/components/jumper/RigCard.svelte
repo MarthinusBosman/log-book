@@ -4,7 +4,7 @@
 	import JIcon from './JIcon.svelte';
 	import { DUE_TONES, dueLabel, fmtDate } from './format.ts';
 
-	let { rig }: { rig: RigView } = $props();
+	let { rig, level = 3 }: { rig: RigView; level?: 2 | 3 } = $props();
 	const bar = { ok: 'bg-success', due_soon: 'bg-warning', overdue: 'bg-danger', unknown: 'bg-border-strong' } as const;
 </script>
 
@@ -14,7 +14,7 @@
 		<div class="min-w-0 flex-1">
 			<div class="flex items-start justify-between gap-2">
 				<div class="min-w-0">
-					<h3 class="truncate font-semibold tracking-tight">{rig.title}</h3>
+					<svelte:element this={`h${level}`} class="truncate font-semibold tracking-tight">{rig.title}</svelte:element>
 					<p class="truncate text-sm text-muted">{[rig.container !== rig.title ? rig.container : null, rig.mainCanopy && `${rig.mainCanopy}${rig.mainSizeSqft ? ` ${rig.mainSizeSqft}` : ''}`].filter(Boolean).join(' · ') || 'No canopy details'}</p>
 				</div>
 				{#if rig.wingLoading}<span class="shrink-0 rounded-lg bg-surface-2 px-2 py-1 text-xs font-medium tabular-nums">WL {rig.wingLoading.toFixed(2)}</span>{/if}

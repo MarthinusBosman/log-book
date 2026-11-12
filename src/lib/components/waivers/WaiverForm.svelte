@@ -44,7 +44,7 @@
 	{/if}
 	<header class="border-b border-border px-5 py-4 sm:px-6">
 		<p class="text-xs font-medium tracking-wider text-primary uppercase">{dropzoneName}</p>
-		<h3 class="mt-1 text-lg font-semibold tracking-tight">{title}</h3>
+		<h2 class="mt-1 text-lg font-semibold tracking-tight">{title}</h2>
 		<p class="mt-1 text-sm text-muted">Please read every section carefully before signing.</p>
 	</header>
 
@@ -54,10 +54,10 @@
 				id="waiver-section-{i}"
 				class={cn('px-5 py-4 sm:px-6', errorSection === i && 'bg-danger/5 ring-1 ring-danger/40 ring-inset')}
 			>
-				<h4 class="flex gap-2 font-medium">
+				<h3 class="flex gap-2 font-medium">
 					<span class="text-subtle tabular-nums">{i + 1}.</span>
 					{s.title}
-				</h4>
+				</h3>
 				{#if s.content}
 					<p class="mt-1.5 text-sm leading-relaxed whitespace-pre-line text-muted">{s.content}</p>
 				{/if}

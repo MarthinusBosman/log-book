@@ -39,7 +39,7 @@
 			<Icon name={active ? 'check' : 'waiver'} />
 		</span>
 		<div class="mr-auto min-w-0">
-			<p class="font-semibold">{label} waiver <Badge tone={active ? 'success' : 'neutral'} dot class="ml-1">{active ? 'Active' : 'Off'}</Badge></p>
+			<h2 class="font-semibold">{label} waiver <Badge tone={active ? 'success' : 'neutral'} dot class="ml-1">{active ? 'Active' : 'Off'}</Badge></h2>
 			<p class="text-sm text-muted">{where}</p>
 		</div>
 		<Button variant="secondary" size="sm" onclick={() => (previewing = true)} disabled={!sections.length}><Icon name="smartphone" class="size-4" /> Preview</Button>
@@ -82,7 +82,7 @@
 						<span class="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-xs font-semibold text-muted tabular-nums">{i + 1}</span>
 						<div class="min-w-0 flex-1">
 							<div class="flex flex-wrap items-center gap-2">
-								<h4 class="font-medium">{s.title}</h4>
+								<h3 class="font-medium">{s.title}</h3>
 								<Badge tone={TYPE_TONES[s.type]}>{SECTION_TYPE_LABELS[s.type]}</Badge>
 							</div>
 							{#if s.content}<p class="mt-1 line-clamp-3 text-sm whitespace-pre-line text-muted">{s.content}</p>{/if}

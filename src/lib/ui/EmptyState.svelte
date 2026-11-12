@@ -4,12 +4,14 @@
 
 	type Props = {
 		title: string;
+		/** Heading level of the title: 2 under a page's h1 (default), 1 on error pages, 3 inside a section. */
+		level?: 1 | 2 | 3;
 		description?: string;
 		icon?: Snippet;
 		action?: Snippet;
 		class?: string;
 	};
-	let { title, description, icon, action, class: className }: Props = $props();
+	let { title, level = 2, description, icon, action, class: className }: Props = $props();
 </script>
 
 <div
@@ -25,7 +27,7 @@
 			{@render icon()}
 		</div>
 	{/if}
-	<h3 class="text-base font-semibold tracking-tight text-fg">{title}</h3>
+	<svelte:element this={`h${level}`} class="text-base font-semibold tracking-tight text-fg">{title}</svelte:element>
 	{#if description}<p class="mt-1.5 max-w-sm text-sm text-muted">{description}</p>{/if}
 	{#if action}<div class="mt-5">{@render action()}</div>{/if}
 </div>
