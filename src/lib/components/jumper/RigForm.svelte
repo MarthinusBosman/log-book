@@ -8,11 +8,11 @@
 		name: string | null;
 		container: string | null;
 		mainCanopy: string | null;
-		mainSizeSqft: number | null;
+		mainSizeSqft: number | string | null;
 		reserveCanopy: string | null;
-		reserveSizeSqft: number | null;
+		reserveSizeSqft: number | string | null;
 		reserveRepackedOn: string | null;
-		repackIntervalDays: number | null;
+		repackIntervalDays: number | string | null;
 		aad: string | null;
 		aadSerial: string | null;
 		aadServiceDueOn: string | null;
@@ -20,8 +20,8 @@
 		wingsuit: string | null;
 		notes: string | null;
 	}>;
-	type Props = { values: Values; exitWeightKg: number | null; intervalDays: number; action: string; submitLabel: string; error?: string | null };
-	let { values, exitWeightKg, intervalDays, action, submitLabel, error }: Props = $props();
+	type Props = { values: Values; exitWeightKg: number | null; intervalDays: number; today: string; action: string; submitLabel: string; error?: string | null };
+	let { values, exitWeightKg, intervalDays, today, action, submitLabel, error }: Props = $props();
 	let busy = $state(false);
 	// svelte-ignore state_referenced_locally
 	let main = $state<number | string | null>(values.mainSizeSqft ?? '');
@@ -74,7 +74,7 @@
 		<div class="grid grid-cols-2 gap-4">
 			<Input label="Reserve canopy *" name="reserveCanopy" placeholder="Smart, PD Reserve…" value={values.reserveCanopy ?? ''} class="col-span-2 sm:col-span-1" required />
 			<Input label="Size (sq ft)" name="reserveSizeSqft" type="number" inputmode="numeric" min="20" max="500" value={values.reserveSizeSqft ?? ''} class="col-span-2 sm:col-span-1" />
-			<Input label="Last repack date *" name="reserveRepackedOn" type="date" value={values.reserveRepackedOn ?? ''} required />
+			<Input label="Last repack date *" name="reserveRepackedOn" type="date" min="1900-01-01" max={today} value={values.reserveRepackedOn ?? ''} required />
 			<Input label="Repack interval (days)" name="repackIntervalDays" type="number" inputmode="numeric" min="30" max="400" placeholder={String(intervalDays)} value={values.repackIntervalDays ?? ''} hint="Blank = dropzone default" />
 		</div>
 	</section>
@@ -84,8 +84,8 @@
 		<div class="grid grid-cols-2 gap-4">
 			<Input label="AAD make & model" name="aad" placeholder="Cypres 2, Vigil…" value={values.aad ?? ''} />
 			<Input label="Serial" name="aadSerial" value={values.aadSerial ?? ''} />
-			<Input label="Next service due" name="aadServiceDueOn" type="date" value={values.aadServiceDueOn ?? ''} />
-			<Input label="End of life" name="aadExpiresOn" type="date" value={values.aadExpiresOn ?? ''} />
+			<Input label="Next service due" name="aadServiceDueOn" type="date" min="1900-01-01" value={values.aadServiceDueOn ?? ''} />
+			<Input label="End of life" name="aadExpiresOn" type="date" min="1900-01-01" value={values.aadExpiresOn ?? ''} />
 		</div>
 	</section>
 

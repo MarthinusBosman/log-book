@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { deleteRig, getRig, listServiceHistory, recordService, updateRig } from '#lib/server/domain/gear.ts';
 import { DomainError } from '#lib/server/domain/errors.ts';
 import { domainFail, opt, requireUser, str } from '#lib/server/jumper/forms.ts';
-import { gearContext, parseRigForm, rigView } from '#lib/server/jumper/gear.ts';
+import { gearContext, parseRigForm, rigFormEcho, rigView } from '#lib/server/jumper/gear.ts';
 import { GEAR_SERVICE_KINDS, type GearServiceKind } from '#lib/domain/constants.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -29,11 +29,12 @@ export const actions: Actions = {
 	update: async ({ locals, request, params }) => {
 		const user = requireUser(locals);
 		const rig = await ownRig(locals, user.id, params.id);
+		const form = await request.formData();
 		try {
 			const ctx = await gearContext(locals.db, user.id, null);
-			await updateRig(locals.db, rig.id, parseRigForm(await request.formData(), ctx.exitWeightKg));
+			await updateRig(locals.db, rig.id, parseRigForm(form, ctx.exitWeightKg));
 		} catch (e) {
-			return domainFail(e, { action: 'update' });
+			return domainFail(e, { action: 'update', values: rigFormEcho(form) });
 		}
 		return { action: 'update', success: 'Gear info updated successfully' };
 	},

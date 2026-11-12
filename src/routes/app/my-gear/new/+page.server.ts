@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { createRig } from '#lib/server/domain/gear.ts';
 import { domainFail, requireUser } from '#lib/server/jumper/forms.ts';
-import { gearContext, parseRigForm } from '#lib/server/jumper/gear.ts';
+import { gearContext, parseRigForm, rigFormEcho } from '#lib/server/jumper/gear.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
@@ -19,7 +19,7 @@ export const actions: Actions = {
 			const ctx = await gearContext(locals.db, user.id, null);
 			id = (await createRig(locals.db, { userId: user.id }, parseRigForm(form, ctx.exitWeightKg))).id;
 		} catch (e) {
-			return domainFail(e);
+			return domainFail(e, { values: rigFormEcho(form) });
 		}
 		redirect(303, `/app/my-gear/${id}?added=1`);
 	}

@@ -53,6 +53,41 @@ export function rigView(rig: Rig, ctx: GearContext) {
 }
 export type RigView = ReturnType<typeof rigView>;
 
+/**
+ * The submitted rig form, for re-rendering after a failed no-JS POST so the
+ * jumper keeps what they typed. Numbers that don't parse are kept as text.
+ */
+export function rigFormEcho(form: FormData) {
+	const raw = (k: string) => {
+		const v = form.get(k);
+		return typeof v === 'string' ? v.slice(0, 4000) : '';
+	};
+	const text = (k: string) => raw(k) || null;
+	const num = (k: string) => {
+		const v = raw(k).trim();
+		if (!v) return null;
+		return /^\d+$/.test(v) ? Number(v) : v;
+	};
+	return {
+		name: text('name'),
+		container: text('container'),
+		mainCanopy: text('mainCanopy'),
+		mainSizeSqft: num('mainSizeSqft'),
+		reserveCanopy: text('reserveCanopy'),
+		reserveSizeSqft: num('reserveSizeSqft'),
+		reserveRepackedOn: text('reserveRepackedOn'),
+		repackIntervalDays: num('repackIntervalDays'),
+		aad: text('aad'),
+		aadSerial: text('aadSerial'),
+		aadServiceDueOn: text('aadServiceDueOn'),
+		aadExpiresOn: text('aadExpiresOn'),
+		wingsuit: text('wingsuit'),
+		notes: text('notes')
+	};
+}
+
+export type RigFormEcho = ReturnType<typeof rigFormEcho>;
+
 const size = (form: FormData, key: string, label: string) => {
 	const v = num(form, key);
 	if (v === null) return null;

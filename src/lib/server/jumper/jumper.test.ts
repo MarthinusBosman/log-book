@@ -4,6 +4,7 @@ import { csvField, logbookCsv } from './csv.ts';
 import { friendlyError, moneyMinor, seconds } from './forms.ts';
 import { DomainError } from '../domain/errors.ts';
 import { jumpFormEcho, parseJumpForm } from './logbook.ts';
+import { rigFormEcho } from './gear.ts';
 
 const owner = { id: 'u1', passwordHash: 'pbkdf2-sha256$100000$abc$def', createdAt: new Date(1_700_000_000_000) };
 const jumpId = '0f8fad5b-d9cb-469f-a165-70867728950e';
@@ -109,5 +110,28 @@ describe('jump form', () => {
 		const v = jumpFormEcho(fd({ jumpNumber: '42', jumpDate: '0101-02-03', dropzoneId: '', location: 'Boogie', altitudeFt: '-500', freefallSeconds: '0:45', jumpType: 'freefly', description: 'Long track' }));
 		expect(v).toEqual({ jumpNumber: 42, jumpDate: '0101-02-03', dropzoneId: '', location: 'Boogie', aircraft: null, altitudeFt: '-500', freefallSeconds: '0:45', jumpType: 'freefly', description: 'Long track', rigId: null });
 		expect(jumpFormEcho(fd({})).jumpNumber).toBe('');
+	});
+});
+
+describe('rig form echo', () => {
+	test('keeps typed values (bad numbers as text) for a failed no-JS post', () => {
+		const f = new FormData();
+		for (const [k, v] of Object.entries({ container: 'Mirage G4', mainCanopy: 'Sabre3', mainSizeSqft: '170', reserveSizeSqft: '15x', reserveRepackedOn: '0202-05-01', repackIntervalDays: '', notes: 'Blue' })) f.set(k, v);
+		expect(rigFormEcho(f)).toEqual({
+			name: null,
+			container: 'Mirage G4',
+			mainCanopy: 'Sabre3',
+			mainSizeSqft: 170,
+			reserveCanopy: null,
+			reserveSizeSqft: '15x',
+			reserveRepackedOn: '0202-05-01',
+			repackIntervalDays: null,
+			aad: null,
+			aadSerial: null,
+			aadServiceDueOn: null,
+			aadExpiresOn: null,
+			wingsuit: null,
+			notes: 'Blue'
+		});
 	});
 });

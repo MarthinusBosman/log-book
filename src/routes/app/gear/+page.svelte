@@ -231,7 +231,7 @@
 					<Input label="Size (ft²)" name="reserveSizeSqft" type="number" min="1" value={rig?.reserveSizeSqft ?? ''} />
 				</div>
 				<div class="grid grid-cols-2 gap-3">
-					<Input label="Last reserve repack" name="reserveRepackedOn" type="date" required max={data.today} value={rig?.reserveRepackedOn ?? ''} />
+					<Input label="Last reserve repack" name="reserveRepackedOn" type="date" required min="1900-01-01" max={data.today} value={rig?.reserveRepackedOn ?? ''} />
 					<Input label="Repack interval (days)" name="repackIntervalDays" type="number" min="1" value={rig?.repackIntervalDays ?? ''} hint="Blank = DZ default" />
 				</div>
 				<div class="grid grid-cols-2 gap-3">
@@ -239,8 +239,8 @@
 					<Input label="AAD serial" name="aadSerial" value={rig?.aadSerial ?? ''} />
 				</div>
 				<div class="grid grid-cols-2 gap-3">
-					<Input label="AAD service due" name="aadServiceDueOn" type="date" value={rig?.aadServiceDueOn ?? ''} />
-					<Input label="AAD end of life" name="aadExpiresOn" type="date" value={rig?.aadExpiresOn ?? ''} />
+					<Input label="AAD service due" name="aadServiceDueOn" type="date" min="1900-01-01" value={rig?.aadServiceDueOn ?? ''} />
+					<Input label="AAD end of life" name="aadExpiresOn" type="date" min="1900-01-01" value={rig?.aadExpiresOn ?? ''} />
 				</div>
 				<Textarea label="Notes" name="notes" value={rig?.notes ?? ''} rows={2} />
 				<Button type="submit" class="w-full" loading={pending}>{rig ? 'Save rig' : 'Add to register'}</Button>
@@ -260,7 +260,7 @@
 			<input type="hidden" name="id" value={servicing.id} />
 			<Select label="Work done" name="kind" bind:value={serviceKind} options={serviceOptions} />
 			<div class="grid grid-cols-2 gap-3">
-				<Input label="Date" name="performedOn" type="date" required max={data.today} value={data.today} />
+				<Input label="Date" name="performedOn" type="date" required min="1900-01-01" max={data.today} value={data.today} />
 				<Input label="Rigger no." name="riggerNumber" placeholder="Optional" />
 			</div>
 			{#if serviceKind === 'aad_service'}

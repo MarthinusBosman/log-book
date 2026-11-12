@@ -7,11 +7,12 @@
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
 	import { DUE_TONES, dueLabel, fmtDate } from '#lib/components/jumper/format.ts';
+	import type { RigFormEcho } from '#lib/server/jumper/gear.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 	const rig = $derived(data.rig);
-	const f = $derived(form as { action?: string; message?: string; success?: string } | null);
+	const f = $derived(form as { action?: string; message?: string; success?: string; values?: RigFormEcho } | null);
 	let kind = $state('reserve_repack');
 	let busy = $state(false);
 	const KIND_LABELS: Record<string, string> = { reserve_repack: 'Reserve repack', aad_service: 'AAD service', main_reline: 'Main reline', inspection: 'Inspection', other: 'Other' };
@@ -42,7 +43,7 @@
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
 	<div class="lg:col-span-3">
 		<Card title="Rig details">
-			<RigForm values={rig} exitWeightKg={data.ctx.exitWeightKg} intervalDays={data.ctx.intervalDays} action="?/update" submitLabel="Save changes" error={f?.action === 'update' ? f.message : null} />
+			<RigForm values={(f?.action === 'update' && f.values) || rig} exitWeightKg={data.ctx.exitWeightKg} intervalDays={data.ctx.intervalDays} {today} action="?/update" submitLabel="Save changes" error={f?.action === 'update' ? f.message : null} />
 		</Card>
 	</div>
 	<aside class="space-y-4 lg:col-span-2">
@@ -50,8 +51,8 @@
 			<form method="POST" action="?/service" class="space-y-3" use:enhance={() => { busy = true; return async ({ update }) => { await update(); busy = false; }; }} data-testid="service-form">
 				<Select label="What was done" name="kind" bind:value={kind} options={Object.entries(KIND_LABELS).map(([value, label]) => ({ value, label }))} />
 				<div class="grid grid-cols-2 gap-3">
-					<Input label="Date" name="performedOn" type="date" value={today} max={today} required />
-					{#if kind === 'aad_service'}<Input label="Next service due" name="nextDueOn" type="date" />{/if}
+					<Input label="Date" name="performedOn" type="date" value={today} min="1900-01-01" max={today} required />
+					{#if kind === 'aad_service'}<Input label="Next service due" name="nextDueOn" type="date" min={today} />{/if}
 				</div>
 				<div class="grid grid-cols-2 gap-3">
 					<Input label="Rigger" name="performedByName" placeholder="Name" />

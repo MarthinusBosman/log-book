@@ -6,7 +6,7 @@ import { DEFAULT_REPACK_DAYS, type DueStatus, type GearServiceKind, type RigKind
 import { DomainError, assertFound } from './errors.ts';
 import { notify } from './notifications.ts';
 import { listUsersWithRole } from './permissions.ts';
-import { addDays, daysBetween, isIsoDate } from './time.ts';
+import { addDays, daysBetween, isIsoDate, localDate } from './time.ts';
 
 /** Country default reserve repack intervals (days). Extend as regulations are confirmed. */
 export const COUNTRY_REPACK_DAYS: Record<string, number> = {
@@ -76,10 +76,39 @@ export type RigInput = {
 	active?: boolean;
 };
 
-function validateRig(input: RigInput) {
-	for (const k of ['reserveRepackedOn', 'aadServiceDueOn', 'aadExpiresOn'] as const) {
-		if (input[k] != null && !isIsoDate(input[k])) throw new DomainError('invalid', `${k} must be YYYY-MM-DD`);
-	}
+const GEAR_DATE_LABELS = {
+	reserveRepackedOn: 'Last repack date',
+	aadServiceDueOn: 'Next AAD service date',
+	aadExpiresOn: 'AAD end of life',
+	performedOn: 'Service date',
+	nextDueOn: 'Next due date'
+} as const;
+export type GearDateField = keyof typeof GEAR_DATE_LABELS;
+/** Gear dates that record work already done can't be in the future. */
+const PAST_ONLY = new Set<GearDateField>(['reserveRepackedOn', 'performedOn']);
+/** Mangled years (0101, 2202) from a mistyped date input would make a rig look in date for centuries. */
+const MIN_GEAR_DATE = '1900-01-01';
+const MAX_DAYS_AHEAD = 30 * 366;
+
+/** Why a typed gear date is implausible, or null when it's fine (one day of time-zone slack for past-only dates). */
+export function gearDateProblem(field: GearDateField, date: string, now = Date.now()): string | null {
+	const label = GEAR_DATE_LABELS[field];
+	if (!isIsoDate(date)) return `${label} must be a valid date`;
+	if (date < MIN_GEAR_DATE) return `${label} is too far in the past: check the year`;
+	const today = localDate(now);
+	if (PAST_ONLY.has(field) && date > addDays(today, 1)) return `${label} is in the future: check the year`;
+	if (date > addDays(today, MAX_DAYS_AHEAD)) return `${label} is too far in the future: check the year`;
+	return null;
+}
+
+function assertGearDate(field: GearDateField, date: string | null | undefined, now: number) {
+	if (date == null) return;
+	const problem = gearDateProblem(field, date, now);
+	if (problem) throw new DomainError('invalid', problem);
+}
+
+function validateRig(input: RigInput, now: number) {
+	for (const k of ['reserveRepackedOn', 'aadServiceDueOn', 'aadExpiresOn'] as const) assertGearDate(k, input[k], now);
 }
 
 /** Personal rig (owner = user) or DZ rig (owner = dropzone). Reserve repack date is required, as in the original. */
@@ -89,7 +118,7 @@ export async function createRig(
 	input: RigInput,
 	now = Date.now()
 ): Promise<Rig> {
-	validateRig(input);
+	validateRig(input, now);
 	if (!input.reserveRepackedOn) throw new DomainError('invalid', 'Please set the reserve repack date');
 	const isUser = 'userId' in owner;
 	const rows = await db
@@ -108,7 +137,7 @@ export async function createRig(
 }
 
 export async function updateRig(db: Database, rigId: string, patch: RigInput, now = Date.now()): Promise<Rig> {
-	validateRig(patch);
+	validateRig(patch, now);
 	const rows = await db
 		.update(rigs)
 		.set({ ...patch, updatedAt: new Date(now) })
@@ -151,9 +180,10 @@ export async function recordService(
 		now?: number;
 	}
 ) {
-	if (!isIsoDate(input.performedOn)) throw new DomainError('invalid', 'performedOn must be YYYY-MM-DD');
-	const rig = assertFound(await getRig(db, input.rigId), 'Rig');
 	const now = input.now ?? Date.now();
+	assertGearDate('performedOn', input.performedOn ?? '', now);
+	assertGearDate('nextDueOn', input.nextDueOn, now);
+	const rig = assertFound(await getRig(db, input.rigId), 'Rig');
 	let byName = input.performedByName ?? null;
 	if (!byName && input.performedByUserId) {
 		byName = (await db.select({ n: users.name }).from(users).where(eq(users.id, input.performedByUserId)).limit(1))[0]?.n ?? null;
