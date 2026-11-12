@@ -7,13 +7,14 @@
 	import { cn } from '#lib/ui/index.ts';
 
 	type Values = {
-		jumpNumber: number;
+		/** Numbers may be text when echoing back a submission that didn't parse. */
+		jumpNumber: number | string;
 		jumpDate: string;
 		dropzoneId: string | null;
 		location: string | null;
 		aircraft: string | null;
-		altitudeFt: number | null;
-		freefallSeconds: number | null;
+		altitudeFt: number | string | null;
+		freefallSeconds: number | string | null;
 		jumpType: string | null;
 		description: string | null;
 		rigId: string | null;
@@ -39,7 +40,7 @@
 				? (dropzones.find((d) => d.name.toLowerCase() === values.location!.trim().toLowerCase())?.id ?? '')
 				: (dropzones[0]?.id ?? ''))
 	);
-	const ffText = (s: number | null) => (s == null ? '' : String(s));
+	const ffText = (s: number | string | null) => (s == null ? '' : String(s));
 </script>
 
 <form

@@ -62,6 +62,35 @@ export function parseJumpForm(form: FormData, allowedDzIds: Set<string>, now = D
 	};
 }
 
+/**
+ * The submitted jump form as form values, so a failed no-JS post re-renders
+ * what the jumper typed instead of the original values. Numbers that don't
+ * parse are kept as typed text.
+ */
+export function jumpFormEcho(form: FormData) {
+	const raw = (k: string) => {
+		const v = form.get(k);
+		return typeof v === 'string' ? v.slice(0, 4000) : '';
+	};
+	const num = (k: string) => {
+		const v = raw(k).trim();
+		if (!v) return null;
+		return /^\d+$/.test(v) ? Number(v) : v;
+	};
+	return {
+		jumpNumber: num('jumpNumber') ?? '',
+		jumpDate: raw('jumpDate'),
+		dropzoneId: raw('dropzoneId'),
+		location: raw('location') || null,
+		aircraft: raw('aircraft') || null,
+		altitudeFt: num('altitudeFt'),
+		freefallSeconds: num('freefallSeconds'),
+		jumpType: raw('jumpType') || null,
+		description: raw('description') || null,
+		rigId: raw('rigId') || null
+	};
+}
+
 /** Logbook list filters from the query string (also used by CSV export / print). */
 export function filtersFromUrl(url: URL): JumpFilters & { year?: string } {
 	const p = url.searchParams;

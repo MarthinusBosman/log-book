@@ -11,7 +11,7 @@
 
 	let { data, form }: PageProps = $props();
 	const j = $derived(data.jump);
-	const f = $derived(form as { action?: string; message?: string; success?: string; link?: string; qr?: string; expiresInDays?: number } | null);
+	const f = $derived(form as { action?: string; values?: typeof data.values; message?: string; success?: string; link?: string; qr?: string; expiresInDays?: number } | null);
 	let busySign = $state(false);
 	let copied = $state(false);
 
@@ -74,7 +74,7 @@
 	<div class="lg:col-span-3">
 		<Card title="Jump details" description={j.verified ? 'Logged by the dropzone when the load completed. Date, number, dropzone and aircraft are locked.' : undefined}>
 			<JumpForm
-				values={data.values}
+				values={f?.action === 'update' && f.values ? f.values : data.values}
 				dropzones={data.dropzones}
 				rigs={data.rigs}
 				locked={j.verified}

@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { addJump, nextJumpNumber } from '#lib/server/domain/logbook.ts';
 import { domainFail, requireUser, todayAt } from '#lib/server/jumper/forms.ts';
-import { dropzoneOptions, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
+import { dropzoneOptions, jumpFormEcho, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
@@ -38,7 +38,7 @@ export const actions: Actions = {
 			if (input.rigId && !(await rigOptions(locals.db, user.id)).some((r) => r.id === input.rigId)) input.rigId = null;
 			id = (await addJump(locals.db, user.id, input)).id;
 		} catch (e) {
-			return domainFail(e);
+			return domainFail(e, { values: jumpFormEcho(form) });
 		}
 		redirect(303, `/app/logbook/${id}?added=1`);
 	}

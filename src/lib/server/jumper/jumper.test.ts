@@ -3,7 +3,7 @@ import { createSignToken, parseSignToken, qrSvg, verifySignToken } from './signo
 import { csvField, logbookCsv } from './csv.ts';
 import { friendlyError, moneyMinor, seconds } from './forms.ts';
 import { DomainError } from '../domain/errors.ts';
-import { parseJumpForm } from './logbook.ts';
+import { jumpFormEcho, parseJumpForm } from './logbook.ts';
 
 const owner = { id: 'u1', passwordHash: 'pbkdf2-sha256$100000$abc$def', createdAt: new Date(1_700_000_000_000) };
 const jumpId = '0f8fad5b-d9cb-469f-a165-70867728950e';
@@ -104,5 +104,10 @@ describe('jump form', () => {
 		expect(parseJumpForm(fd({ ...base, jumpDate: '2026-11-14' }), new Set(), now).jumpDate).toBe('2026-11-14');
 		expect(() => parseJumpForm(fd({ ...base, jumpDate: '2030-01-01' }), new Set(), now)).toThrow(/future/);
 		expect(() => parseJumpForm(fd({ ...base, jumpDate: '0101-02-03' }), new Set(), now)).toThrow(/past/);
+	});
+	test('echoes what was typed so a failed post keeps the values', () => {
+		const v = jumpFormEcho(fd({ jumpNumber: '42', jumpDate: '0101-02-03', dropzoneId: '', location: 'Boogie', altitudeFt: '-500', freefallSeconds: '0:45', jumpType: 'freefly', description: 'Long track' }));
+		expect(v).toEqual({ jumpNumber: 42, jumpDate: '0101-02-03', dropzoneId: '', location: 'Boogie', aircraft: null, altitudeFt: '-500', freefallSeconds: '0:45', jumpType: 'freefly', description: 'Long track', rigId: null });
+		expect(jumpFormEcho(fd({})).jumpNumber).toBe('');
 	});
 });

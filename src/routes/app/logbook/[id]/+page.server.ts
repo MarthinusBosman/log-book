@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { users } from '#lib/server/db/schema.ts';
 import { deleteJump, getJump, updateJump } from '#lib/server/domain/logbook.ts';
 import { domainFail, requireUser } from '#lib/server/jumper/forms.ts';
-import { dropzoneOptions, dzNameMap, jumpRow, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
+import { dropzoneOptions, dzNameMap, jumpFormEcho, jumpRow, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
 import { createSignToken, qrSvg, SIGN_LINK_TTL_S } from '#lib/server/jumper/signoff.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -58,7 +58,7 @@ export const actions: Actions = {
 			}
 			await updateJump(locals.db, user.id, jump.id, input);
 		} catch (e) {
-			return domainFail(e, { action: 'update' });
+			return domainFail(e, { action: 'update', values: jumpFormEcho(form) });
 		}
 		return { action: 'update', success: 'Jump info updated' };
 	},
