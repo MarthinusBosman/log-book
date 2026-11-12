@@ -57,7 +57,7 @@
 >
 	<div class="grid grid-cols-2 gap-3 sm:gap-4">
 		<Input label="Jump #" name="jumpNumber" type="number" inputmode="numeric" min="1" value={values.jumpNumber} readonly={locked} required />
-		<Input label="Date" name="jumpDate" type="date" value={values.jumpDate} readonly={locked} required />
+		<Input label="Date" name="jumpDate" type="date" min="1900-01-01" value={values.jumpDate} readonly={locked} required />
 	</div>
 
 	<div class="space-y-2">

@@ -3,6 +3,7 @@ import { createSignToken, parseSignToken, qrSvg, verifySignToken } from './signo
 import { csvField, logbookCsv } from './csv.ts';
 import { friendlyError, moneyMinor, seconds } from './forms.ts';
 import { DomainError } from '../domain/errors.ts';
+import { parseJumpForm } from './logbook.ts';
 
 const owner = { id: 'u1', passwordHash: 'pbkdf2-sha256$100000$abc$def', createdAt: new Date(1_700_000_000_000) };
 const jumpId = '0f8fad5b-d9cb-469f-a165-70867728950e';
@@ -88,5 +89,20 @@ describe('form helpers', () => {
 		const msg = friendlyError(new DomainError('insufficient_funds', 'x', { availableMinor: 12345, requiredMinor: 45000, currency: 'ZAR' }));
 		expect(msg).toContain('123');
 		expect(msg).toContain('Available funds');
+	});
+});
+
+describe('jump form', () => {
+	const fd = (o: Record<string, string>) => {
+		const f = new FormData();
+		for (const [k, v] of Object.entries(o)) f.set(k, v);
+		return f;
+	};
+	const now = Date.parse('2026-11-14T08:00:00Z');
+	test('rejects future and implausibly old dates', () => {
+		const base = { location: 'Boogie' };
+		expect(parseJumpForm(fd({ ...base, jumpDate: '2026-11-14' }), new Set(), now).jumpDate).toBe('2026-11-14');
+		expect(() => parseJumpForm(fd({ ...base, jumpDate: '2030-01-01' }), new Set(), now)).toThrow(/future/);
+		expect(() => parseJumpForm(fd({ ...base, jumpDate: '0101-02-03' }), new Set(), now)).toThrow(/past/);
 	});
 });

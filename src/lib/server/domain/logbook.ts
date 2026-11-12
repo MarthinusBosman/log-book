@@ -6,7 +6,12 @@ import type { JumpType } from '../../domain/constants.ts';
 import { chunkedInsert, runAtomic } from './atomic.ts';
 import { DomainError, assertFound } from './errors.ts';
 import { notify } from './notifications.ts';
-import { isIsoDate } from './time.ts';
+import { DAY_MS, isIsoDate, localDate } from './time.ts';
+
+/** Earliest plausible jump date (old paper logbooks still get typed in). */
+export const MIN_JUMP_DATE = '1900-01-01';
+
+const FIELD_LABELS = { altitudeFt: 'Altitude', freefallSeconds: 'Freefall time' } as const;
 
 export type JumpInput = {
 	jumpNumber?: number;
@@ -36,16 +41,23 @@ export async function nextJumpNumber(db: Database, userId: string): Promise<numb
 	return Math.max(logged, user[0]?.d ?? 0) + 1;
 }
 
+/** Jump dates typed into forms: not before MIN_JUMP_DATE, not in the future (one day of time-zone slack). */
+export function assertJumpDateInRange(jumpDate: string, now = Date.now()) {
+	if (jumpDate < MIN_JUMP_DATE) throw new DomainError('invalid', 'That jump date is too far in the past: check the year');
+	if (jumpDate > localDate(now + DAY_MS)) throw new DomainError('invalid', 'That jump date is in the future');
+}
+
 function validate(input: Partial<JumpInput>) {
-	if (input.jumpDate !== undefined && !isIsoDate(input.jumpDate)) {
-		throw new DomainError('invalid', 'Please set the date for this jump');
+	if (input.jumpDate !== undefined) {
+		if (!isIsoDate(input.jumpDate)) throw new DomainError('invalid', 'Please set the date for this jump');
+		if (input.jumpDate < MIN_JUMP_DATE) throw new DomainError('invalid', 'That jump date is too far in the past: check the year');
 	}
 	if (input.jumpNumber !== undefined && (!Number.isInteger(input.jumpNumber) || input.jumpNumber < 1)) {
 		throw new DomainError('invalid', 'Jump number must be a positive whole number');
 	}
 	for (const k of ['altitudeFt', 'freefallSeconds'] as const) {
 		const v = input[k];
-		if (v != null && (!Number.isFinite(v) || v < 0)) throw new DomainError('invalid', `${k} must be ≥ 0`);
+		if (v != null && (!Number.isFinite(v) || v < 0)) throw new DomainError('invalid', `${FIELD_LABELS[k]} can't be negative`);
 	}
 }
 

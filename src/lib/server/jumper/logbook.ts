@@ -5,7 +5,8 @@ import { listFollowedDropzones } from '../domain/dropzone-admin.ts';
 import { listMemberships } from '../dropzones/index.ts';
 import { listUserRigs } from '../domain/gear.ts';
 import { DomainError } from '../domain/errors.ts';
-import type { JumpInput, JumpFilters } from '../domain/logbook.ts';
+import { assertJumpDateInRange, type JumpInput, type JumpFilters } from '../domain/logbook.ts';
+import { isIsoDate } from '../domain/time.ts';
 import { JUMP_TYPES, type JumpType } from '../../domain/constants.ts';
 import { int, opt, seconds, str } from './forms.ts';
 
@@ -31,7 +32,9 @@ export async function rigOptions(db: Database, userId: string) {
 }
 
 /** Parse the jump form. `dropzoneId` = '' means free-text location. */
-export function parseJumpForm(form: FormData, allowedDzIds: Set<string>): JumpInput {
+export function parseJumpForm(form: FormData, allowedDzIds: Set<string>, now = Date.now()): JumpInput {
+	const jumpDate = str(form, 'jumpDate');
+	if (isIsoDate(jumpDate)) assertJumpDateInRange(jumpDate, now);
 	const dz = str(form, 'dropzoneId');
 	if (dz && !allowedDzIds.has(dz)) throw new DomainError('invalid', 'Choose one of your dropzones or type a location');
 	if (!dz && !opt(form, 'location')) throw new DomainError('invalid', 'Choose a dropzone or type a location');
@@ -47,7 +50,7 @@ export function parseJumpForm(form: FormData, allowedDzIds: Set<string>): JumpIn
 	if (ff !== null && ff > 600) throw new DomainError('invalid', 'Freefall time looks too long (max 10 minutes)');
 	return {
 		jumpNumber: n ?? undefined,
-		jumpDate: str(form, 'jumpDate'),
+		jumpDate,
 		dropzoneId: dz || null,
 		location: dz ? null : opt(form, 'location'),
 		aircraft: opt(form, 'aircraft'),

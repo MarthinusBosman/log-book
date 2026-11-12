@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from '../db/index.ts';
 import { isDomainError } from './errors.ts';
-import { addJump, deleteJump, importJumps, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
+import { addJump, assertJumpDateInRange, deleteJump, importJumps, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
 import { setRatings } from './profile.ts';
 import { addSlot, completeLoad, createLoads } from './loads.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from './testing.ts';
@@ -40,7 +40,18 @@ describe('numbering', () => {
 		const u = await makeUser(db);
 		await expect(addJump(db, u.id, { jumpDate: '' })).rejects.toThrow(/date/);
 		await expect(addJump(db, u.id, { jumpDate: DAY, jumpNumber: 0 })).rejects.toThrow(/positive/);
-		await expect(addJump(db, u.id, { jumpDate: DAY, freefallSeconds: -1 })).rejects.toThrow();
+		await expect(addJump(db, u.id, { jumpDate: DAY, freefallSeconds: -1 })).rejects.toThrow("Freefall time can't be negative");
+		await expect(addJump(db, u.id, { jumpDate: DAY, altitudeFt: -500 })).rejects.toThrow("Altitude can't be negative");
+		await expect(addJump(db, u.id, { jumpDate: '0101-02-03' })).rejects.toThrow(/too far in the past/);
+	});
+
+	test('form dates: not in the future (one day of time-zone slack)', () => {
+		const now = Date.parse('2026-11-14T08:00:00Z');
+		expect(() => assertJumpDateInRange('2026-11-15', now)).not.toThrow();
+		expect(() => assertJumpDateInRange('1975-06-01', now)).not.toThrow();
+		expect(() => assertJumpDateInRange('2026-11-16', now)).toThrow(/future/);
+		expect(() => assertJumpDateInRange('2030-01-01', now)).toThrow(/future/);
+		expect(() => assertJumpDateInRange('1899-12-31', now)).toThrow(/past/);
 	});
 });
 
