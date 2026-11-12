@@ -233,7 +233,7 @@
 							<Input label="Full name" name="j{i}_name" bind:value={j.name} required autocomplete={i === 0 ? 'name' : 'off'} class="sm:col-span-2" />
 							<Input label="Email" name="j{i}_email" type="email" bind:value={j.email} required inputmode="email" autocomplete={i === 0 ? 'email' : 'off'} />
 							<Input label="Mobile number" name="j{i}_phone" type="tel" bind:value={j.phone} required inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
-							<Input label="Date of birth" name="j{i}_dob" type="date" bind:value={j.dob} required max={data.today} data-dob />
+							<Input label="Date of birth" name="j{i}_dob" type="date" bind:value={j.dob} required min="1900-01-01" max={data.today} data-dob />
 							<div class="grid grid-cols-2 gap-3">
 								<Input label="Weight (kg)" name="j{i}_weightKg" type="number" inputmode="decimal" min="20" max="250" step="0.1" bind:value={j.weightKg} required data-weight />
 								<Input label="Height (cm)" name="j{i}_heightCm" type="number" inputmode="numeric" min="80" max="250" bind:value={j.heightCm} />

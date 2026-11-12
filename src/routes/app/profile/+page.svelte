@@ -104,7 +104,7 @@
 					<Input label="Full name" name="name" value={p.name} required autocomplete="name" />
 					<Input label="Email" value={p.email} readonly disabled hint="Contact support to change your email" />
 					<Input label="Phone number" name="phone" type="tel" value={p.phone ?? ''} autocomplete="tel" />
-					<Input label="Date of birth" name="dob" type="date" value={p.dob ?? ''} max={data.today} />
+					<Input label="Date of birth" name="dob" type="date" value={p.dob ?? ''} min="1900-01-01" max={data.today} />
 				</div>
 				<Input label="Address" name="address" value={p.address ?? ''} autocomplete="street-address" />
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">

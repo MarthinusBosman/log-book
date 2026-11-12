@@ -2,7 +2,7 @@
 import { GENDERS, TANDEM_EXTRAS, type SlotExtra } from '../../domain/constants.ts';
 import type { PassengerInput } from '../domain/tandems.ts';
 import { DomainError } from '../domain/errors.ts';
-import { isIsoDate } from '../domain/time.ts';
+import { dobProblem, isIsoDate } from '../domain/time.ts';
 import { optNum, optStr, str } from './http.ts';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,7 +48,8 @@ export function parsePassengerForm(f: FormData): Partial<PassengerInput> {
 	if (typeof out.name === 'string') out.name = out.name.trim();
 	if (out.email && !EMAIL_RE.test(String(out.email))) throw new DomainError('invalid', 'Please enter a valid email address');
 	if (out.guardianEmail && !EMAIL_RE.test(String(out.guardianEmail))) throw new DomainError('invalid', "Please enter a valid guardian email");
-	if (out.dob && !isIsoDate(out.dob)) throw new DomainError('invalid', 'Date of birth must be a valid date');
+	const dobError = out.dob ? dobProblem(String(out.dob)) : null;
+	if (dobError) throw new DomainError('invalid', dobError);
 	if (out.jumpDate && !isIsoDate(out.jumpDate)) throw new DomainError('invalid', 'Jump date must be a valid date');
 	if (out.weightKg != null && ((out.weightKg as number) < 20 || (out.weightKg as number) > 250)) throw new DomainError('invalid', 'Weight looks wrong — enter it in kg');
 	if (out.heightCm != null && ((out.heightCm as number) < 80 || (out.heightCm as number) > 250)) throw new DomainError('invalid', 'Height looks wrong — enter it in cm');

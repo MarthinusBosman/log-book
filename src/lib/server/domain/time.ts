@@ -39,6 +39,17 @@ export function weekdayIndex(date: string): number {
 	return (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
 }
 
+/** Earliest date of birth forms accept (catches mangled years such as 0505). */
+export const MIN_DOB = '1900-01-01';
+
+/** Why a typed date of birth is implausible, or null when it's fine (one day of time-zone slack). */
+export function dobProblem(dob: string, now = Date.now()): string | null {
+	if (!isIsoDate(dob)) return 'Date of birth must be a valid date';
+	if (dob < MIN_DOB) return 'Date of birth is too far in the past: check the year';
+	if (dob > localDate(now + DAY_MS)) return 'Date of birth is in the future: check the year';
+	return null;
+}
+
 /** Age in whole years on a given date. */
 export function ageOn(dob: string, on: string): number {
 	const [y1, m1, d1] = dob.split('-').map(Number);

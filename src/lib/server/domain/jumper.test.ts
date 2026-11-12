@@ -8,7 +8,9 @@ import { addJump, countJumps, listJumps, logbookBreakdown } from './logbook.ts';
 import { addSlot, createLoads, startCall, upcomingSlotsForUser, completeLoad } from './loads.ts';
 import { cancelTopUpRequest, completeTopUpRequest, listPendingTopUpsForDropzone, listTopUpRequests, requestTopUp } from './payments.ts';
 import { getAccount, listLedger } from './wallet.ts';
-import { addRating, changePassword, listRatings, removeRating, setRatings } from './profile.ts';
+import { addRating, changePassword, listRatings, removeRating, setRatings, updateProfile } from './profile.ts';
+import { dobProblem, localDate } from './time.ts';
+import { parsePassengerForm } from '../tandems/forms.ts';
 import { DAY, NOW, freshDb, makeDropzone, makeUser } from './testing.ts';
 
 let db: Database;
@@ -118,6 +120,28 @@ describe('change password', () => {
 		const row = (await db.select().from(users).where(eq(users.id, u.id)))[0];
 		expect((await verifyPassword(row.passwordHash!, 'new-password-1')).valid).toBe(true);
 		expect((await db.select().from(sessions).where(eq(sessions.userId, u.id))).map((s) => s.id)).toEqual(['keep']);
+	});
+});
+
+describe('date of birth sanity', () => {
+	test('dobProblem rejects mangled years and future dates', () => {
+		expect(dobProblem('1985-06-01', NOW)).toBeNull();
+		expect(dobProblem('0505-02-01', NOW)).toMatch(/too far in the past/);
+		expect(dobProblem(localDate(NOW + 10 * 86_400_000), NOW)).toMatch(/in the future/);
+		expect(dobProblem('2020-13-40', NOW)).toMatch(/valid date/);
+	});
+
+	test('profile and passenger forms refuse a year like 0505', async () => {
+		const u = await makeUser(db);
+		await expect(updateProfile(db, u.id, { dob: '0505-02-01' }, NOW)).rejects.toThrow(/check the year/);
+		await expect(updateProfile(db, u.id, { associationExpiry: 'soon' }, NOW)).rejects.toThrow(/Membership expiry/);
+		expect((await updateProfile(db, u.id, { dob: '1990-02-01' }, NOW)).dob).toBe('1990-02-01');
+		const f = new FormData();
+		f.set('name', 'A');
+		f.set('dob', '0505-02-01');
+		expect(() => parsePassengerForm(f)).toThrow(/check the year/);
+		f.set('dob', '1990-02-01');
+		expect(parsePassengerForm(f).dob).toBe('1990-02-01');
 	});
 });
 

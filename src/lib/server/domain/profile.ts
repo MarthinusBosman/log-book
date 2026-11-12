@@ -5,7 +5,7 @@ import { newId } from '../auth/token.ts';
 import { hashPassword, validatePasswordStrength, verifyPassword } from '../auth/password.ts';
 import { ASSOCIATIONS, type RatingBody } from '../../domain/constants.ts';
 import { DomainError, assertFound } from './errors.ts';
-import { isIsoDate } from './time.ts';
+import { dobProblem, isIsoDate } from './time.ts';
 
 export type ProfilePatch = Partial<
 	Pick<
@@ -32,9 +32,9 @@ export type ProfilePatch = Partial<
 /** Update profile + credentials ("Credentials updated successfully"). */
 export async function updateProfile(db: Database, userId: string, patch: ProfilePatch, now = Date.now()): Promise<User> {
 	if (patch.name !== undefined && !patch.name.trim()) throw new DomainError('invalid', 'Full name is required');
-	for (const k of ['dob', 'associationExpiry'] as const) {
-		if (patch[k] != null && !isIsoDate(patch[k])) throw new DomainError('invalid', `${k} must be YYYY-MM-DD`);
-	}
+	const dobError = patch.dob != null ? dobProblem(patch.dob, now) : null;
+	if (dobError) throw new DomainError('invalid', dobError);
+	if (patch.associationExpiry != null && !isIsoDate(patch.associationExpiry)) throw new DomainError('invalid', 'Membership expiry must be a valid date');
 	if (patch.association != null && !ASSOCIATIONS.includes(patch.association)) throw new DomainError('invalid', 'Unknown association');
 	for (const k of ['weightKg', 'loadingWeightKg'] as const) {
 		const v = patch[k];

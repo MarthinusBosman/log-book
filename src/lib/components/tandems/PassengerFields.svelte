@@ -80,7 +80,7 @@
 					{ value: 'other', label: 'Other' }
 				]}
 			/>
-			<Input label="Date of birth" name="dob" type="date" bind:value={dob} />
+			<Input label="Date of birth" name="dob" type="date" bind:value={dob} min="1900-01-01" />
 			<Input label="Nationality" name="nationality" value={v(values.nationality)} />
 			<Input label="Address" name="addressLine1" value={v(values.addressLine1)} class="sm:col-span-2" />
 			<Input label="City" name="city" value={v(values.city)} />
