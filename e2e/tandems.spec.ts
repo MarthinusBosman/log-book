@@ -92,6 +92,36 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	expect(pdf.status()).toBe(200);
 	expect(pdf.headers()['content-type']).toContain('application/pdf');
 
+	// A group booking: the lead's page lists the other jumper and what the group owes.
+	await page.goto('/app/pricelist');
+	await page.waitForLoadState('networkidle');
+	await page.locator('input[name=tandem_slot]').first().fill('3200');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.locator('[role=status], [data-sonner-toast], .toast, [aria-live]').filter({ hasText: 'Price list updated' }).first()).toBeVisible();
+	await page.goto(`/dz/${slug}/book`);
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	await page.locator('[data-time="10:00"]').click();
+	await page.getByRole('button', { name: 'More jumpers' }).click();
+	await expect(page.getByTestId('count')).toHaveText('2');
+	await clickVisible(page, ['next', 'next-mobile']);
+	for (const [i, name] of ['Lee Lead', 'Max Mate'].entries()) {
+		await page.locator(`input[name=j${i}_name]`).fill(name);
+		await page.locator(`input[name=j${i}_email]`).fill(`j${i}@example.com`);
+		await page.locator(`input[name=j${i}_phone]`).fill('0820001111');
+		await page.locator(`input[name=j${i}_dob]`).fill('1991-06-06');
+		await page.locator(`input[name=j${i}_weightKg]`).fill('70');
+	}
+	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
+	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
+	await clickVisible(page, ['next', 'next-mobile']);
+	await page.getByTestId('terms').check();
+	await clickVisible(page, ['confirm', 'confirm-mobile']);
+	await expect(page).toHaveURL(/\?(.+&)?g=[A-Z0-9]{4}-[A-Z0-9]{4}/);
+	await expect(page.getByTestId('group-due')).toHaveCount(1);
+	await expect(page.getByTestId('group-due')).toContainText(/3[\s ,.]?200[.,]00 due/);
+	await expect(page.getByTestId('group-total')).toContainText('Group total due · 2 jumpers');
+	await expect(page.getByTestId('group-total')).toContainText(/6[\s ,.]?400/);
+
 	// Staff sees the booking in the day list and drawer.
 	await page.goto(`/app/tandems?day=${tomorrow}`);
 	const row = page.getByTestId('tandem-row').filter({ hasText: 'Pat Passenger' });

@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { APP_ORIGIN } from '$app/env/private';
 import { findByConfirmation, tandemOutstanding } from '#lib/server/domain/tandems.ts';
+import { groupCodes, groupDue, loadGroup } from '#lib/server/tandems/group.ts';
 import { listSections } from '#lib/server/domain/indemnity.ts';
 import { DomainError, isDomainError } from '#lib/server/domain/errors.ts';
 import { ageOn } from '#lib/server/domain/time.ts';
@@ -30,11 +31,9 @@ function coversPassenger(pay: Payment, passengerId: string): boolean {
 	return pay.tandemPassengerId === passengerId || !!meta(pay).allocations?.some((a) => a.passengerId === passengerId);
 }
 
-/** Deposit still due (nothing paid yet) and balance, for the "pay online" card. */
-async function onlineDue(db: Database, p: { dropzoneId: string; amountPaidMinor: number; totalMinor: number }) {
-	const balance = Math.max(0, p.totalMinor - p.amountPaidMinor);
-	const deposit = p.amountPaidMinor === 0 ? Math.min(balance, (await getPriceMap(db, p.dropzoneId)).tandem_deposit ?? 0) : 0;
-	return { balance, deposit: deposit > 0 && deposit < balance ? deposit : 0 };
+/** Per-jumper deposit configured on the DZ's price list. */
+async function depositEach(db: Database, dropzoneId: string): Promise<number> {
+	return (await getPriceMap(db, dropzoneId)).tandem_deposit ?? 0;
 }
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
@@ -50,23 +49,27 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				? { status: 'error' as const, amountMinor: 0, currency: p.currency, provider: '' }
 				: null;
 	const { usable } = await dropzonePayments(locals.db, dz, secretsKey());
-	const due = await onlineDue(locals.db, p);
-	const groupCodes = (url.searchParams.get('g') ?? '')
-		.split(',')
-		.map((s) => s.trim())
-		.filter(Boolean)
-		.slice(0, 4);
-	const group = [];
-	for (const c of groupCodes) {
-		const g = await findByConfirmation(locals.db, c);
-		if (g && g.dropzoneId === dz.id && g.jumpDate === p.jumpDate) {
-			group.push({ name: g.name, confirmationNumber: g.confirmationNumber, signed: !!g.indemnitySignedAt });
-		}
-	}
+	const codes = groupCodes(url.searchParams.get('g'));
+	const others = await loadGroup(locals.db, p, codes);
+	const dep = await depositEach(locals.db, dz.id);
+	const mine = groupDue([p], dep);
+	const everyone = others.length ? groupDue([p, ...others], dep) : null;
+	const group = others.map((g) => ({
+		name: g.name,
+		confirmationNumber: g.confirmationNumber,
+		signed: !!g.indemnitySignedAt,
+		cancelled: g.status === 'cancelled',
+		outstandingMinor: g.status === 'cancelled' ? 0 : tandemOutstanding(g),
+		priced: g.totalMinor > 0
+	}));
+	const priced = [p, ...others].some((x) => x.totalMinor > 0);
 	const waiver = dz.indemnityTandemActive && sections.length > 0;
+	const payable = (d: ReturnType<typeof groupDue>) => ({ balance: d.balanceMinor, deposit: d.depositMinor });
 	return {
 		waiver,
-		groupQuery: groupCodes.join(','),
+		groupQuery: others.map((g) => g.confirmationNumber).join(','),
+		/** What the whole group (lead included) still owes; null for a single or unpriced booking. */
+		groupDueMinor: everyone && priced ? everyone.balanceMinor : null,
 		sections: sections.map((s) => ({ title: s.title, content: s.content, type: s.type })),
 		booking: {
 			name: p.name,
@@ -86,7 +89,12 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		},
 		group,
 		paymentNotice,
-		payOnline: p.status !== 'cancelled' && due.balance > 0 && usable.length ? { providers: providerChoices(usable), ...due } : null
+		payOnline: (() => {
+			const me = p.status !== 'cancelled' && mine.balanceMinor > 0 ? payable(mine) : null;
+			// Offered only when someone besides the lead still owes something.
+			const grp = everyone && everyone.allocations.balance.some((a) => a.passengerId !== p.id) ? { ...payable(everyone), count: everyone.allocations.balance.length } : null;
+			return usable.length && (me || grp) ? { providers: providerChoices(usable), me, group: grp } : null;
+		})()
 	};
 };
 
@@ -99,22 +107,25 @@ export const actions: Actions = {
 		const provider = str(f, 'provider');
 		let next: string;
 		try {
-			if (p.status === 'cancelled') throw new DomainError('invalid', 'This booking was cancelled');
 			const { usable } = await dropzonePayments(locals.db, dz, secretsKey());
 			if (!isOnlineProvider(provider) || !usable.includes(provider)) throw new DomainError('invalid', 'Please choose how you would like to pay');
-			const due = await onlineDue(locals.db, p);
-			const deposit = str(f, 'pay') === 'deposit' && due.deposit > 0;
-			const amountMinor = deposit ? due.deposit : due.balance;
-			if (amountMinor <= 0) throw new DomainError('invalid', 'Nothing left to pay');
+			// "group" pays for every jumper of the booking still owing (listed in the hidden `g`).
+			const others = str(f, 'who') === 'group' ? await loadGroup(locals.db, p, groupCodes(str(f, 'g'))) : [];
+			if (p.status === 'cancelled' && !others.length) throw new DomainError('invalid', 'This booking was cancelled');
+			const due = groupDue([p, ...others], await depositEach(locals.db, dz.id));
+			const deposit = str(f, 'pay') === 'deposit' && due.depositMinor > 0;
+			const allocations = deposit ? due.allocations.deposit : due.allocations.balance;
+			if (!allocations.length) throw new DomainError('invalid', 'Nothing left to pay');
+			const g = others.map((o) => o.confirmationNumber).join(',');
 			const res = await startTandemCheckout(locals.db, paymentsContext(), {
 				dz,
 				provider,
 				origin: publicOrigin(url, APP_ORIGIN),
 				deposit,
-				allocations: [{ passengerId: p.id, amountMinor }],
+				allocations,
 				description: `${deposit ? 'Tandem skydive deposit' : 'Tandem skydive'} · ${dz.name}`,
 				customer: { name: p.name, email: p.email, phone: p.phone },
-				returnTo: `/dz/${dz.slug}/book/${p.confirmationNumber}`,
+				returnTo: `/dz/${dz.slug}/book/${p.confirmationNumber}${g ? `?${new URLSearchParams({ g })}` : ''}`,
 				secretsKey: secretsKey()
 			});
 			next = res.next;

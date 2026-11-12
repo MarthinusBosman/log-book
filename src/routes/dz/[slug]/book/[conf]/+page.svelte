@@ -20,6 +20,7 @@
 	const signHref = (conf: string) => `/dz/${data.dz.slug}/book/${conf}#indemnity`;
 	let signLater = $state(false);
 	let payWhat = $state<'deposit' | 'balance'>('deposit');
+	let who = $state<'group' | 'me'>('group');
 	let paying = $state<string | null>(null);
 	const notice = $derived(data.paymentNotice);
 	const f = $derived(form as { message?: string; ok?: boolean } | null);
@@ -131,6 +132,7 @@
 
 	{#if data.payOnline}
 		{@const po = data.payOnline}
+		{@const cur = (who === 'group' && po.group) || po.me || po.group}
 		<section class="mt-4 rounded-2xl border border-border bg-surface p-4 sm:p-5" data-testid="pay-online">
 			<h2 class="font-semibold">Pay online now</h2>
 			<p class="mt-0.5 text-sm text-muted">Skip the queue on the day. Your payment goes straight to {data.dz.name}.</p>
@@ -149,9 +151,22 @@
 					};
 				}}
 			>
-				{#if po.deposit > 0}
+				<input type="hidden" name="g" value={data.groupQuery} />
+				{#if po.group && po.me}
+					<div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Who are you paying for">
+						{#each [{ id: 'group', title: `Whole group · ${po.group.count} jumpers` }, { id: 'me', title: 'Just me' }] as o (o.id)}
+							<label class="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm has-[:checked]:border-primary/60 has-[:checked]:bg-primary/5">
+								<input type="radio" name="who" value={o.id} bind:group={who} class="size-4 accent-[var(--dz-primary)]" data-testid="who-{o.id}" />
+								<span class="font-medium">{o.title}</span>
+							</label>
+						{/each}
+					</div>
+				{:else}
+					<input type="hidden" name="who" value={po.group ? 'group' : 'me'} />
+				{/if}
+				{#if cur && cur.deposit > 0}
 					<div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="How much to pay">
-						{#each [{ id: 'deposit', title: `Deposit · ${money(po.deposit)}` }, { id: 'balance', title: `Full balance · ${money(po.balance)}` }] as o (o.id)}
+						{#each [{ id: 'deposit', title: `Deposit · ${money(cur.deposit)}` }, { id: 'balance', title: `Full balance · ${money(cur.balance)}` }] as o (o.id)}
 							<label class="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm has-[:checked]:border-primary/60 has-[:checked]:bg-primary/5">
 								<input type="radio" name="pay" value={o.id} bind:group={payWhat} class="size-4 accent-[var(--dz-primary)]" />
 								<span class="font-medium tabular-nums">{o.title}</span>
@@ -164,7 +179,7 @@
 				<div class="flex flex-wrap gap-2">
 					{#each po.providers as p (p.id)}
 						<Button type="submit" name="provider" value={p.id} loading={paying === p.id} data-testid="pay-with-{p.id}">
-							Pay {money(po.deposit > 0 && payWhat === 'deposit' ? po.deposit : po.balance)} with {p.label}
+							Pay {money(cur && cur.deposit > 0 && payWhat === 'deposit' ? cur.deposit : (cur?.balance ?? 0))} with {p.label}
 						</Button>
 					{/each}
 				</div>
@@ -180,14 +195,26 @@
 			<ul class="mt-3 divide-y divide-border">
 				{#each data.group as g (g.confirmationNumber)}
 					<li class="flex items-center gap-3 py-2 text-sm">
-						<span class="min-w-0 flex-1 truncate">{g.name} <span class="font-mono text-xs text-muted">{g.confirmationNumber}</span></span>
-						{#if g.signed}<Badge tone="success">Signed</Badge>{:else if data.waiver}
+						<span class="min-w-0 flex-1">
+							<span class="block truncate">{g.name}</span>
+							<span class="block truncate text-xs text-muted">
+								{#if !g.cancelled && g.priced}<span class="tabular-nums" data-testid="group-due">{g.outstandingMinor > 0 ? `${money(g.outstandingMinor)} due` : 'Paid'}</span> · {/if}
+								<span class="font-mono">{g.confirmationNumber}</span>
+							</span>
+						</span>
+						{#if g.cancelled}<Badge tone="danger">Cancelled</Badge>{:else if g.signed}<Badge tone="success">Signed</Badge>{:else if data.waiver}
 							<Button size="sm" variant="secondary" href={signHref(g.confirmationNumber)}>Sign</Button>
 							<Button size="sm" variant="ghost" onclick={() => copy(`${page.url.origin}${signHref(g.confirmationNumber)}`)}>Copy link</Button>
 						{/if}
 					</li>
 				{/each}
 			</ul>
+			{#if data.groupDueMinor !== null}
+				<p class="mt-2 flex justify-between border-t border-border pt-3 text-sm font-medium" data-testid="group-total">
+					<span>Group total due · {data.group.length + 1} jumpers</span>
+					<span class="tabular-nums">{money(data.groupDueMinor)}</span>
+				</p>
+			{/if}
 		</section>
 	{/if}
 

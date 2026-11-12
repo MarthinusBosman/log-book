@@ -42,6 +42,7 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 
 	// Prices, a booking slot, and switch on payments + wallet.
 	await page.goto('/app/pricelist');
+	await page.waitForLoadState('networkidle');
 	await page.locator('input[name=tandem_slot]').first().fill('3200');
 	await page.locator('input[name=tandem_deposit]').first().fill('500');
 	await page.getByRole('button', { name: 'Save all' }).first().click();
@@ -129,6 +130,39 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'succeeded');
 	await expect(page.getByTestId('pay-online')).toHaveCount(0);
 
+	// Group of two: the online checkout is cancelled, then the lead pays both deposits from
+	// the confirmation page ("Whole group" is the default).
+	await page.goto(`/dz/${slug}/book`);
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	await page.locator('[data-time="10:00"]').click();
+	await page.getByRole('button', { name: 'More jumpers' }).click();
+	await clickVisible(page, ['next', 'next-mobile']);
+	for (const [i, name] of ['Lee Lead', 'Max Mate'].entries()) {
+		await page.locator(`input[name=j${i}_name]`).fill(name);
+		await page.locator(`input[name=j${i}_email]`).fill(`j${i}@example.com`);
+		await page.locator(`input[name=j${i}_phone]`).fill('0820001111');
+		await page.locator(`input[name=j${i}_dob]`).fill('1991-06-06');
+		await page.locator(`input[name=j${i}_weightKg]`).fill('70');
+	}
+	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
+	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
+	await clickVisible(page, ['next', 'next-mobile']);
+	await page.getByTestId('provider-payfast').check();
+	await page.getByTestId('pay-deposit').check();
+	await page.getByTestId('terms').check();
+	await clickVisible(page, ['confirm', 'confirm-mobile']);
+	await expect(page.getByTestId('mock-amount')).toHaveText('R 1000.00');
+	await page.getByTestId('mock-cancel').click();
+	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'cancelled');
+	await expect(page.getByTestId('group-total')).toContainText(/6[\s ]?400/);
+	await expect(page.getByTestId('who-group')).toBeChecked();
+	await page.getByTestId('pay-with-paystack').click();
+	await expect(page.getByTestId('mock-amount')).toContainText('1000.00');
+	await page.getByTestId('mock-pay').click();
+	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'succeeded');
+	await expect(page).toHaveURL(/[?&]g=/);
+	await expect(page.getByTestId('group-total')).toContainText(/5[\s ]?400/);
+
 	// Wallet top-up with Paystack (webhook credits the wallet).
 	await page.goto(`/app/wallet/${slug}`);
 	await page.waitForLoadState('networkidle');
@@ -151,5 +185,5 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 
 	// Owner sees the payments in Settings → Payments.
 	await page.goto('/app/settings/payments');
-	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(4);
+	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(6);
 });
