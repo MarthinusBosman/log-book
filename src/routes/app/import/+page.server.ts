@@ -7,7 +7,7 @@ export const load: PageServerLoad = async (event) => {
 	const ctx = await importContext(event, 'jumper');
 	const user = event.locals.user!;
 	if (!event.url.search) await pruneStaged(event.locals.db, user.id);
-	return { ...(await importPageData(event.locals.db, user.id, ctx, event.url)), connector: await connectorConfig() };
+	return { ...(await importPageData(event.locals.db, user.id, ctx, event.url)), connector: await connectorConfig(event.locals.db) };
 };
 
 export const actions: Actions = {

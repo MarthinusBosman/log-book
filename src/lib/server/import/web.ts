@@ -15,6 +15,7 @@ import { DZ_COOKIE, listMemberships } from '../dropzones/index.ts';
 import { BundleError, parseBundle, type Bundle } from '../../import/bundle.ts';
 import { CSV_FIELDS, csvToBundle, type CsvMapping, type DateOrder } from '../../import/csv.ts';
 import { parseImportPayload } from './jumpmaster/index.ts';
+import { discoverWebConfig } from './jumpmaster/discover.ts';
 import { importBundle, previewBundle, type ImportMode, type ImportPreview } from './apply.ts';
 
 export type ConnectorPublicConfig = {
@@ -24,16 +25,22 @@ export type ConnectorPublicConfig = {
 	firestoreBaseUrl?: string;
 };
 
-/** Public web config for the browser connector, or null when the env vars are unset. */
-export async function connectorConfig(): Promise<ConnectorPublicConfig | null> {
+/**
+ * Public web config for the browser connector: env vars win; otherwise it's discovered from the
+ * original app's public web build (cached). Null when neither works.
+ */
+export async function connectorConfig(db?: Database): Promise<ConnectorPublicConfig | null> {
 	const env = await import('$app/env/private');
-	if (!env.JUMPMASTER_FIREBASE_PROJECT_ID || !env.JUMPMASTER_FIREBASE_API_KEY) return null;
-	return {
-		projectId: env.JUMPMASTER_FIREBASE_PROJECT_ID,
-		apiKey: env.JUMPMASTER_FIREBASE_API_KEY,
+	const overrides = {
 		authBaseUrl: env.JUMPMASTER_AUTH_BASE_URL || undefined,
 		firestoreBaseUrl: env.JUMPMASTER_FIRESTORE_BASE_URL || undefined
 	};
+	if (env.JUMPMASTER_FIREBASE_PROJECT_ID && env.JUMPMASTER_FIREBASE_API_KEY) {
+		return { projectId: env.JUMPMASTER_FIREBASE_PROJECT_ID, apiKey: env.JUMPMASTER_FIREBASE_API_KEY, ...overrides };
+	}
+	if (!db || env.JUMPMASTER_AUTODISCOVER === 'off') return null;
+	const found = await discoverWebConfig(db);
+	return found ? { ...found, ...overrides } : null;
 }
 
 type Staged = { v: 1; mode: ImportMode; source: 'jumpmaster' | 'file'; label: string; warnings: string[]; bundle: Bundle };

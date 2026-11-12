@@ -129,7 +129,7 @@ JS-only, and nothing is stored. Configuration (the original's public web config)
 
 | Env | |
 |---|---|
-| `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | Unset → the card says the connector is unavailable and points to upload |
+| `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | Optional. Unset → read automatically from the original app's public web build (`main.dart.js`, cached 7 days; `JUMPMASTER_AUTODISCOVER=off` disables). If neither works the card says the connector is unavailable and points to upload |
 | `JUMPMASTER_AUTH_BASE_URL`, `JUMPMASTER_FIRESTORE_BASE_URL` | Override the Google endpoints — **local mock only** |
 
 The connector has only been exercised against the local mock

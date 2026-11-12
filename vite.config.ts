@@ -81,7 +81,8 @@ export default defineConfig({
 					// data:/blob: = signature pads, QR codes and upload previews; https: = imported avatars.
 					'img-src': ['self', 'data:', 'blob:', 'https:'],
 					'font-src': ['self', 'data:'],
-					'connect-src': ['self'],
+					// Google APIs = the Jump Master import connector (signs in + reads Firestore from the browser).
+					'connect-src': ['self', 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com', 'https://firestore.googleapis.com'],
 					'frame-src': ['self'],
 					'object-src': ['none'],
 					'base-uri': ['self'],

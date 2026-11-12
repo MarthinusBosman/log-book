@@ -55,7 +55,7 @@ Plain values go in `vars` in `wrangler.jsonc`.
 | `INSTANCE_MODE` | var | set | `global` (identity provider for self-hosted dropzones). |
 | `STORAGE_DRIVER` | var | set | `r2` (bucket via the `FILES` binding, reads legacy D1 blobs as fallback) or `db` (D1 only). |
 | `CRON_SECRET` | secret | no | Only to call `POST /api/cron` from outside; the cron trigger needs nothing. |
-| `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | secret | no | Enables the Jump Master import connector (docs/IMPORT.md). |
+| `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | var | no | Optional overrides; the Jump Master connector discovers them automatically (docs/IMPORT.md). |
 | `FEDERATION_*` | — | no | Dropzone-instance side only; not used by the global instance. |
 
 ## Custom domain (hosted)

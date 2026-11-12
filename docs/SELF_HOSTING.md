@@ -441,7 +441,7 @@ staff can find a reset link for a jumper.
 | `CRON_SECRET` | — | Enables `POST /api/cron` from outside (`Authorization: Bearer <CRON_SECRET>`). Housekeeping already runs hourly in-process. |
 | `FEDERATION_GLOBAL_URL`, `FEDERATION_CLIENT_ID`, `FEDERATION_CLIENT_SECRET` | — | Link jumpers to the hosted instance; can also be entered at `/app/settings/federation`. |
 | `FEDERATION_FLUSH_SECRET` | client secret | Bearer for `POST /api/federation/flush`. |
-| `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | — | Jump Master import connector (docs/IMPORT.md). |
+| `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | — | Optional overrides for the Jump Master import connector; discovered automatically when unset (docs/IMPORT.md). |
 | `GIT_SHA` (build arg) | — | Shown in `/api/health` `version`. |
 | `LOG_BOOK_VERSION` | `latest` | Compose: image tag to run, e.g. `0.1.0` or `0.1` ([Pinning](#updating)). |
 | `LOG_BOOK_IMAGE` | `ghcr.io/marthinusbosman/log-book` | Compose: image name (a mirror, or your own build). |

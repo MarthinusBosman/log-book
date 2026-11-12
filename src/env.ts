@@ -61,11 +61,15 @@ export const variables = defineEnvVars({
 	},
 	// ── Import / federation (docs/IMPORT.md) ──
 	JUMPMASTER_FIREBASE_PROJECT_ID: {
-		description: 'Jump Master connector: Firebase project id of the original app. Unset = connector unavailable.',
+		description: 'Jump Master connector: Firebase project id of the original app. Optional: discovered automatically from its public web app when unset.',
 		schema: optional('')
 	},
 	JUMPMASTER_FIREBASE_API_KEY: {
 		description: 'Jump Master connector: Firebase web API key of the original app.',
+		schema: optional('')
+	},
+	JUMPMASTER_AUTODISCOVER: {
+		description: "Jump Master connector: 'off' stops reading the original app's public web config automatically (then the two vars above are required).",
 		schema: optional('')
 	},
 	JUMPMASTER_AUTH_BASE_URL: {

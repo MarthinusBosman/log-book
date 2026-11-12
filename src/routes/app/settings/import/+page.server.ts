@@ -9,7 +9,7 @@ export const load: PageServerLoad = async (event) => {
 	if (!event.url.search) await pruneStaged(event.locals.db, user.id);
 	return {
 		...(await importPageData(event.locals.db, user.id, ctx, event.url)),
-		connector: await connectorConfig(),
+		connector: await connectorConfig(event.locals.db),
 		dz: ctx.dropzone!
 	};
 };
