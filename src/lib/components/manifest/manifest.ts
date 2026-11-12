@@ -118,3 +118,20 @@ export function shiftDay(day: string, days: number): string {
 export function groupHue(id: string): number {
 	return [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 }
+
+/**
+ * Money summary for a load's slots. Wallet-held slots are charged automatically when the load
+ * completes, so they are NOT outstanding: only unpaid slots without a hold are.
+ */
+export function slotMoney(slots: readonly { totalMinor: number; paid: boolean; held: boolean }[]) {
+	let totalMinor = 0;
+	let heldMinor = 0;
+	let outstandingMinor = 0;
+	for (const s of slots) {
+		totalMinor += s.totalMinor;
+		if (s.paid || s.totalMinor <= 0) continue;
+		if (s.held) heldMinor += s.totalMinor;
+		else outstandingMinor += s.totalMinor;
+	}
+	return { totalMinor, heldMinor, outstandingMinor };
+}

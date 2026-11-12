@@ -4,7 +4,7 @@ import { dropzones } from '../db/schema.ts';
 import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
-import { callPhase, formatCountdown, friendlyError, nextStep, shiftDay } from '../../components/manifest/manifest.ts';
+import { callPhase, formatCountdown, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('manifest time helpers', () => {
 	test('zonedTime converts DZ wall clock to an instant', () => {
@@ -82,5 +82,17 @@ describe('public display token', () => {
 		const [row] = await db.select().from(dropzones).where(eq(dropzones.id, dz.id));
 		expect(displayTokenOf(row)).toBeNull();
 		expect(await publicDisplayDropzone(db, dz.slug, token)).toBeNull();
+	});
+});
+
+describe('slotMoney', () => {
+	test('wallet-held slots are not outstanding (they are charged when the load completes)', () => {
+		const m = slotMoney([
+			{ totalMinor: 55000, paid: false, held: false },
+			{ totalMinor: 45000, paid: false, held: true },
+			{ totalMinor: 45000, paid: true, held: false },
+			{ totalMinor: 0, paid: false, held: false }
+		]);
+		expect(m).toEqual({ totalMinor: 145000, heldMinor: 45000, outstandingMinor: 55000 });
 	});
 });

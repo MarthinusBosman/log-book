@@ -11,7 +11,7 @@
 	import MIcon from '#lib/components/manifest/MIcon.svelte';
 	import { act } from '#lib/components/manifest/forms.ts';
 	import { clock, poll } from '#lib/components/manifest/live.svelte.ts';
-	import { clockTime, groupHue, prettyDay } from '#lib/components/manifest/manifest.ts';
+	import { clockTime, groupHue, prettyDay, slotMoney } from '#lib/components/manifest/manifest.ts';
 	import type { CompleteSummary, SlotVM } from '#lib/components/manifest/types.ts';
 	import type { PageProps } from './$types';
 
@@ -38,8 +38,7 @@
 		}
 	});
 	const unpaid = $derived(load.slots.filter((s) => !s.paid && s.totalMinor > 0));
-	const owed = $derived(unpaid.reduce((a, s) => a + s.totalMinor, 0));
-	const total = $derived(load.slots.reduce((a, s) => a + s.totalMinor, 0));
+	const money = $derived(slotMoney(load.slots));
 	/** Picking a listed pilot fills in their profile weight (still editable). */
 	function fillPilotWeight(e: Event) {
 		const select = e.currentTarget as HTMLSelectElement;
@@ -69,7 +68,7 @@
 				<div>
 					<h2 id="slots-title" class="font-semibold tracking-tight">Slots <span class="text-subtle tabular-nums">{load.slots.length}/{load.capacity}</span></h2>
 					<p class="text-xs text-muted">
-						Total {formatMoney(total, data.dz.currency)}{#if owed}<span class="text-warning">{' · '}{formatMoney(owed, data.dz.currency)} outstanding</span>{/if}
+						Total {formatMoney(money.totalMinor, data.dz.currency)}{#if money.heldMinor}{' · '}<span class="whitespace-nowrap" data-testid="held-total">{formatMoney(money.heldMinor, data.dz.currency)} in wallets</span>{/if}{#if money.outstandingMinor}{' · '}<span class="whitespace-nowrap text-warning" data-testid="outstanding-total">{formatMoney(money.outstandingMinor, data.dz.currency)} outstanding</span>{/if}
 					</p>
 				</div>
 				{#if data.canPay && unpaid.length}
