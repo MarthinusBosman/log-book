@@ -90,7 +90,7 @@
 			<Card padded>
 				<p class="text-sm text-muted">
 					Working staff jump free. Staff pay is added to each staff slot and totals appear on
-					<a href="/app/staff" class="text-primary hover:underline">Staff</a>.
+					<a href="/app/staff" class="text-primary underline underline-offset-2">Staff</a>.
 				</p>
 				{#if dirty}<p class="mt-3 text-sm font-medium text-warning">You have unsaved changes.</p>{/if}
 				<Button type="submit" class="mt-4 w-full" loading={saving}>Save all prices</Button>

@@ -367,7 +367,7 @@ LOG_BOOK_VERSION=0.1`;
 			<h2 class="text-lg font-semibold tracking-tight">Rather not run a server?</h2>
 			<p class="mt-2 text-muted">The hosted version is the same app, and you can move your data across with an export later.</p>
 			<div class="mt-5 flex flex-col gap-3 sm:flex-row">
-				<a href="/signup" class="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 font-medium text-white transition-colors hover:bg-brand-600">Start free on hosted</a>
+				<a href="/signup" class="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 font-medium text-primary-fg transition-colors hover:bg-brand-600">Start free on hosted</a>
 				<a href="mailto:{brand.supportEmail}?subject=Self-hosting" class="inline-flex h-11 items-center justify-center rounded-xl border border-border-strong px-5 font-medium transition-colors hover:bg-surface-2">Ask us about self-hosting</a>
 			</div>
 		</div>

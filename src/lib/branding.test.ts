@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import {
 	DEFAULT_BRAND_COLOR,
 	SURFACES,
@@ -143,5 +144,43 @@ describe('readBranding', () => {
 		expect(readBranding({ branding: { color: 'FF6A00', logoFileId: 'f1', theme: 'light' } })).toEqual({ color: '#ff6a00', logoFileId: 'f1', theme: 'light' });
 		expect(readBranding({ branding: { color: '</style><script>', theme: 'neon', logoFileId: 3 } })).toEqual({ color: null, logoFileId: null, theme: null });
 		expect(readBranding({})).toEqual({ color: null, logoFileId: null, theme: null });
+	});
+});
+
+describe('default theme tokens (app.css)', () => {
+	// The default colour bypasses brandCss (no <style> tag), so app.css must hold the same
+	// contrast-safe values the algorithm would generate, or default buttons fail WCAG AA.
+	const css = readFileSync(new URL('../app.css', import.meta.url), 'utf8');
+	const blocks = (selector: string) => {
+		const out: string[] = [];
+		let i = css.indexOf(selector);
+		while (i !== -1) {
+			const start = css.indexOf('{', i);
+			out.push(css.slice(start + 1, css.indexOf('}', start)));
+			i = css.indexOf(selector, start);
+		}
+		return out;
+	};
+	const token = (block: string, name: string) => block.match(new RegExp(`${name}:\\s*([^;]+);`))?.[1].trim();
+	const t = brandTheme(DEFAULT_BRAND_COLOR);
+
+	test.each([
+		[':root {', 'light'],
+		['.light-scope {', 'light'],
+		['.dark {', 'dark'],
+		[':root.system {', 'dark'],
+		['.dark-scope {', 'dark']
+	] as const)('%s matches brandTheme(default).%s', (selector, mode) => {
+		const found = blocks(selector).filter((b) => b.includes('--dz-primary:'));
+		expect(found.length).toBeGreaterThan(0);
+		for (const b of found) {
+			const m = t[mode];
+			expect(token(b, '--dz-primary')).toBe(m.primary);
+			expect(token(b, '--dz-primary-fg')).toBe(m.primaryFg);
+			expect(token(b, '--color-brand-600')).toBe(m.hover);
+			expect(token(b, '--color-brand-700')).toBe(m.active);
+			expect(contrast(m.primary, m.primaryFg)).toBeGreaterThanOrEqual(4.5);
+			expect(contrast(m.hover, m.primaryFg)).toBeGreaterThanOrEqual(4.5);
+		}
 	});
 });

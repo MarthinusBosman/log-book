@@ -166,7 +166,7 @@
 	<div class="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-16 sm:px-8 md:flex-row md:items-center md:justify-between">
 		<h2 class="text-2xl font-[580] tracking-tight sm:text-3xl">Try it with your own loads.</h2>
 		<div class="flex flex-col gap-3 sm:flex-row">
-			<a href="/signup" class="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 font-medium text-white transition-colors hover:bg-brand-600">Start free</a>
+			<a href="/signup" class="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 font-medium text-primary-fg transition-colors hover:bg-brand-600">Start free</a>
 			<a href="/self-host" class="inline-flex h-11 items-center justify-center rounded-xl border border-border-strong px-5 font-medium transition-colors hover:bg-surface-2">Self-host it</a>
 		</div>
 	</div>

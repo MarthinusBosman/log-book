@@ -97,7 +97,7 @@
 				filter === c.id ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-surface text-muted hover:text-fg'
 			)}
 		>
-			{c.label}<span class="tabular-nums opacity-70">{c.n}</span>
+			{c.label}<span class="font-normal tabular-nums">{c.n}</span>
 		</button>
 	{/each}
 </div>

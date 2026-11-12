@@ -20,7 +20,7 @@
 		{#each days as day (day.d + day.n)}
 			<div
 				class="rounded-lg border py-1.5 text-center {day.active
-					? 'border-primary bg-primary text-white'
+					? 'border-primary bg-primary text-primary-fg'
 					: day.off
 						? 'border-border text-subtle line-through'
 						: 'border-border'}"

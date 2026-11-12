@@ -8,13 +8,13 @@
 	<p class="text-[11px] text-muted">Skydive Robertson</p>
 	<p class="text-lg font-semibold tracking-tight">Morning, Naledi</p>
 
-	<div class="mt-3 rounded-2xl bg-primary p-3.5 text-white shadow-lg shadow-primary/30">
-		<div class="flex items-center justify-between text-[11px] font-medium text-white/75">
+	<div class="mt-3 rounded-2xl bg-primary p-3.5 text-primary-fg shadow-lg shadow-primary/30">
+		<div class="flex items-center justify-between text-[11px] font-medium text-primary-fg/85">
 			<span>You're on</span><span class="font-mono">Slot 2</span>
 		</div>
 		<p class="mt-0.5 text-xl font-semibold tracking-tight">Load 7</p>
 		<div class="mt-2 flex items-end justify-between">
-			<p class="text-[11px] text-white/80">Caravan · 13 500 ft<br />4-way with Kim, Ruan, Jo</p>
+			<p class="text-[11px] text-primary-fg/85">Caravan · 13 500 ft<br />4-way with Kim, Ruan, Jo</p>
 			<p class="font-mono text-2xl leading-none font-semibold tabular-nums">12<span class="text-xs">m</span></p>
 		</div>
 	</div>

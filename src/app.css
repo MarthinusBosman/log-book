@@ -92,9 +92,11 @@
 		--dz-fg: #0b1220;
 		--dz-muted: #526077;
 		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #1e6bff;
+		--dz-primary: #0f61ff; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces (branding.ts) */
 		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(30 107 255 / 0.45);
+		--dz-ring: rgb(15 97 255 / 0.45);
+		--color-brand-600: #0d53db; /* hover */
+		--color-brand-700: #0b48bd; /* active */
 		--dz-success: #047857;
 		--dz-warning: #b45309;
 		--dz-danger: #dc2626;
@@ -112,9 +114,11 @@
 		--dz-fg: #e8eefb;
 		--dz-muted: #93a1bd;
 		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #3b7fff;
-		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(59 127 255 / 0.5);
+		--dz-primary: #3d7fff; /* 4.5:1 on dark surfaces, so labels are near-black (white = 3.7:1) */
+		--dz-primary-fg: #0b1220;
+		--dz-ring: rgb(61 127 255 / 0.5);
+		--color-brand-600: #5891ff; /* hover: lighter, away from the dark label */
+		--color-brand-700: #6fa0ff;
 		--dz-success: #34d399;
 		--dz-warning: #fbbf24;
 		--dz-danger: #f87171;
@@ -134,9 +138,11 @@
 			--dz-fg: #e8eefb;
 			--dz-muted: #93a1bd;
 			--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
-			--dz-primary: #3b7fff;
-			--dz-primary-fg: #ffffff;
-			--dz-ring: rgb(59 127 255 / 0.5);
+			--dz-primary: #3d7fff; /* 4.5:1 on dark surfaces, so labels are near-black (white = 3.7:1) */
+			--dz-primary-fg: #0b1220;
+			--dz-ring: rgb(61 127 255 / 0.5);
+			--color-brand-600: #5891ff; /* hover: lighter, away from the dark label */
+			--color-brand-700: #6fa0ff;
 			--dz-success: #34d399;
 			--dz-warning: #fbbf24;
 			--dz-danger: #f87171;
@@ -175,9 +181,11 @@
 		--dz-fg: #0b1220;
 		--dz-muted: #526077;
 		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #1e6bff;
+		--dz-primary: #0f61ff; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces (branding.ts) */
 		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(30 107 255 / 0.45);
+		--dz-ring: rgb(15 97 255 / 0.45);
+		--color-brand-600: #0d53db; /* hover */
+		--color-brand-700: #0b48bd; /* active */
 		--dz-success: #047857;
 		--dz-warning: #b45309;
 		--dz-danger: #dc2626;
@@ -194,9 +202,11 @@
 		--dz-fg: #e8eefb;
 		--dz-muted: #93a1bd;
 		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #3b7fff;
-		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(59 127 255 / 0.5);
+		--dz-primary: #3d7fff; /* 4.5:1 on dark surfaces, so labels are near-black (white = 3.7:1) */
+		--dz-primary-fg: #0b1220;
+		--dz-ring: rgb(61 127 255 / 0.5);
+		--color-brand-600: #5891ff; /* hover: lighter, away from the dark label */
+		--color-brand-700: #6fa0ff;
 		--dz-success: #34d399;
 		--dz-warning: #fbbf24;
 		--dz-danger: #f87171;

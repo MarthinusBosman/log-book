@@ -24,7 +24,7 @@
 				<span
 					class="grid size-5 place-items-center rounded-full text-[10px] font-semibold {s.done
 						? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
-						: 'bg-primary text-white'}"
+						: 'bg-primary text-primary-fg'}"
 				>
 					{#if s.done}
 						<svg viewBox="0 0 24 24" class="size-3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
@@ -58,6 +58,6 @@
 
 	<div class="mt-4 flex items-center justify-between gap-3">
 		<p class="text-[12px] text-muted">Run it again later; nothing gets doubled.</p>
-		<span class="rounded-lg bg-primary px-3.5 py-2 text-[13px] font-medium whitespace-nowrap text-white">Import 412 jumps</span>
+		<span class="rounded-lg bg-primary px-3.5 py-2 text-[13px] font-medium whitespace-nowrap text-primary-fg">Import 412 jumps</span>
 	</div>
 </div>

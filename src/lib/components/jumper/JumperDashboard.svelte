@@ -211,7 +211,7 @@
 					data-testid={a.testid}
 					class="group flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4 transition-[border-color,transform] duration-150 hover:-translate-y-0.5 hover:border-border-strong active:scale-[0.98]"
 				>
-					<span class="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+					<span class="grid size-10 place-items-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-fg">
 						{#if a.icon}<Icon name={a.icon} class="size-5" />{:else if a.jicon}<JIcon name={a.jicon} class="size-5" />{/if}
 					</span>
 					<span>

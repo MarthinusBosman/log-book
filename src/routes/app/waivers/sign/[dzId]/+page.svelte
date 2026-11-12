@@ -66,7 +66,7 @@
 					<Input label="Full name" name="signer_name" bind:value={signerName} required autocomplete="name" />
 					<Input label="Email" value={data.me.email} disabled />
 					<p class="text-xs text-muted sm:col-span-2">
-						Your licence, association number and emergency contact from your <a href="/app/profile" class="text-primary hover:underline">profile</a> are added to the PDF.
+						Your licence, association number and emergency contact from your <a href="/app/profile" class="text-primary underline underline-offset-2">profile</a> are added to the PDF.
 					</p>
 				</div>
 			{/snippet}

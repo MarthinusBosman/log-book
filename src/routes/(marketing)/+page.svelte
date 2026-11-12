@@ -170,7 +170,7 @@
 				<div class="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
 					<a
 						href={data.user ? '/app' : '/signup'}
-						class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-medium text-white shadow-[0_8px_30px_-8px_rgb(30_107_255/0.6)] transition-colors hover:bg-brand-600"
+						class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-medium text-primary-fg shadow-[0_8px_30px_-8px_rgb(30_107_255/0.6)] transition-colors hover:bg-brand-600"
 					>
 						{data.user ? 'Open the app' : 'Start free'}
 						{@render arrow()}
@@ -429,7 +429,7 @@
 				</div>
 			</div>
 			<div class="pt-8">
-				<a href="/signup" class="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-white transition-colors hover:bg-brand-600">Start free</a>
+				<a href="/signup" class="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-primary-fg transition-colors hover:bg-brand-600">Start free</a>
 			</div>
 		</article>
 
@@ -517,7 +517,7 @@
 					<a
 						href={plan.href}
 						class="inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium transition-colors {plan.main
-							? 'bg-primary text-white hover:bg-brand-600'
+							? 'bg-primary text-primary-fg hover:bg-brand-600'
 							: 'border border-border-strong hover:bg-surface-2'}">{plan.cta}</a
 					>
 				</div>
@@ -562,7 +562,7 @@
 		<div class="mt-9 flex flex-col gap-3 sm:flex-row">
 			<a
 				href={data.user ? '/app' : '/signup'}
-				class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-medium text-white transition-colors hover:bg-brand-600"
+				class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-medium text-primary-fg transition-colors hover:bg-brand-600"
 			>
 				{data.user ? 'Open the app' : 'Start free'}
 				{@render arrow()}

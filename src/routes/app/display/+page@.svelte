@@ -57,7 +57,7 @@
 						</form>
 					{:else}
 						<form method="POST" action="?/publicLink" class="mt-3" use:enhance={act({ success: 'Public display link created' })}>
-							<button class="h-9 w-full rounded-lg bg-primary px-3 text-sm font-medium text-white hover:opacity-90" data-testid="create-public-link">Create link</button>
+							<button class="h-9 w-full rounded-lg bg-primary px-3 text-sm font-medium text-primary-fg hover:opacity-90" data-testid="create-public-link">Create link</button>
 						</form>
 					{/if}
 				</Menu>

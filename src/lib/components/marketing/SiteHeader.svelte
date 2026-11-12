@@ -35,7 +35,7 @@
 			{#if signedIn}
 				<a
 					href="/app"
-					class="inline-flex h-9 items-center rounded-lg bg-primary px-3.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+					class="inline-flex h-9 items-center rounded-lg bg-primary px-3.5 text-sm font-medium text-primary-fg transition-colors hover:bg-brand-600"
 					>Open app</a
 				>
 			{:else}
@@ -46,7 +46,7 @@
 				>
 				<a
 					href="/signup"
-					class="inline-flex h-9 items-center rounded-lg bg-primary px-3.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+					class="inline-flex h-9 items-center rounded-lg bg-primary px-3.5 text-sm font-medium text-primary-fg transition-colors hover:bg-brand-600"
 					>Start free</a
 				>
 			{/if}

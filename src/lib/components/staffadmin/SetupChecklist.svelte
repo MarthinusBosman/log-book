@@ -30,7 +30,7 @@
 						s === next && 'border-primary/40 ring-2 ring-primary/15'
 					)}
 				>
-					<span class={cn('mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border', s.done ? 'border-success bg-success text-white' : 'border-border-strong')}>
+					<span class={cn('mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border', s.done ? 'border-success bg-success text-bg' : 'border-border-strong')}>
 						{#if s.done}<Icon name="check" class="size-3" />{/if}
 					</span>
 					<span class="min-w-0">

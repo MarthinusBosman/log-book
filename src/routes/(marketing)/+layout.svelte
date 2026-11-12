@@ -19,7 +19,7 @@
 
 <a
 	href="#main"
-	class="sr-only z-[60] rounded-lg bg-primary px-4 py-2 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+	class="sr-only z-[60] rounded-lg bg-primary px-4 py-2 text-primary-fg focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
 	>Skip to content</a
 >
 <div class="relative flex min-h-dvh flex-col overflow-x-clip">

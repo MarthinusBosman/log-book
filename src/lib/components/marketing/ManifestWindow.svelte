@@ -75,7 +75,7 @@
 		<div class="hidden border-r border-border p-3 md:block">
 			<div class="mb-2 flex items-center justify-between px-1">
 				<p class="text-[11px] font-medium tracking-wider text-subtle uppercase">Today · 6 loads</p>
-				<span class="rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-medium text-white">+ Load</span>
+				<span class="rounded-md bg-primary px-1.5 py-0.5 text-[11px] font-medium text-primary-fg">+ Load</span>
 			</div>
 			<ul class="space-y-2">
 				{#each loads as l (l.n)}

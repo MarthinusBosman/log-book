@@ -127,7 +127,7 @@
 						d.date === data.today && !sel && 'border-primary/50'
 					)}
 				>
-					<span class={cn('text-[11px] font-medium uppercase', sel ? 'text-white/80' : 'text-subtle')}>{fmtDay(d.date, { weekday: 'short' })}</span>
+					<span class={cn('text-[11px] font-medium uppercase', sel ? 'text-primary-fg' : 'text-subtle')}>{fmtDay(d.date, { weekday: 'short' })}</span>
 					<span class="text-lg leading-none font-semibold tabular-nums">{fmtDay(d.date, { day: 'numeric' })}</span>
 					<span
 						class={cn(

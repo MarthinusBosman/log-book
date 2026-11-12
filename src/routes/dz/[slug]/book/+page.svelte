@@ -197,7 +197,7 @@
 										)}
 									>
 										<span class="font-mono text-base font-semibold tabular-nums">{t.time}</span>
-										<span class={cn('text-[11px]', time === t.time ? 'text-white/80' : t.remaining <= 2 && t.remaining ? 'text-warning' : 'text-muted')}>
+										<span class={cn('text-[11px]', time === t.time ? 'text-primary-fg' : t.remaining <= 2 && t.remaining ? 'text-warning' : 'text-muted')}>
 											{t.remaining ? `${t.remaining} left` : 'Full'}
 										</span>
 									</button>

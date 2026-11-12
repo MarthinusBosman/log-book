@@ -117,7 +117,7 @@
 					<td class="py-3 pr-4 pl-3 text-right font-semibold tabular-nums {s.owedMinor ? 'text-fg' : 'text-subtle'}">{s.owedMinor ? money(s.owedMinor) : '—'}</td>
 				</tr>
 			{:else}
-				<tr><td colspan="7" class="px-4 py-12 text-center text-muted">No staff match. {#if data.canManage}<a href="/app/settings/members" class="text-primary hover:underline">Add staff roles</a>{/if}</td></tr>
+				<tr><td colspan="7" class="px-4 py-12 text-center text-muted">No staff match. {#if data.canManage}<a href="/app/settings/members" class="text-primary underline underline-offset-2">Add staff roles</a>{/if}</td></tr>
 			{/each}
 		</tbody>
 		{#if filtered.length > 1}
@@ -135,5 +135,5 @@
 	</table>
 </div>
 <p class="mt-3 text-xs text-subtle">
-	Pay comes from the staff rates on the <a href="/app/pricelist" class="text-primary hover:underline">price list</a> and counts completed loads only.
+	Pay comes from the staff rates on the <a href="/app/pricelist" class="text-primary underline underline-offset-2">price list</a> and counts completed loads only.
 </p>
