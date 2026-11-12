@@ -5,17 +5,9 @@ import { updateDropzoneSlug } from '#lib/server/domain/staff-admin.ts';
 import { deleteFile, maxBytesFor, saveFile } from '#lib/server/domain/files.ts';
 import { readImageUpload } from '#lib/server/images.ts';
 import { getStorage } from '#lib/server/storage/index.ts';
-import { DZ_COOKIE } from '#lib/server/dropzones/index.ts';
+import { DZ_COOKIE, checkDropzoneBasics, timezoneList } from '#lib/server/dropzones/index.ts';
 import { optNum, optStr, requirePage, runAction, str } from '#lib/server/staffadmin/context.ts';
 import type { Actions, PageServerLoad } from './$types';
-
-function timezones(): string[] {
-	try {
-		return (Intl as unknown as { supportedValuesOf(k: string): string[] }).supportedValuesOf('timeZone');
-	} catch {
-		return ['UTC', 'Africa/Johannesburg', 'Europe/London', 'America/New_York'];
-	}
-}
 
 
 export const load: PageServerLoad = async (event) => {
@@ -39,7 +31,7 @@ export const load: PageServerLoad = async (event) => {
 			closeTime: dz.closeTime,
 			photoUrl: dz.photoFileId ? `/app/settings/photo/${dz.photoFileId}` : null
 		},
-		timezones: timezones()
+		timezones: timezoneList()
 	};
 };
 
@@ -49,14 +41,9 @@ export const actions: Actions = {
 			const f = await event.request.formData();
 			const name = str(f, 'name');
 			if (name.length < 2) return fail(400, { message: 'Enter the dropzone name.' });
-			const currency = str(f, 'currency').toUpperCase();
-			if (!/^[A-Z]{3}$/.test(currency)) return fail(400, { message: 'Currency must be a 3-letter code such as ZAR or USD.' });
-			const timezone = str(f, 'timezone') || 'UTC';
-			try {
-				new Intl.DateTimeFormat('en', { timeZone: timezone });
-			} catch {
-				return fail(400, { message: `Unknown timezone "${timezone}".` });
-			}
+			const basics = checkDropzoneBasics({ country: optStr(f, 'country'), timezone: str(f, 'timezone'), currency: str(f, 'currency') });
+			if (!basics.ok) return fail(400, { message: basics.message });
+			const { country, timezone, currency } = basics;
 			const lat = optNum(f, 'lat');
 			const lng = optNum(f, 'lng');
 			if (lat === 'invalid' || (lat !== null && Math.abs(lat) > 90)) return fail(400, { message: 'Latitude must be between -90 and 90.' });
@@ -65,8 +52,6 @@ export const actions: Actions = {
 			if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(400, { message: 'Enter a valid contact email.' });
 			const website = optStr(f, 'website');
 			if (website && !/^https?:\/\//i.test(website)) return fail(400, { message: 'Website must start with http:// or https://' });
-			const country = optStr(f, 'country')?.toUpperCase() ?? null;
-			if (country && !/^[A-Z]{2}$/.test(country)) return fail(400, { message: 'Country must be a 2-letter code such as ZA.' });
 			const openDays = f.getAll('openDays').map(String).filter((d): d is Weekday => (WEEKDAYS as readonly string[]).includes(d));
 			const openTime = optStr(f, 'openTime');
 			const closeTime = optStr(f, 'closeTime');

@@ -70,11 +70,44 @@ export async function listMemberships(db: Database, userId: string): Promise<Mem
 	});
 }
 
+/** IANA zones for the timezone pickers (short fallback where the runtime lacks supportedValuesOf). */
+export function timezoneList(): string[] {
+	try {
+		return (Intl as unknown as { supportedValuesOf(k: string): string[] }).supportedValuesOf('timeZone');
+	} catch {
+		return ['UTC', 'Africa/Johannesburg', 'Europe/London', 'America/New_York'];
+	}
+}
+
+/**
+ * Checks the locale basics every dated/priced screen depends on. An unknown timezone or
+ * currency would make Intl throw on each page that formats a date or an amount for this DZ.
+ * Returns the canonical values (e.g. `africa/johannesburg` → `Africa/Johannesburg`) or a message.
+ */
+export function checkDropzoneBasics(input: { country?: string | null; timezone?: string; currency?: string }):
+	| { ok: true; country: string | null; timezone: string; currency: string }
+	| { ok: false; message: string } {
+	const country = input.country?.trim().toUpperCase() || null;
+	if (country && !/^[A-Z]{2}$/.test(country)) return { ok: false, message: 'Country must be a 2-letter code such as ZA.' };
+	const currency = (input.currency ?? 'USD').trim().toUpperCase() || 'USD';
+	if (!/^[A-Z]{3}$/.test(currency)) return { ok: false, message: 'Currency must be a 3-letter code such as ZAR or USD.' };
+	const tz = (input.timezone ?? 'UTC').trim() || 'UTC';
+	let timezone: string;
+	try {
+		timezone = new Intl.DateTimeFormat('en', { timeZone: tz }).resolvedOptions().timeZone;
+	} catch {
+		return { ok: false, message: `Unknown timezone "${tz}". Pick one from the list, e.g. Africa/Johannesburg.` };
+	}
+	return { ok: true, country, timezone, currency };
+}
+
 export async function createDropzone(
 	db: Database,
 	input: { name: string; slug?: string; country?: string | null; timezone?: string; currency?: string },
 	ownerId: string
 ): Promise<Dropzone> {
+	const basics = checkDropzoneBasics(input);
+	if (!basics.ok) throw new Error(basics.message);
 	const id = newId();
 	const rows = await db
 		.insert(dropzones)
@@ -82,9 +115,9 @@ export async function createDropzone(
 			id,
 			slug: input.slug ? slugify(input.slug) : slugify(input.name),
 			name: input.name.trim(),
-			country: input.country ?? null,
-			timezone: input.timezone ?? 'UTC',
-			currency: input.currency ?? 'USD'
+			country: basics.country,
+			timezone: basics.timezone,
+			currency: basics.currency
 		})
 		.returning();
 	await db.insert(dropzoneMembers).values({ dropzoneId: id, userId: ownerId });

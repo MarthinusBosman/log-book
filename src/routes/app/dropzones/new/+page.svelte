@@ -4,7 +4,7 @@
 	import { Button, Card, Input, Select } from '#lib/ui/index.ts';
 	import type { PageProps } from './$types';
 
-	let { form }: PageProps = $props();
+	let { data, form }: PageProps = $props();
 	let submitting = $state(false);
 
 	// Default the timezone to the browser's after hydration (SSR can't know it).
@@ -12,6 +12,10 @@
 	onMount(() => {
 		if (!form?.timezone) timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 	});
+	// The browser's zone may be an alias missing from the server's list: keep it selectable.
+	const tzOptions = $derived(
+		[...new Set([timezone, ...data.timezones])].map((t) => ({ value: t, label: t.replace(/_/g, ' ') }))
+	);
 	const currencies = ['USD', 'EUR', 'GBP', 'ZAR', 'AUD', 'NZD', 'CAD', 'CHF', 'SEK', 'NOK', 'DKK', 'BRL'];
 </script>
 
@@ -50,7 +54,13 @@
 					options={currencies.map((c) => ({ value: c, label: c }))}
 				/>
 			</div>
-			<Input label="Timezone" name="timezone" bind:value={timezone} hint="IANA timezone, e.g. Africa/Johannesburg" />
+			<Select
+				label="Timezone"
+				name="timezone"
+				bind:value={timezone}
+				options={tzOptions}
+				hint="Local dates, opening hours and the manifest day follow this."
+			/>
 			{#if form?.message}
 				<p class="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
 					{form.message}

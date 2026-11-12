@@ -36,7 +36,7 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await page.getByLabel('Dropzone name').fill(`Pay DZ ${stamp}`);
 	await page.locator('input[name=country]').fill('ZA');
 	await page.locator('select[name=currency]').selectOption('ZAR');
-	await page.getByLabel('Timezone').fill('Africa/Johannesburg');
+	await page.getByLabel('Timezone').selectOption('Africa/Johannesburg');
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 

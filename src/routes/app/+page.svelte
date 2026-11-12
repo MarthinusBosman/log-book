@@ -11,11 +11,14 @@
 	let { data }: PageProps = $props();
 
 	const firstName = $derived(data.user.name.split(' ')[0]);
-	// From the server clock in the DZ's timezone, so SSR and hydration agree.
+	// From the server clock in the DZ's timezone, so SSR and hydration agree. Without a dropzone
+	// we don't know the jumper's timezone (UTC would say "afternoon" at 19:00 in Johannesburg).
 	const hour = $derived(
-		Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: data.hours?.timezone ?? 'UTC' }).format(data.serverNow))
+		data.hours
+			? Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: data.hours.timezone }).format(data.serverNow))
+			: null
 	);
-	const greeting = $derived(hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening');
+	const greeting = $derived(hour === null ? 'Welcome' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening');
 	// Loads on the board beat the configured opening days (boogies, weather days, special openings).
 	const open = $derived(
 		data.staffToday?.loadsPlanned ? { label: 'Loads running today', tone: 'success' as const } : data.hours ? openToday(data.hours, data.serverNow) : null

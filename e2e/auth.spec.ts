@@ -23,10 +23,24 @@ test('signup → dashboard → logout → login → dashboard', async ({ page })
 
 	await expect(page).toHaveURL(/\/app$/);
 	await expect(page.getByTestId('dashboard-heading')).toContainText('Erin');
+	// No dropzone yet = no known timezone, so no time-of-day guess.
+	await expect(page.getByText('Welcome,')).toBeVisible();
 
 	// Create a dropzone so the staff navigation + switcher are populated.
 	await page.goto('/app/dropzones/new');
 	await page.getByLabel('Dropzone name').fill(`Skydive E2E ${test.info().project.name} ${Date.now()}`);
+	// Timezone is a picker; a forged unknown zone is refused (it used to 500 the new DZ's dashboard).
+	const tz = page.locator('select[name=timezone]');
+	await expect(tz.locator('option[value="Africa/Johannesburg"]')).toHaveCount(1);
+	await tz.evaluate((s: HTMLSelectElement) => {
+		s.add(new Option('Mars/Olympus', 'Mars/Olympus'));
+		s.value = 'Mars/Olympus';
+		s.dispatchEvent(new Event('change', { bubbles: true }));
+	});
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page.getByRole('alert')).toContainText('Unknown timezone');
+	await expect(page).toHaveURL(/\/app\/dropzones\/new/);
+	await tz.selectOption('Africa/Johannesburg');
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 	// A brand-new dropzone gets the owner's setup checklist; every step links to its settings page.
