@@ -1,10 +1,10 @@
 /** Route helpers for the tandems / booking / waivers area (server only). */
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import { DZ_COOKIE, listMemberships } from '../dropzones/index.ts';
+import { currentMembership, requestDropzone } from '../request-cache.ts';
 import type { Dropzone, TandemPassenger } from '../db/schema.ts';
 import type { Capability } from '../../domain/constants.ts';
 import { SLOT_EXTRA_LABELS, formatMoney } from '../../domain/constants.ts';
-import { can } from '../domain/permissions.ts';
+import { can, capabilitiesOf } from '../domain/permissions.ts';
 import { getDropzone } from '../domain/dropzone-admin.ts';
 import { isDomainError, type DomainErrorCode } from '../domain/errors.ts';
 import { tandemOutstanding } from '../domain/tandems.ts';
@@ -44,15 +44,14 @@ export type StaffContext = { userId: string; dz: Dropzone };
 export async function staffContext(event: RequestEvent, capability: Capability | Capability[]): Promise<StaffContext> {
 	const user = event.locals.user;
 	if (!user) redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname + event.url.search)}`);
-	const memberships = await listMemberships(event.locals.db, user.id);
-	const selected = event.cookies.get(DZ_COOKIE);
-	const current = memberships.find((m) => m.dropzone.slug === selected) ?? memberships[0];
+	const current = await currentMembership(event, user.id);
 	if (!current) error(403, 'Join or create a dropzone first.');
 	const caps = Array.isArray(capability) ? capability : [capability];
-	let ok = false;
-	for (const c of caps) if (await can(event.locals.db, user.id, current.dropzone.id, c)) ok = true;
+	// The role list already answers most checks; `can` adds the super-admin fallback.
+	let ok = caps.some((c) => capabilitiesOf(current.roles).includes(c));
+	if (!ok) for (const c of caps) if (await can(event.locals.db, user.id, current.dropzone.id, c)) ok = true;
 	if (!ok) error(403, 'You need a staff role with access to this page at the selected dropzone.');
-	return { userId: user.id, dz: await getDropzone(event.locals.db, current.dropzone.id) };
+	return { userId: user.id, dz: (await requestDropzone(event.locals, current.dropzone.id)) ?? (await getDropzone(event.locals.db, current.dropzone.id)) };
 }
 
 export const str = (f: FormData, k: string): string => String(f.get(k) ?? '').trim();

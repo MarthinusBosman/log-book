@@ -3,9 +3,8 @@
  * `dz` cookie among active memberships, else the first) and enforces capabilities.
  */
 import { error, fail, redirect, type ActionFailure, type Cookies } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
-import { dropzones, type Dropzone } from '#lib/server/db/schema.ts';
-import { DZ_COOKIE, listMemberships } from '#lib/server/dropzones/index.ts';
+import { type Dropzone } from '#lib/server/db/schema.ts';
+import { currentMembership, requestDropzone } from '#lib/server/request-cache.ts';
 import { capabilitiesOf } from '#lib/server/domain/permissions.ts';
 import { isDomainError } from '#lib/server/domain/errors.ts';
 import { localDate } from '#lib/server/domain/time.ts';
@@ -41,11 +40,9 @@ const CAP_LABELS: Record<Capability, string> = {
 export async function resolveCtx(event: Ev): Promise<StaffCtx | null> {
 	const user = event.locals.user;
 	if (!user) redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname + event.url.search)}`);
-	const memberships = await listMemberships(event.locals.db, user.id);
-	const selected = event.cookies.get(DZ_COOKIE);
-	const m = memberships.find((x) => x.dropzone.slug === selected) ?? memberships[0];
+	const m = await currentMembership(event, user.id);
 	if (!m) return null;
-	const dz = (await event.locals.db.select().from(dropzones).where(eq(dropzones.id, m.dropzone.id)).limit(1))[0];
+	const dz = await requestDropzone(event.locals, m.dropzone.id);
 	if (!dz) return null;
 	const caps = capabilitiesOf(m.roles);
 	return {

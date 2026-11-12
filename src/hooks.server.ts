@@ -11,6 +11,7 @@ import { closeStaleCheckins } from '#lib/server/domain/checkins.ts';
 import { canonicalRedirect } from '#lib/server/canonical.ts';
 import { CANONICAL_HOST } from '$app/env/private';
 import { isCsrfForbidden } from '#lib/server/csrf.ts';
+import { cacheableMethod } from '#lib/server/request-cache.ts';
 
 /** Cross-site form posts are rejected (Kit's built-in check, minus signed payment webhooks). */
 const csrf: Handle = async ({ event, resolve }) => {
@@ -40,6 +41,7 @@ const canonicalHost: Handle = async ({ event, resolve }) => {
 
 const database: Handle = async ({ event, resolve }) => {
 	event.locals.db = await getDb();
+	if (cacheableMethod(event.request.method)) event.locals.cache = new Map();
 	return resolve(event);
 };
 

@@ -16,7 +16,8 @@ import {
 import { listMembers } from '#lib/server/domain/dropzone-admin.ts';
 import { can } from '#lib/server/domain/permissions.ts';
 import { DomainError } from '#lib/server/domain/errors.ts';
-import { DZ_COOKIE, listMemberships } from '#lib/server/dropzones/index.ts';
+import { capabilitiesOf } from '#lib/server/domain/permissions.ts';
+import { currentMembership } from '#lib/server/request-cache.ts';
 import { failFrom, staffContext, str } from '#lib/server/tandems/http.ts';
 import type { RequestEvent } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -26,19 +27,19 @@ const TABS = ['tandem', 'sport', 'signed', 'jumpers'] as const;
 type Tab = (typeof TABS)[number];
 
 export const load: PageServerLoad = async (event) => {
-	const { locals, url, cookies } = event;
+	const { locals, url } = event;
 	if (!locals.user) redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`);
 	// Jumpers without a staff capability go straight to signing their own waiver.
-	const memberships = await listMemberships(locals.db, locals.user.id);
-	const current = memberships.find((m) => m.dropzone.slug === cookies.get(DZ_COOKIE)) ?? memberships[0];
+	const current = await currentMembership(event, locals.user.id);
 	if (!current) error(403, 'Join or create a dropzone first.');
-	let staff = false;
-	for (const c of VIEW_CAPS) if (await can(locals.db, locals.user.id, current.dropzone.id, c)) staff = true;
+	const roleCaps = capabilitiesOf(current.roles);
+	let staff = VIEW_CAPS.some((c) => roleCaps.includes(c));
+	if (!staff) for (const c of VIEW_CAPS) if (await can(locals.db, locals.user.id, current.dropzone.id, c)) staff = true;
 	if (!staff) redirect(303, `/app/waivers/sign/${current.dropzone.id}`);
 
 	const { dz, userId } = await staffContext(event, [...VIEW_CAPS]);
 	const db = locals.db;
-	const canEdit = await can(db, userId, dz.id, 'indemnity.manage');
+	const canEdit = roleCaps.includes('indemnity.manage') || (await can(db, userId, dz.id, 'indemnity.manage'));
 	const qTab = url.searchParams.get('tab') as Tab | null;
 	const tab: Tab = qTab && TABS.includes(qTab) ? qTab : canEdit ? 'tandem' : 'signed';
 	const q = url.searchParams.get('q')?.trim() ?? '';

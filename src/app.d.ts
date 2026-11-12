@@ -15,6 +15,8 @@ declare global {
 			session: SessionValidationResult['session'];
 			/** Theme the page renders with (cookie, else a dropzone default on /dz pages). */
 			theme: import('#lib/theme.ts').PageTheme;
+			/** Per-request read cache (GET/HEAD only), see #lib/server/request-cache.ts. */
+			cache?: Map<string, Promise<unknown>>;
 		}
 		// interface Error {}
 		// interface PageData {}

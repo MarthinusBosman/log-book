@@ -4,8 +4,8 @@
  */
 import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
-import { DZ_COOKIE, listMemberships } from '../dropzones/index.ts';
-import { dropzones, loads, type Dropzone, type Load } from '../db/schema.ts';
+import { currentMembership, requestDropzone } from '../request-cache.ts';
+import { loads, type Dropzone, type Load } from '../db/schema.ts';
 import { isDomainError } from '../domain/errors.ts';
 import { capabilitiesOf, can } from '../domain/permissions.ts';
 import type { Capability, DropzoneRole } from '../../domain/constants.ts';
@@ -17,11 +17,9 @@ export type DzContext = { dz: Dropzone; roles: DropzoneRole[]; caps: Capability[
 export async function activeDropzone(event: Pick<RequestEvent, 'locals' | 'cookies' | 'url'>): Promise<DzContext | null> {
 	const { locals, cookies, url } = event;
 	if (!locals.user) redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname + url.search)}`);
-	const memberships = await listMemberships(locals.db, locals.user.id);
-	const selected = cookies.get(DZ_COOKIE);
-	const m = memberships.find((x) => x.dropzone.slug === selected) ?? memberships[0];
+	const m = await currentMembership({ locals, cookies }, locals.user.id);
 	if (!m) return null;
-	const dz = (await locals.db.select().from(dropzones).where(eq(dropzones.id, m.dropzone.id)).limit(1))[0];
+	const dz = await requestDropzone(locals, m.dropzone.id);
 	if (!dz) return null;
 	return { dz, roles: m.roles, caps: capabilitiesOf(m.roles), userId: locals.user.id };
 }

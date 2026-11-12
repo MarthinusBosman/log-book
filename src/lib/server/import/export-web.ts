@@ -1,9 +1,9 @@
 /** Route glue for /app/export: permission checks and download responses. */
 import { error, redirect, type RequestEvent } from '@sveltejs/kit';
 import { and, count, eq } from 'drizzle-orm';
-import { dropzones, logbookJumps, loads, dropzoneMembers, rigs, type Dropzone } from '../db/schema.ts';
+import { logbookJumps, loads, dropzoneMembers, rigs, type Dropzone } from '../db/schema.ts';
 import { can } from '../domain/permissions.ts';
-import { DZ_COOKIE, listMemberships } from '../dropzones/index.ts';
+import { currentMembership, requestDropzone } from '../request-cache.ts';
 import { publicOrigin } from '../config.ts';
 import { exportDropzone, exportJumper, exportLogbookCsv } from './export.ts';
 
@@ -11,11 +11,9 @@ import { exportDropzone, exportJumper, exportLogbookCsv } from './export.ts';
 export async function exportableDropzone(event: Pick<RequestEvent, 'locals' | 'cookies'>): Promise<Dropzone | null> {
 	const user = event.locals.user;
 	if (!user) return null;
-	const memberships = await listMemberships(event.locals.db, user.id);
-	const selected = event.cookies.get(DZ_COOKIE);
-	const m = memberships.find((x) => x.dropzone.slug === selected) ?? memberships[0];
+	const m = await currentMembership(event, user.id);
 	if (!m || !(await can(event.locals.db, user.id, m.dropzone.id, 'dz.settings'))) return null;
-	return (await event.locals.db.select().from(dropzones).where(eq(dropzones.id, m.dropzone.id)).limit(1))[0] ?? null;
+	return (await requestDropzone(event.locals, m.dropzone.id)) ?? null;
 }
 
 export async function exportSummary(event: Pick<RequestEvent, 'locals' | 'cookies'>) {
