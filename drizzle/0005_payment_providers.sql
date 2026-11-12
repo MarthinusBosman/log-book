@@ -1,0 +1,1 @@
+ALTER TABLE `dropzone_payment_configs` ADD `providers` text DEFAULT '{}' NOT NULL;

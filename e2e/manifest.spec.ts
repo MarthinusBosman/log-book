@@ -1,0 +1,73 @@
+import { expect, test } from '@playwright/test';
+
+/**
+ * Manifest main flow on an empty instance: new DZ → create load → add a custom jumper →
+ * 20-min call → board → depart → land → complete (summary) → hangar display → staff dashboard.
+ */
+test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) => {
+	const project = test.info().project.name;
+	const email = `manifest-${Date.now()}-${project}@example.com`;
+
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Manny Manifest');
+	await page.getByLabel('Email').fill(email);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Manifest E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// Board starts empty, create a load from the dialog
+	await page.goto('/app/manifest');
+	await expect(page.getByTestId('manifest-heading')).toContainText('Today');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-E2E');
+	await dialog.getByLabel('Slots (pax)').fill('8');
+	await dialog.getByLabel('Weight limit (kg)').fill('400');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	const card = page.locator('[data-testid=load-card][data-load-number="1"]');
+	await expect(card).toBeVisible();
+
+	// Load detail: add a walk-in jumper from the Custom tab
+	await card.getByRole('link', { name: 'Add slots' }).click();
+	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+$/);
+	await page.getByRole('tab', { name: 'Custom' }).click();
+	await page.getByLabel('Jumper name').fill('Vera Visitor');
+	await page.getByLabel('Slot weight (kg)').fill('72');
+	await page.getByRole('button', { name: 'Create jumper slot' }).click();
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Vera Visitor"]')).toBeVisible();
+
+	// Overweight is rejected with a friendly message
+	await page.getByLabel('Jumper name').fill('Heavy Harry');
+	await page.getByLabel('Slot weight (kg)').fill('399');
+	await page.getByRole('button', { name: 'Create jumper slot' }).click();
+	await expect(page.getByText(/Too heavy/).first()).toBeVisible();
+
+	// Lifecycle via the single "next step" button
+	const loadCard = page.getByTestId('load-card');
+	const next = page.getByTestId('next-step');
+	for (const status of ['called', 'boarding', 'departed', 'landed']) {
+		await next.click();
+		await expect(loadCard).toHaveAttribute('data-status', status);
+	}
+	await next.click();
+	await expect(page.getByTestId('complete-summary')).toContainText('Load 1 completed');
+	await page.getByRole('button', { name: 'Done' }).click();
+	await expect(loadCard).toHaveAttribute('data-status', 'completed');
+
+	// Hangar display and the staff dashboard part
+	await page.goto('/app/display');
+	await expect(page.getByTestId('hangar-board')).toBeVisible();
+	await page.goto('/app');
+	await expect(page.getByTestId('staff-today')).toContainText('Loads flown');
+	await expect(page.getByTestId('staff-today')).toContainText('of 1 manifested');
+});
+
+test('public display needs a valid token', async ({ page }) => {
+	const res = await page.goto('/dz/no-such-dz/display?token=nope-nope-nope-nope');
+	expect(res?.status()).toBe(404);
+});

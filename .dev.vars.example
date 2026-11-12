@@ -1,0 +1,4 @@
+# Local secrets for `wrangler dev` (copy to .dev.vars — gitignored). In production use
+# `bunx wrangler secret put <NAME>` instead.
+SECRETS_KEY=dev-only-change-me-0123456789abcdef
+# CRON_SECRET=

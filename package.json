@@ -1,0 +1,62 @@
+{
+	"name": "dzapp",
+	"version": "0.1.0",
+	"private": true,
+	"license": "AGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/MarthinusBosman/log-book.git"
+	},
+	"type": "module",
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
+	},
+	"scripts": {
+		"dev": "bun --bun vite dev",
+		"dev:cf": "DEPLOY_TARGET=cloudflare vite dev",
+		"build": "bun run build:bun",
+		"build:bun": "DEPLOY_TARGET=bun bun --bun vite build && bun scripts/bun-postbuild.ts",
+		"build:cf": "DEPLOY_TARGET=cloudflare vite build && bun scripts/cf-postbuild.ts",
+		"start": "bun build/server.js",
+		"preview:cf": "bun run build:cf && bun run db:migrate:d1:local && wrangler dev",
+		"preview": "vite preview",
+		"prepare": "svelte-kit sync || echo ''",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "bun test src",
+		"test:e2e": "playwright test",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate:d1:local": "wrangler d1 migrations apply DB --local",
+		"db:migrate:d1:remote": "wrangler d1 migrations apply DB --remote",
+		"db:seed": "bun scripts/seed.ts",
+		"db:studio": "drizzle-kit studio",
+		"deploy:cf": "bash scripts/deploy-cf.sh",
+		"og": "bun scripts/og.ts"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^5.20261110.1",
+		"@fontsource-variable/inter": "^5.3.0",
+		"@playwright/test": "^1.65.0",
+		"@sveltejs/adapter-cloudflare": "^8.0.2",
+		"@sveltejs/adapter-node": "^6.0.2",
+		"@sveltejs/kit": "^3.0.0",
+		"@sveltejs/vite-plugin-svelte": "^7.2.0",
+		"@tailwindcss/vite": "^4.3.5",
+		"@types/bun": "^1.4.4",
+		"drizzle-kit": "^0.31.11",
+		"svelte": "^5.57.2",
+		"svelte-check": "^4.6.0",
+		"tailwindcss": "^4.3.5",
+		"typescript": "^6.0.3",
+		"vite": "^8.3.0",
+		"wrangler": "^4.160.1"
+	},
+	"dependencies": {
+		"@oslojs/crypto": "^1.0.1",
+		"@oslojs/encoding": "^1.1.0",
+		"drizzle-orm": "^0.45.4",
+		"pdf-lib": "^1.17.1",
+		"qrcode-generator": "^2.0.4"
+	}
+}

@@ -1,0 +1,26 @@
+# LAN mode, plain HTTP — dropzone WiFi only, no certificates at all.
+# Used by `docker compose --profile lan-http up -d` (docs/SELF_HOSTING.md → "Local-only").
+#
+# Only for a network you trust (staff WiFi with a password). Traffic, including passwords, is not
+# encrypted. Logins work; "Find dropzones near me", copy-to-clipboard and the share sheet need
+# HTTPS in most browsers and are unavailable (people can still type/select instead).
+#
+# Answers on ANY name or IP that reaches port 80 (logbook.internal, logbook.local, 192.168.1.10…).
+# .env:  ORIGIN=                          # empty = follow the name the browser used
+#        PROTOCOL_HEADER=x-forwarded-proto
+#        HOST_HEADER=x-forwarded-host
+#   (or set ORIGIN=http://logbook.internal to allow exactly one name)
+#
+# Without Docker: UPSTREAM=127.0.0.1:3000 caddy run --config deploy/Caddyfile.lan-http
+{
+	auto_https off
+	http_port {$HTTP_PORT:80}
+}
+
+:{$HTTP_PORT:80} {
+	encode zstd gzip
+	request_body {
+		max_size 12MB
+	}
+	reverse_proxy {$UPSTREAM:app:3000}
+}

@@ -1,0 +1,271 @@
+@import 'tailwindcss';
+
+/* Dark-first: `.dark` on <html> is the default (set server-side from the `theme` cookie).
+   `.system` (a dropzone's public pages with theme "system" and no visitor choice) follows the OS. */
+@custom-variant dark {
+	&:where(.dark, .dark *) {
+		@slot;
+	}
+	@media (prefers-color-scheme: dark) {
+		&:where(.system, .system *) {
+			@slot;
+		}
+	}
+}
+
+@theme {
+	--font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+
+	/* Brand — electric blue */
+	--color-brand-50: #eef4ff;
+	--color-brand-100: #d9e6ff;
+	--color-brand-200: #bcd3ff;
+	--color-brand-300: #8eb5ff;
+	--color-brand-400: #598cff;
+	--color-brand-500: #1e6bff;
+	--color-brand-600: #0b55ec;
+	--color-brand-700: #0a44c4;
+	--color-brand-800: #0e3a9c;
+	--color-brand-900: #12357b;
+	--color-brand-950: #0d214b;
+
+	/* Semantic tokens → CSS vars that flip with the theme */
+	--color-bg: var(--dz-bg);
+	--color-surface: var(--dz-surface);
+	--color-surface-2: var(--dz-surface-2);
+	--color-elevated: var(--dz-elevated);
+	--color-border: var(--dz-border);
+	--color-border-strong: var(--dz-border-strong);
+	--color-fg: var(--dz-fg);
+	--color-muted: var(--dz-muted);
+	--color-subtle: var(--dz-subtle);
+	--color-primary: var(--dz-primary);
+	--color-primary-fg: var(--dz-primary-fg);
+	--color-ring: var(--dz-ring);
+	--color-success: var(--dz-success);
+	--color-warning: var(--dz-warning);
+	--color-danger: var(--dz-danger);
+
+	--radius-xl: 0.875rem;
+	--radius-2xl: 1.125rem;
+
+	--shadow-glow: 0 0 0 1px rgb(30 107 255 / 0.25), 0 8px 30px -8px rgb(30 107 255 / 0.45);
+
+	--animate-fade-in: fade-in 180ms ease-out both;
+	--animate-slide-up: slide-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	--animate-slide-in-right: slide-in-right 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+	--animate-slide-in-left: slide-in-left 240ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+	}
+	@keyframes slide-up {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+	}
+	@keyframes slide-in-right {
+		from {
+			transform: translateX(100%);
+		}
+	}
+	@keyframes slide-in-left {
+		from {
+			transform: translateX(-100%);
+		}
+	}
+}
+
+@layer base {
+	:root {
+		/* light */
+		--dz-bg: #f6f8fc;
+		--dz-surface: #ffffff;
+		--dz-surface-2: #f0f3f9;
+		--dz-elevated: #ffffff;
+		--dz-border: #e2e7f0;
+		--dz-border-strong: #cbd3e1;
+		--dz-fg: #0b1220;
+		--dz-muted: #526077;
+		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
+		--dz-primary: #1e6bff;
+		--dz-primary-fg: #ffffff;
+		--dz-ring: rgb(30 107 255 / 0.45);
+		--dz-success: #047857;
+		--dz-warning: #b45309;
+		--dz-danger: #dc2626;
+		color-scheme: light;
+	}
+
+	.dark {
+		/* deep navy night sky */
+		--dz-bg: #060b17;
+		--dz-surface: #0b1324;
+		--dz-surface-2: #111b31;
+		--dz-elevated: #131e36;
+		--dz-border: #1b2742;
+		--dz-border-strong: #2a3a5e;
+		--dz-fg: #e8eefb;
+		--dz-muted: #93a1bd;
+		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
+		--dz-primary: #3b7fff;
+		--dz-primary-fg: #ffffff;
+		--dz-ring: rgb(59 127 255 / 0.5);
+		--dz-success: #34d399;
+		--dz-warning: #fbbf24;
+		--dz-danger: #f87171;
+		color-scheme: dark;
+	}
+
+	/* Same tokens when following the OS (see the `dark` variant above). */
+	@media (prefers-color-scheme: dark) {
+		:root.system {
+			/* deep navy night sky */
+			--dz-bg: #060b17;
+			--dz-surface: #0b1324;
+			--dz-surface-2: #111b31;
+			--dz-elevated: #131e36;
+			--dz-border: #1b2742;
+			--dz-border-strong: #2a3a5e;
+			--dz-fg: #e8eefb;
+			--dz-muted: #93a1bd;
+			--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
+			--dz-primary: #3b7fff;
+			--dz-primary-fg: #ffffff;
+			--dz-ring: rgb(59 127 255 / 0.5);
+			--dz-success: #34d399;
+			--dz-warning: #fbbf24;
+			--dz-danger: #f87171;
+			color-scheme: dark;
+		}
+	}
+
+	/* Self-contained light/dark scopes (branding preview): re-derive the semantic colours from
+	   the scope's own --dz-* tokens, since custom properties resolve where they're declared. */
+	.light-scope,
+	.dark-scope {
+		--color-bg: var(--dz-bg);
+		--color-surface: var(--dz-surface);
+		--color-surface-2: var(--dz-surface-2);
+		--color-elevated: var(--dz-elevated);
+		--color-border: var(--dz-border);
+		--color-border-strong: var(--dz-border-strong);
+		--color-fg: var(--dz-fg);
+		--color-muted: var(--dz-muted);
+		--color-subtle: var(--dz-subtle);
+		--color-primary: var(--dz-primary);
+		--color-primary-fg: var(--dz-primary-fg);
+		--color-ring: var(--dz-ring);
+		--color-success: var(--dz-success);
+		--color-warning: var(--dz-warning);
+		--color-danger: var(--dz-danger);
+	}
+	.light-scope {
+		/* light */
+		--dz-bg: #f6f8fc;
+		--dz-surface: #ffffff;
+		--dz-surface-2: #f0f3f9;
+		--dz-elevated: #ffffff;
+		--dz-border: #e2e7f0;
+		--dz-border-strong: #cbd3e1;
+		--dz-fg: #0b1220;
+		--dz-muted: #526077;
+		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
+		--dz-primary: #1e6bff;
+		--dz-primary-fg: #ffffff;
+		--dz-ring: rgb(30 107 255 / 0.45);
+		--dz-success: #047857;
+		--dz-warning: #b45309;
+		--dz-danger: #dc2626;
+		color-scheme: light;
+	}
+	.dark-scope {
+		/* deep navy night sky */
+		--dz-bg: #060b17;
+		--dz-surface: #0b1324;
+		--dz-surface-2: #111b31;
+		--dz-elevated: #131e36;
+		--dz-border: #1b2742;
+		--dz-border-strong: #2a3a5e;
+		--dz-fg: #e8eefb;
+		--dz-muted: #93a1bd;
+		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
+		--dz-primary: #3b7fff;
+		--dz-primary-fg: #ffffff;
+		--dz-ring: rgb(59 127 255 / 0.5);
+		--dz-success: #34d399;
+		--dz-warning: #fbbf24;
+		--dz-danger: #f87171;
+		color-scheme: dark;
+	}
+
+	html {
+		@apply bg-bg text-fg antialiased;
+		font-feature-settings: 'cv11', 'ss01', 'ss03';
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	body {
+		@apply min-h-dvh font-sans;
+	}
+
+	::selection {
+		background: rgb(30 107 255 / 0.35);
+	}
+
+	/* Themed scrollbars everywhere (the OS default is a bright grey slab on the dark theme). */
+	* {
+		scrollbar-color: var(--dz-border-strong) transparent;
+	}
+	html {
+		/* keep focused fields clear of the sticky mobile tab bar / bottom action bars */
+		scroll-padding-bottom: 6rem;
+	}
+
+	:focus-visible {
+		@apply outline-2 outline-offset-2 outline-ring;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 1ms !important;
+			transition-duration: 1ms !important;
+		}
+	}
+}
+
+@utility scrollbar-thin {
+	scrollbar-width: thin;
+}
+
+/* Horizontal tab strips: scroll with touch/trackpad, no visible bar. */
+@utility scrollbar-none {
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+@layer components {
+	/* Faint grid used on hero/auth backgrounds — "flight chart" feel. */
+	.bg-chart {
+		background-image:
+			linear-gradient(to right, rgb(148 163 184 / 0.07) 1px, transparent 1px),
+			linear-gradient(to bottom, rgb(148 163 184 / 0.07) 1px, transparent 1px);
+		background-size: 44px 44px;
+	}
+
+	.text-gradient {
+		@apply bg-clip-text text-transparent;
+		background-image: linear-gradient(110deg, #ffffff 10%, #9cc0ff 45%, #1e6bff 90%);
+	}
+	:where(:root:not(.dark)) .text-gradient {
+		background-image: linear-gradient(110deg, #0b1220 10%, #0a44c4 55%, #1e6bff 90%);
+	}
+}

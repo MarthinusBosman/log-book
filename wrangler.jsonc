@@ -1,0 +1,48 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	// Hosted (global) instance — Cloudflare Workers + static assets + D1 + R2 (uploaded files in the
+	// `log-book-files` bucket, STORAGE_DRIVER=r2; files stored in D1 before the switch stay readable).
+	// Build with `bun run build:cf`; deploy with scripts/deploy-cf.sh.
+	// Docs: docs/DEPLOY.md.
+	"name": "dzapp-preview",
+	// Written by adapter-cloudflare, then wrapped by scripts/cf-postbuild.ts (adds scheduled()).
+	"main": ".svelte-kit/cloudflare/_worker.js",
+	"compatibility_date": "2026-11-01",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"preview_urls": true,
+	"assets": {
+		"binding": "ASSETS",
+		"directory": ".svelte-kit/cloudflare"
+	},
+	// Plain (non-secret) config. Secrets go in `wrangler secret put <NAME>` — see docs/DEPLOY.md:
+	//   SECRETS_KEY (required), CRON_SECRET, FEDERATION_FLUSH_SECRET, JUMPMASTER_FIREBASE_* (optional).
+	// APP_ORIGIN is optional: unset = derived from each request's URL (fine on *.workers.dev);
+	// set it once a custom domain is attached so emails/OAuth links use the canonical origin.
+	"vars": {
+		"INSTANCE_MODE": "global",
+		"STORAGE_DRIVER": "r2"
+	},
+	// Uploads (photos, logos, signatures, staged imports). Locally `wrangler dev` simulates it.
+	"r2_buckets": [
+		{
+			"binding": "FILES",
+			"bucket_name": "log-book-files"
+		}
+	],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "dzapp-preview",
+			"database_id": "e3434e08-d6bf-4804-b912-ea742fd4aeb8",
+			"migrations_dir": "drizzle"
+		}
+	],
+	// Housekeeping (expired sessions/tokens, orphaned blobs) + federation outbox flush → POST /api/cron.
+	"triggers": {
+		"crons": ["17 * * * *"]
+	},
+	"observability": {
+		"enabled": true
+	}
+}

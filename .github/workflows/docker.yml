@@ -1,0 +1,119 @@
+# Publishes the self-hosted image to GitHub Container Registry:
+#   ghcr.io/<owner>/log-book:{latest, 1, 1.2, 1.2.3, sha-abc1234}
+# Multi-arch: linux/amd64 + linux/arm64 (Raspberry Pi 4/5, ARM mini PCs).
+#
+# Runs on version tags (git tag v0.1.0 && git push origin v0.1.0) and by hand (Actions →
+# Docker image → Run workflow; a manual run on a branch pushes only the sha-… tag).
+# First publish: the package is private by default — make it public under the owner's
+# Packages → log-book → Package settings → Change visibility, or `docker pull` needs a login.
+name: Docker image
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image name (GHCR needs lowercase)
+        id: name
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "image=ghcr.io/${OWNER,,}/log-book" >> "$GITHUB_OUTPUT"
+
+      - name: Short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # The Dockerfile builds JS on the runner's own platform; QEMU only runs the tiny arm64 final stage.
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.name.outputs.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}},enable=${{ !startsWith(github.ref, 'refs/tags/v0.') }}
+            type=sha,prefix=sha-,format=short
+          # latest only for stable releases (v1.2.3, not v1.2.3-rc.1)
+          flavor: |
+            latest=auto
+          labels: |
+            org.opencontainers.image.title=Log-Book
+            org.opencontainers.image.description=Log-Book: dropzone management + jumper logbook, self-hosted (Bun + SQLite)
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.documentation=${{ github.server_url }}/${{ github.repository }}/blob/main/docs/SELF_HOSTING.md
+          annotations: |
+            org.opencontainers.image.description=Log-Book: dropzone management + jumper logbook, self-hosted (Bun + SQLite)
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      # Release gate: build amd64 into the local daemon, start it and wait for /api/health
+      # (migrations ran, DB answers) before anything is pushed.
+      - name: Build amd64 for smoke test
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: log-book:smoke
+          build-args: |
+            GIT_SHA=${{ steps.sha.outputs.short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Smoke test
+        run: bash scripts/docker-smoke.sh log-book:smoke
+
+      - name: Build and push (amd64 + arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          annotations: ${{ steps.meta.outputs.annotations }}
+          build-args: |
+            GIT_SHA=${{ steps.sha.outputs.short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      - name: Summary
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          {
+            echo "### Published"
+            echo '```'
+            echo "$TAGS"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,46 @@
+# LAN mode with HTTPS — dropzone WiFi only, nothing on the internet, no domain bought.
+# Used by `docker compose --profile lan up -d` (docs/SELF_HOSTING.md → "Local-only").
+#
+# Caddy runs its own small certificate authority ("tls internal") and issues certificates for the
+# names below. Each staff device has to trust that CA once: open http://<server>/ca.crt on the
+# device and install it (steps in the docs). Until then browsers show a certificate warning.
+#
+# .env:  LAN_HOSTS=logbook.internal, logbook.local, 192.168.1.10     # every name/IP people type
+#        ORIGIN=                                                    # empty = answer on all of them
+#        PROTOCOL_HEADER=x-forwarded-proto
+#        HOST_HEADER=x-forwarded-host
+#   (or set ORIGIN=https://logbook.internal to allow exactly one name)
+#
+# Without Docker: UPSTREAM=127.0.0.1:3000 CA_DIR=~/.local/share/caddy/pki/authorities/local \
+#                 caddy run --config deploy/Caddyfile.lan
+{
+	http_port {$HTTP_PORT:80}
+	https_port {$HTTPS_PORT:443}
+	# Don't try to add the CA to the container's own trust store (it can't, and doesn't need to).
+	skip_install_trust
+	# The :80 block below does the HTTP→HTTPS redirect itself (so /ca.crt stays reachable).
+	auto_https disable_redirects
+}
+
+# Plain HTTP (port 80): hands out the CA certificate, sends everything else to HTTPS.
+:{$HTTP_PORT:80} {
+	handle /ca.crt {
+		root * {$CA_DIR:/data/caddy/pki/authorities/local}
+		rewrite * /root.crt
+		header Content-Type application/x-x509-ca-cert
+		header Content-Disposition "attachment; filename=\"logbook-local-ca.crt\""
+		file_server
+	}
+	handle {
+		redir https://{host}{uri} 308
+	}
+}
+
+{$LAN_HOSTS:logbook.internal} {
+	tls internal
+	encode zstd gzip
+	request_body {
+		max_size 12MB
+	}
+	reverse_proxy {$UPSTREAM:app:3000}
+}

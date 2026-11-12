@@ -1,0 +1,117 @@
+# Self-hosted dropzone instance — docs/SELF_HOSTING.md
+# Quick install (writes .env for you): curl -fsSL https://log-book.app/install.sh | bash
+#
+#   cp .env.example .env    # set ORIGIN and SECRETS_KEY at least
+#   docker compose up -d                       # plain HTTP on :3000 (put your own proxy in front)
+#
+# Pick at most ONE front end (they all want ports 80/443). Put it in .env as
+# COMPOSE_PROFILES=<name> (the installer does) or pass it on every command:
+#   docker compose --profile https up -d       # public: own domain + Let's Encrypt (DOMAIN in .env)
+#   docker compose --profile tunnel up -d      # public, no open ports / CGNAT: Cloudflare Tunnel (TUNNEL_TOKEN)
+#   docker compose --profile lan up -d         # dropzone WiFi only, HTTPS with Caddy's local CA (LAN_HOSTS)
+#   docker compose --profile lan-http up -d    # dropzone WiFi only, plain HTTP on port 80
+#
+# Update: back up (docs/SELF_HOSTING.md → Backups), then
+#   docker compose pull && docker compose up -d   # migrations apply on start
+# Pin a release with LOG_BOOK_VERSION=0.1.0 in .env (default: latest).
+services:
+  app:
+    # Prebuilt multi-arch image (amd64 + arm64) from .github/workflows/docker.yml.
+    image: ${LOG_BOOK_IMAGE:-ghcr.io/marthinusbosman/log-book}:${LOG_BOOK_VERSION:-latest}
+    # Developers: build from this checkout instead (then `docker compose up -d --build`):
+    # build:
+    #   context: .
+    #   args:
+    #     GIT_SHA: ${GIT_SHA:-}
+    restart: unless-stopped
+    ports:
+      # APP_BIND=127.0.0.1 hides :3000 from the network when a front end below is in use.
+      - "${APP_BIND:-0.0.0.0}:${PORT:-3000}:3000"
+    environment:
+      # Public URL people use to reach the app. Must match exactly (CSRF checks). Set it EMPTY
+      # (`ORIGIN=`) to follow whatever name the browser used — only behind one of the Caddy
+      # front ends, together with PROTOCOL_HEADER/HOST_HEADER (LAN with several names).
+      ORIGIN: ${ORIGIN-http://localhost:3000}
+      # Canonical URL for links in emails/booking confirmations. Defaults to ORIGIN, else the request.
+      APP_ORIGIN: ${APP_ORIGIN:-${ORIGIN-http://localhost:3000}}
+      INSTANCE_MODE: dropzone
+      # Long random string; encrypts stored payment-provider secrets. Generate: openssl rand -base64 48
+      SECRETS_KEY: ${SECRETS_KEY:-}
+      # disk (default, /data/uploads) | db (files inside /data/app.db — one file to back up)
+      STORAGE_DRIVER: ${STORAGE_DRIVER:-disk}
+      # Optional: link to the hosted instance (docs/ARCHITECTURE.md → Federation)
+      FEDERATION_GLOBAL_URL: ${FEDERATION_GLOBAL_URL:-}
+      FEDERATION_CLIENT_ID: ${FEDERATION_CLIENT_ID:-}
+      FEDERATION_CLIENT_SECRET: ${FEDERATION_CLIENT_SECRET:-}
+      CRON_SECRET: ${CRON_SECRET:-}
+      # Behind a reverse proxy (any front end below):
+      PROTOCOL_HEADER: ${PROTOCOL_HEADER:-}
+      HOST_HEADER: ${HOST_HEADER:-}
+      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
+      XFF_DEPTH: ${XFF_DEPTH:-1}
+    volumes:
+      - slot-data:/data # SQLite db (/data/app.db) + uploads (/data/uploads)
+
+  # PUBLIC — own domain. Needs DOMAIN in .env, ports 80/443 reachable from the internet and a DNS
+  # A/AAAA record for DOMAIN pointing here. Config: deploy/Caddyfile.public
+  caddy:
+    profiles: ["https", "public"]
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile.public:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  # PUBLIC without a static IP / behind CGNAT — Cloudflare Tunnel. No ports to open: cloudflared
+  # dials out to Cloudflare. Create the tunnel in the Cloudflare dashboard, point its public
+  # hostname at http://app:3000 and put the token in TUNNEL_TOKEN.
+  cloudflared:
+    profiles: ["tunnel"]
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on: [app]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+
+  # LAN only, HTTPS with Caddy's own CA ("tls internal"). Staff devices install the CA once from
+  # http://<server>/ca.crt. Config: deploy/Caddyfile.lan
+  caddy-lan:
+    profiles: ["lan"]
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      LAN_HOSTS: ${LAN_HOSTS:-logbook.internal}
+    volumes:
+      - ./deploy/Caddyfile.lan:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data # holds the local CA: back it up, or every device must trust a new one
+      - caddy-config:/config
+
+  # LAN only, plain HTTP on port 80 (trusted network). Config: deploy/Caddyfile.lan-http
+  caddy-lan-http:
+    profiles: ["lan-http"]
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/Caddyfile.lan-http:/etc/caddy/Caddyfile:ro
+      - caddy-config:/config
+
+volumes:
+  slot-data:
+  caddy-data:
+  caddy-config:
