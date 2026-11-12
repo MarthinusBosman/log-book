@@ -36,7 +36,7 @@
 		secondary: 'bg-surface-2 text-fg hover:bg-elevated border border-border',
 		outline: 'border border-border-strong text-fg hover:bg-surface-2',
 		ghost: 'text-muted hover:text-fg hover:bg-surface-2',
-		danger: 'bg-danger text-white hover:opacity-90'
+		danger: 'bg-danger text-bg hover:opacity-90'
 	};
 	const sizes: Record<ButtonSize, string> = {
 		sm: 'h-8 px-3 text-sm gap-1.5 rounded-lg',

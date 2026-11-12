@@ -19,7 +19,7 @@
 	<JIcon name="bell" class="size-[19px]" />
 	{#if count > 0}
 		<span
-			class="absolute top-1.5 right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-white ring-2 ring-bg tabular-nums"
+			class="absolute top-1.5 right-1.5 grid h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[10px] leading-none font-semibold text-bg ring-2 ring-bg tabular-nums"
 			data-testid="unread-count">{count > 99 ? '99+' : count}</span
 		>
 	{/if}

@@ -26,11 +26,17 @@ export type DropzoneBranding = {
 export const DEFAULT_BRAND_COLOR = '#1e6bff';
 export const MIN_CONTRAST = 4.5;
 
-/** Light / dark surfaces the colour must read on (bg, surface, surface-2 from app.css). */
+/** Light / dark surfaces the colour must read on (bg, surface, surface-2, elevated from app.css). */
 export const SURFACES = {
 	light: ['#f6f8fc', '#ffffff', '#f0f3f9'],
-	dark: ['#060b17', '#0b1324', '#111b31']
+	dark: ['#060b17', '#0b1324', '#111b31', '#131e36']
 } as const;
+/**
+ * Strongest tint the UI puts behind same-colour text (badges and notices are
+ * `bg-x/10 text-x`, some `bg-x/15`): colours must also reach 4.5:1 on each surface with
+ * this much of themselves mixed in.
+ */
+export const TEXT_TINT = 0.15;
 const DARK_FG = '#0b1220';
 
 export function normalizeHex(input: string | null | undefined): string | null {
@@ -81,7 +87,9 @@ export function readableOn(bg: string): string {
 	return contrast(bg, '#ffffff') >= contrast(bg, DARK_FG) ? '#ffffff' : DARK_FG;
 }
 
-const minContrast = (color: string, against: readonly string[]) => Math.min(...against.map((s) => contrast(color, s)));
+/** Lowest contrast of `color` on any surface (and, with `tint`, on each surface tinted by itself). */
+export const minContrast = (color: string, against: readonly string[], tint = 0) =>
+	Math.min(...against.flatMap((s) => (tint > 0 ? [contrast(color, s), contrast(color, mix(s, color, tint))] : [contrast(color, s)])));
 
 /** sRGB ↔ HSL (h 0–360, s/l 0–1). */
 export function toHsl(hex: string): { h: number; s: number; l: number } {
@@ -108,9 +116,14 @@ export function fromHsl({ h, s, l }: { h: number; s: number; l: number }): strin
  * Nudge `color` towards black (light surfaces) or white (dark surfaces) in small steps until it
  * reaches `min` contrast against every surface. Returns the original when it already passes.
  */
-export function ensureContrast(color: string, against: readonly string[], min = MIN_CONTRAST): { color: string; ratio: number; adjusted: boolean } {
+export function ensureContrast(
+	color: string,
+	against: readonly string[],
+	min = MIN_CONTRAST,
+	tint = 0
+): { color: string; ratio: number; adjusted: boolean } {
 	const base = normalizeHex(color) ?? DEFAULT_BRAND_COLOR;
-	const start = minContrast(base, against);
+	const start = minContrast(base, against, tint);
 	if (start >= min) return { color: base, ratio: start, adjusted: false };
 	// Move lightness only (hue and saturation stay), so a dark green becomes a brighter green on
 	// dark backgrounds instead of a washed-out grey-green.
@@ -120,11 +133,11 @@ export function ensureContrast(color: string, against: readonly string[], min = 
 		const l = lightSurfaces ? hsl.l - step * 0.01 : hsl.l + step * 0.01;
 		if (l < 0 || l > 1) break;
 		const c = fromHsl({ ...hsl, l });
-		const r = minContrast(c, against);
+		const r = minContrast(c, against, tint);
 		if (r >= min) return { color: c, ratio: r, adjusted: true };
 	}
 	const target = lightSurfaces ? '#000000' : '#ffffff';
-	return { color: target, ratio: minContrast(target, against), adjusted: true };
+	return { color: target, ratio: minContrast(target, against, tint), adjusted: true };
 }
 
 export type ModeColors = {
@@ -162,8 +175,8 @@ const rgba = (hex: string, a: number) => {
 
 function modeColors(base: string, mode: 'light' | 'dark'): ModeColors {
 	const surfaces = SURFACES[mode];
-	const originalRatio = minContrast(base, surfaces);
-	const fixed = ensureContrast(base, surfaces);
+	const originalRatio = minContrast(base, surfaces, TEXT_TINT);
+	const fixed = ensureContrast(base, surfaces, MIN_CONTRAST, TEXT_TINT);
 	const primary = fixed.color;
 	const primaryFg = readableOn(primary);
 	// Hover/active move away from the label colour so the label keeps (or gains) contrast.

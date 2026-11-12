@@ -236,7 +236,7 @@
 						type="submit"
 						size="sm"
 						loading={busy}
-						class={cn(step.tone === 'warning' && '!bg-warning !text-black hover:!opacity-90', step.tone === 'success' && '!bg-success !text-black')}
+						class={cn(step.tone === 'warning' && '!bg-warning !text-bg hover:!opacity-90', step.tone === 'success' && '!bg-success !text-bg')}
 						data-testid="next-step"
 					>
 						{#if step.action === 'call'}<MIcon name="clock" class="size-4" />{:else if step.action === 'complete'}<MIcon name="check" class="size-4" />{/if}

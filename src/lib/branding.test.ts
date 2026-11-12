@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import {
 	DEFAULT_BRAND_COLOR,
 	SURFACES,
+	TEXT_TINT,
 	brandCss,
 	brandPalette,
 	brandTheme,
@@ -11,6 +12,7 @@ import {
 	fromHsl,
 	toHsl,
 	luminance,
+	minContrast,
 	mix,
 	normalizeHex,
 	readBranding,
@@ -181,6 +183,43 @@ describe('default theme tokens (app.css)', () => {
 			expect(token(b, '--color-brand-700')).toBe(m.active);
 			expect(contrast(m.primary, m.primaryFg)).toBeGreaterThanOrEqual(4.5);
 			expect(contrast(m.hover, m.primaryFg)).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+
+	test.each([
+		[':root {', 'light'],
+		['.light-scope {', 'light'],
+		['.dark {', 'dark'],
+		[':root.system {', 'dark'],
+		['.dark-scope {', 'dark']
+	] as const)('%s status + primary colours read as text on their own tinted pills (%s)', (selector, mode) => {
+		for (const b of blocks(selector).filter((x) => x.includes('--dz-primary:'))) {
+			for (const name of ['--dz-primary', '--dz-success', '--dz-warning', '--dz-danger']) {
+				const c = token(b, name)!;
+				// bg-x/10 and bg-x/15 behind text-x (Badge, notices) on every surface
+				expect(minContrast(c, SURFACES[mode], TEXT_TINT)).toBeGreaterThanOrEqual(4.5);
+				// solid fills (danger button, "Gear up & go", count badges) are labelled text-bg
+				if (name !== '--dz-primary') expect(contrast(c, token(b, '--dz-bg')!)).toBeGreaterThanOrEqual(4.5);
+			}
+		}
+	});
+});
+
+describe('tinted surfaces', () => {
+	test('ensureContrast with a tint also clears the colour mixed into each surface', () => {
+		const plain = ensureContrast('#1e6bff', SURFACES.light);
+		const tinted = ensureContrast('#1e6bff', SURFACES.light, 4.5, TEXT_TINT);
+		expect(minContrast(plain.color, SURFACES.light, TEXT_TINT)).toBeLessThan(4.5);
+		for (const s of SURFACES.light) {
+			expect(contrast(tinted.color, s)).toBeGreaterThanOrEqual(4.5);
+			expect(contrast(tinted.color, mix(s, tinted.color, TEXT_TINT))).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+	test('brandTheme primaries pass on tinted pills in both modes', () => {
+		for (const c of ['#ff6a00', '#14532d', '#1e6bff', '#e11d48', '#facc15']) {
+			const t = brandTheme(c);
+			expect(minContrast(t.light.primary, SURFACES.light, TEXT_TINT)).toBeGreaterThanOrEqual(4.5);
+			expect(minContrast(t.dark.primary, SURFACES.dark, TEXT_TINT)).toBeGreaterThanOrEqual(4.5);
 		}
 	});
 });

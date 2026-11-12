@@ -102,7 +102,7 @@
 							title={p.name}
 						>
 							{p.initials}
-							{#if p.lm}<span class="absolute -right-1 -bottom-1 rounded bg-warning px-0.5 text-[8px] leading-tight text-black">LM</span>{/if}
+							{#if p.lm}<span class="absolute -right-1 -bottom-1 rounded bg-warning px-0.5 text-[8px] leading-tight text-bg">LM</span>{/if}
 						</span>
 					{/each}
 					{#if load.people.length > 8}

@@ -92,14 +92,14 @@
 		--dz-fg: #0b1220;
 		--dz-muted: #526077;
 		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #0f61ff; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces (branding.ts) */
+		--dz-primary: #0050ea; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces + their /15 tints (branding.ts) */
 		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(15 97 255 / 0.45);
-		--color-brand-600: #0d53db; /* hover */
-		--color-brand-700: #0b48bd; /* active */
-		--dz-success: #047857;
-		--dz-warning: #b45309;
-		--dz-danger: #dc2626;
+		--dz-ring: rgb(0 80 234 / 0.45);
+		--color-brand-600: #0045c9; /* hover */
+		--color-brand-700: #003bad; /* active */
+		--dz-success: #046e50; /* status colours: 4.5:1 as text on their own /15 tints too */
+		--dz-warning: #9c4808;
+		--dz-danger: #b71d1d;
 		color-scheme: light;
 	}
 
@@ -114,11 +114,11 @@
 		--dz-fg: #e8eefb;
 		--dz-muted: #93a1bd;
 		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #3d7fff; /* 4.5:1 on dark surfaces, so labels are near-black (white = 3.7:1) */
+		--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 		--dz-primary-fg: #0b1220;
-		--dz-ring: rgb(61 127 255 / 0.5);
-		--color-brand-600: #5891ff; /* hover: lighter, away from the dark label */
-		--color-brand-700: #6fa0ff;
+		--dz-ring: rgb(96 151 255 / 0.5);
+		--color-brand-600: #76a6ff; /* hover: lighter, away from the dark label */
+		--color-brand-700: #89b2ff;
 		--dz-success: #34d399;
 		--dz-warning: #fbbf24;
 		--dz-danger: #f87171;
@@ -138,11 +138,11 @@
 			--dz-fg: #e8eefb;
 			--dz-muted: #93a1bd;
 			--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
-			--dz-primary: #3d7fff; /* 4.5:1 on dark surfaces, so labels are near-black (white = 3.7:1) */
+			--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 			--dz-primary-fg: #0b1220;
-			--dz-ring: rgb(61 127 255 / 0.5);
-			--color-brand-600: #5891ff; /* hover: lighter, away from the dark label */
-			--color-brand-700: #6fa0ff;
+			--dz-ring: rgb(96 151 255 / 0.5);
+			--color-brand-600: #76a6ff; /* hover: lighter, away from the dark label */
+			--color-brand-700: #89b2ff;
 			--dz-success: #34d399;
 			--dz-warning: #fbbf24;
 			--dz-danger: #f87171;
@@ -181,14 +181,14 @@
 		--dz-fg: #0b1220;
 		--dz-muted: #526077;
 		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #0f61ff; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces (branding.ts) */
+		--dz-primary: #0050ea; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces + their /15 tints (branding.ts) */
 		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(15 97 255 / 0.45);
-		--color-brand-600: #0d53db; /* hover */
-		--color-brand-700: #0b48bd; /* active */
-		--dz-success: #047857;
-		--dz-warning: #b45309;
-		--dz-danger: #dc2626;
+		--dz-ring: rgb(0 80 234 / 0.45);
+		--color-brand-600: #0045c9; /* hover */
+		--color-brand-700: #003bad; /* active */
+		--dz-success: #046e50; /* status colours: 4.5:1 as text on their own /15 tints too */
+		--dz-warning: #9c4808;
+		--dz-danger: #b71d1d;
 		color-scheme: light;
 	}
 	.dark-scope {
@@ -202,11 +202,11 @@
 		--dz-fg: #e8eefb;
 		--dz-muted: #93a1bd;
 		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
-		--dz-primary: #3d7fff; /* 4.5:1 on dark surfaces, so labels are near-black (white = 3.7:1) */
+		--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 		--dz-primary-fg: #0b1220;
-		--dz-ring: rgb(61 127 255 / 0.5);
-		--color-brand-600: #5891ff; /* hover: lighter, away from the dark label */
-		--color-brand-700: #6fa0ff;
+		--dz-ring: rgb(96 151 255 / 0.5);
+		--color-brand-600: #76a6ff; /* hover: lighter, away from the dark label */
+		--color-brand-700: #89b2ff;
 		--dz-success: #34d399;
 		--dz-warning: #fbbf24;
 		--dz-danger: #f87171;
