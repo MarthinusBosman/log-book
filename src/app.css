@@ -279,3 +279,53 @@
 		background-image: linear-gradient(110deg, #0b1220 10%, #0a44c4 55%, #1e6bff 90%);
 	}
 }
+
+/*
+ * Wide data tables that become one card per row on phones. Add `table-stack` to the <table>
+ * (keep its min-width behind `md:`), give each cell a `data-label` (shown above the value) and
+ * `stack-full` on cells that should span the whole card. Unlayered on purpose: it must beat the
+ * cells' padding/alignment utilities below md. Set `--stack-col` on the table for wider value
+ * columns (default 6rem).
+ */
+@media (width < 48rem) {
+	.table-stack,
+	.table-stack tbody,
+	.table-stack tfoot {
+		display: block;
+	}
+	.table-stack thead {
+		display: none;
+	}
+	.table-stack tr {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(var(--stack-col, 6rem), 1fr));
+		gap: 0.625rem 0.75rem;
+		padding: 0.875rem 1rem;
+	}
+	.table-stack td {
+		display: block;
+		min-width: 0;
+		padding: 0;
+	}
+	.table-stack td:empty,
+	.table-stack td.stack-hide {
+		display: none;
+	}
+	.table-stack td[colspan],
+	.table-stack td.stack-full {
+		grid-column: 1 / -1;
+	}
+	.table-stack td[data-label] {
+		text-align: left;
+	}
+	.table-stack td[data-label]::before {
+		content: attr(data-label);
+		display: block;
+		margin-bottom: 0.125rem;
+		font-size: 0.6875rem;
+		font-weight: 500;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--color-muted);
+	}
+}

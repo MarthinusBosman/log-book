@@ -102,7 +102,7 @@
 		</EmptyState>
 	{:else}
 		<div class="relative mt-3 overflow-x-auto rounded-2xl border border-border bg-surface">
-			<table class="w-full min-w-[52rem] text-sm">
+			<table class="table-stack w-full text-sm [--stack-col:9rem] md:min-w-[52rem]">
 				<thead>
 					<tr class="border-b border-border bg-surface-2/60 text-left text-xs tracking-wide text-muted uppercase">
 						<th class="py-2.5 pr-3 pl-4 font-medium">Rig</th>
@@ -120,29 +120,29 @@
 								? 'bg-danger/[0.04]'
 								: ''}"
 						>
-							<td class="py-3 pr-3 pl-4">
+							<td class="stack-full py-3 pr-3 pl-4">
 								<p class="font-medium">{r.rig.name ?? 'Unnamed rig'}</p>
 								<p class="text-xs text-muted">{kindLabel[r.rig.kind]}{r.rig.container ? ` · ${r.rig.container}` : ''}</p>
 							</td>
-							<td class="px-3 py-3 text-[13px]">
+							<td class="stack-full px-3 py-3 text-[13px]" data-label="Canopies">
 								<p><span class="text-subtle">M</span> {r.rig.mainCanopy ?? '—'}{#if r.rig.mainSizeSqft}<span class="text-muted"> {r.rig.mainSizeSqft}</span>{/if}</p>
 								<p><span class="text-subtle">R</span> {r.rig.reserveCanopy ?? '—'}{#if r.rig.reserveSizeSqft}<span class="text-muted"> {r.rig.reserveSizeSqft}</span>{/if}</p>
 							</td>
-							<td class="px-3 py-3">
+							<td class="px-3 py-3" data-label="Repack due">
 								<DueBadge status={r.repack.status} dueOn={r.repack.dueOn} daysLeft={r.repack.daysLeft} />
 								<p class="mt-0.5 pl-1 text-[11px] whitespace-nowrap text-subtle tabular-nums">Packed {r.rig.reserveRepackedOn ?? '—'}</p>
 							</td>
-							<td class="px-3 py-3">
+							<td class="px-3 py-3" data-label="AAD">
 								<DueBadge status={r.aad.status} dueOn={r.aad.dueOn} daysLeft={r.aad.daysLeft} empty="No date" />
 								{#if r.rig.aad}<p class="mt-0.5 pl-1 text-xs text-subtle">{r.rig.aad}{r.rig.aadSerial ? ` · ${r.rig.aadSerial}` : ''}</p>{/if}
 							</td>
-							<td class="px-3 py-3">
+							<td class="stack-full px-3 py-3" data-label="Status">
 								<Badge tone={availTone[r.availability]} dot>{availLabel[r.availability]}</Badge>
 								{#if r.inUseBy}<p class="mt-1 text-xs text-muted">{r.inUseBy}</p>{/if}
 								{#if r.groundedReason}<p class="mt-1 text-xs text-danger">{r.groundedReason}</p>{/if}
 							</td>
-							<td class="py-3 pr-4 pl-3">
-								<div class="flex flex-wrap justify-end gap-1">
+							<td class="stack-full py-3 pr-4 pl-3">
+								<div class="flex flex-wrap gap-1 md:justify-end">
 									<Button size="sm" variant="secondary" onclick={() => ((serviceKind = 'reserve_repack'), (servicing = r.rig))}>Service</Button>
 									<Button size="sm" variant="ghost" onclick={() => (editing = r.rig)}>Edit</Button>
 									<form method="POST" action="?/ground" use:enhance={toastEnhance()}>
@@ -168,7 +168,7 @@
 		</label>
 	</div>
 	<div class="relative mt-3 overflow-x-auto rounded-2xl border border-border bg-surface">
-		<table class="w-full min-w-[44rem] text-sm">
+		<table class="table-stack w-full text-sm [--stack-col:9rem] md:min-w-[44rem]">
 			<thead>
 				<tr class="border-b border-border bg-surface-2/60 text-left text-xs tracking-wide text-muted uppercase">
 					<th class="py-2.5 pr-3 pl-4 font-medium">Jumper</th>
@@ -181,16 +181,16 @@
 			<tbody>
 				{#each memberRows as m (m.rigId)}
 					<tr class="border-b border-border/70 align-top last:border-0 hover:bg-surface-2/40">
-						<td class="py-3 pr-3 pl-4">
+						<td class="stack-full py-3 pr-3 pl-4">
 							<a href="/app/jumpers/{m.owner.id}" class="flex items-center gap-3 hover:text-primary">
 								<Avatar name={m.owner.name} src={m.owner.avatar} size="sm" />
 								<span class="font-medium">{m.owner.name}</span>
 							</a>
 						</td>
-						<td class="px-3 py-3">{m.rigName}<p class="text-xs text-muted">{m.container ?? ''}</p></td>
-						<td class="px-3 py-3"><DueBadge status={m.repack.status} dueOn={m.repack.dueOn} daysLeft={m.repack.daysLeft} /></td>
-						<td class="px-3 py-3"><DueBadge status={m.aad_.status} dueOn={m.aad_.dueOn} daysLeft={m.aad_.daysLeft} empty="No date" /></td>
-						<td class="py-3 pr-4 pl-3 text-xs">
+						<td class="stack-full px-3 py-3" data-label="Rig">{m.rigName}<p class="text-xs text-muted">{m.container ?? ''}</p></td>
+						<td class="px-3 py-3" data-label="Repack due"><DueBadge status={m.repack.status} dueOn={m.repack.dueOn} daysLeft={m.repack.daysLeft} /></td>
+						<td class="px-3 py-3" data-label="AAD"><DueBadge status={m.aad_.status} dueOn={m.aad_.dueOn} daysLeft={m.aad_.daysLeft} empty="No date" /></td>
+						<td class="stack-full py-3 pr-4 pl-3 text-xs" data-label="Contact">
 							<a href="mailto:{m.owner.email}" class="text-primary hover:underline">{m.owner.email}</a>
 							{#if m.owner.phone}<p class="text-muted">{m.owner.phone}</p>{/if}
 						</td>

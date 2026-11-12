@@ -60,6 +60,14 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(page).getByLabel('Last reserve repack').fill('2026-01-01');
 	await dialog(page).getByRole('button', { name: 'Add to register' }).click();
 	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	// On a phone each rig is a card (no sideways scroll): the row's actions are on screen.
+	await page.setViewportSize({ width: 390, height: 844 });
+	const rigTable = (await page.locator('table').first().boundingBox())!;
+	expect(rigTable.x + rigTable.width).toBeLessThanOrEqual(390);
+	const service = (await page.getByRole('row', { name: /Student 1/ }).getByRole('button', { name: 'Service' }).boundingBox())!;
+	expect(service.x + service.width).toBeLessThanOrEqual(390);
+	await expect(page.getByRole('cell', { name: /Repack due/ }).first()).toBeVisible();
+	await page.setViewportSize({ width: 1280, height: 900 });
 
 	// Members: invite someone new with the packer (staff) role.
 	await go(page, '/app/settings/members');
@@ -82,6 +90,10 @@ test('owner runs the back office', async ({ page }) => {
 	// Staff + reports render; CSV export works.
 	await go(page, '/app/staff');
 	await expect(page.getByRole('heading', { name: 'Staff' })).toBeVisible();
+	await page.setViewportSize({ width: 390, height: 844 });
+	const staffTable = (await page.locator('table').first().boundingBox())!;
+	expect(staffTable.x + staffTable.width).toBeLessThanOrEqual(390);
+	await page.setViewportSize({ width: 1280, height: 900 });
 	await go(page, '/app/reports');
 	await expect(page.getByText('Wallet top-ups vs charges')).toBeVisible();
 	const csv = await page.request.get('/app/reports/export?kind=wallet');

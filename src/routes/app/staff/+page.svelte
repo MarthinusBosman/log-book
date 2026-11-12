@@ -66,8 +66,8 @@
 	</select>
 </div>
 
-<div class="mt-3 overflow-x-auto rounded-2xl border border-border bg-surface">
-	<table class="w-full min-w-[56rem] text-sm">
+<div class="relative mt-3 overflow-x-auto rounded-2xl border border-border bg-surface">
+	<table class="table-stack w-full text-sm md:min-w-[56rem]">
 		<thead>
 			<tr class="border-b border-border bg-surface-2/60">
 				<SortTh {sorter} key="name" label="Staff member" class="pl-4" />
@@ -82,7 +82,7 @@
 		<tbody>
 			{#each filtered as s (s.userId)}
 				<tr class="border-b border-border/70 align-top last:border-0 hover:bg-surface-2/40">
-					<td class="py-3 pr-3 pl-4">
+					<td class="stack-full py-3 pr-3 pl-4">
 						<div class="flex items-start gap-3">
 							<Avatar name={s.name} src={s.avatar} size="sm" />
 							<div class="min-w-0">
@@ -92,7 +92,7 @@
 							</div>
 						</div>
 					</td>
-					<td class="px-3 py-3">
+					<td class="stack-full px-3 py-3" data-label="Ratings & membership">
 						<div class="flex max-w-xs flex-wrap gap-1">
 							{#each s.ratings as r (r.body + r.rating)}
 								<Badge
@@ -110,11 +110,11 @@
 							{#if s.membership.status === 'none'}No membership on file{:else if s.membership.status === 'expired'}Membership expired {s.membership.expiry}{:else}Membership to {s.membership.expiry}{/if}
 						</p>
 					</td>
-					<td class="px-3 py-3 text-right tabular-nums">{s.jumps || '—'}</td>
-					<td class="px-3 py-3 text-right tabular-nums">{s.loadsFlown || '—'}</td>
-					<td class="px-3 py-3 text-right font-medium tabular-nums">{s.earnedMinor ? money(s.earnedMinor) : '—'}</td>
-					<td class="px-3 py-3 text-right text-muted tabular-nums">{s.paidToWalletMinor ? money(s.paidToWalletMinor) : '—'}</td>
-					<td class="py-3 pr-4 pl-3 text-right font-semibold tabular-nums {s.owedMinor ? 'text-fg' : 'text-subtle'}">{s.owedMinor ? money(s.owedMinor) : '—'}</td>
+					<td class="px-3 py-3 text-right tabular-nums" data-label="Jumps">{s.jumps || '—'}</td>
+					<td class="px-3 py-3 text-right tabular-nums" data-label="Loads">{s.loadsFlown || '—'}</td>
+					<td class="px-3 py-3 text-right font-medium tabular-nums" data-label="Earned">{s.earnedMinor ? money(s.earnedMinor) : '—'}</td>
+					<td class="px-3 py-3 text-right text-muted tabular-nums" data-label="To wallet">{s.paidToWalletMinor ? money(s.paidToWalletMinor) : '—'}</td>
+					<td class="py-3 pr-4 pl-3 text-right font-semibold tabular-nums {s.owedMinor ? 'text-fg' : 'text-subtle'}" data-label="Owed">{s.owedMinor ? money(s.owedMinor) : '—'}</td>
 				</tr>
 			{:else}
 				<tr><td colspan="7" class="px-4 py-12 text-center text-muted">No staff match. {#if data.canManage}<a href="/app/settings/members" class="text-primary underline underline-offset-2">Add staff roles</a>{/if}</td></tr>
@@ -124,11 +124,11 @@
 			<tfoot>
 				<tr class="border-t border-border bg-surface-2/40 font-medium">
 					<td class="py-2.5 pl-4" colspan="2">Total · {filtered.length} people</td>
-					<td class="px-3 py-2.5 text-right tabular-nums">{totals.jumps}</td>
-					<td class="px-3 py-2.5 text-right tabular-nums">{totals.loads}</td>
-					<td class="px-3 py-2.5 text-right tabular-nums">{money(totals.earned)}</td>
+					<td class="px-3 py-2.5 text-right tabular-nums" data-label="Jumps">{totals.jumps}</td>
+					<td class="px-3 py-2.5 text-right tabular-nums" data-label="Loads">{totals.loads}</td>
+					<td class="px-3 py-2.5 text-right tabular-nums" data-label="Earned">{money(totals.earned)}</td>
 					<td></td>
-					<td class="py-2.5 pr-4 text-right tabular-nums">{money(totals.owed)}</td>
+					<td class="py-2.5 pr-4 text-right tabular-nums" data-label="Owed">{money(totals.owed)}</td>
 				</tr>
 			</tfoot>
 		{/if}
