@@ -60,6 +60,15 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await expect(loadCard).toHaveAttribute('data-status', 'open');
 	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Vera Visitor"]')).toBeVisible();
 
+	// Shutdown from the actions menu: minutes field + "Set shutdown", then cancel it again
+	await loadCard.getByLabel('Load 1 actions').click();
+	await loadCard.getByLabel('Shutdown minutes').fill('20');
+	await loadCard.getByRole('button', { name: 'Set shutdown' }).click();
+	await expect(loadCard.getByText('Shutdown 20 min')).toBeVisible();
+	// the menu stays open after an action
+	await loadCard.getByRole('button', { name: 'Cancel shutdown' }).click();
+	await expect(loadCard.getByText('Shutdown 20 min')).toHaveCount(0);
+
 	// Lifecycle via the single "next step" button
 	const next = page.getByTestId('next-step');
 	for (const status of ['called', 'boarding', 'departed', 'landed']) {

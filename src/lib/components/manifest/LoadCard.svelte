@@ -119,7 +119,7 @@
 			</p>
 		</div>
 		{#if canManifest && !done}
-			<Menu label="Load {load.loadNumber} actions">
+			<Menu label="Load {load.loadNumber} actions" panelClass="w-64">
 				<form method="POST" action={formAction(page.url, 'setOpen')} use:enhance={act({ success: () => (load.isOpen ? 'Load closed' : 'Load opened to jumpers') })}>
 					<input type="hidden" name="loadId" value={load.id} />
 					<input type="hidden" name="open" value={load.isOpen ? '0' : '1'} />
@@ -163,9 +163,10 @@
 							min="1"
 							max="600"
 							value="15"
-							class="h-8 w-16 rounded-lg border border-border bg-surface px-2 text-sm tabular-nums"
+							class="h-8 w-14 rounded-lg border border-border bg-surface px-2 text-sm tabular-nums"
 						/>
-						<button class="h-8 flex-1 rounded-lg bg-surface-2 px-2 text-sm font-medium hover:bg-border">Shutdown (min)</button>
+						<span class="text-sm text-muted" aria-hidden="true">min</span>
+						<button class="h-8 flex-1 whitespace-nowrap rounded-lg border border-border px-2 text-sm font-medium hover:bg-surface-2">Set shutdown</button>
 					</form>
 				{/if}
 				<div class="my-1 h-px bg-border"></div>
