@@ -19,7 +19,9 @@ import {
 	type SlotStaffRole
 } from '../../domain/constants.ts';
 import type { CompleteSummary } from '../../components/manifest/types.ts';
-import { activeDropzone, bool, loadWithCap, optMoney, optNum, optStr, runAction, str } from './context.ts';
+import { cancelConfirm, completeConfirm, deleteConfirm, removeSlotConfirm } from '../../components/manifest/manifest.ts';
+import type { Load } from '../db/schema.ts';
+import { activeDropzone, bool, loadWithCap, needsConfirm, optMoney, optNum, optStr, runAction, str } from './context.ts';
 import { zonedTime } from './time.ts';
 import { dropzones } from '../db/schema.ts';
 
@@ -60,12 +62,18 @@ async function slotWithCap(ev: Ev, slotId: string, cap: 'manifest' | 'payments.m
 }
 
 /** Wrap a "loadId"-based lifecycle action. */
-function loadAction(name: string, fn: (ev: Ev, loadId: string, form: FormData, by: string) => Promise<Record<string, unknown> | void>) {
+function loadAction(
+	name: string,
+	fn: (ev: Ev, loadId: string, form: FormData, by: string) => Promise<Record<string, unknown> | void>,
+	confirm?: (load: Load) => { message: string; label: string }
+) {
 	return async (ev: Ev) => {
 		const form = await ev.request.formData();
 		const loadId = str(form, 'loadId');
 		return runAction(name, async () => {
 			const load = await loadWithCap(ev, loadId, 'manifest');
+			const ask = confirm && needsConfirm(form, { action: name, ...confirm(load), fields: { loadId: load.id } });
+			if (ask) return ask;
 			const res = await fn(ev, load.id, form, ev.locals.user!.id);
 			return { ok: true, action: name, loadId: load.id, ...(res ?? {}) };
 		});
@@ -176,10 +184,10 @@ export const loadActions = {
 			staffPaid: before.slots.filter((s) => s.staffPayMinor > 0).length + (res.load.pilotPayMinor ? 1 : 0)
 		};
 		return { summary };
-	}),
+	}, (l) => ({ message: completeConfirm(l.loadNumber), label: 'Mark completed' })),
 	cancel: loadAction('cancel', async (ev, loadId, _f, by) => {
 		await loadsSvc.cancelLoad(ev.locals.db, loadId, { by });
-	}),
+	}, (l) => ({ message: cancelConfirm(l.loadNumber), label: 'Cancel load' })),
 	refuel: loadAction('refuel', async (ev, loadId, form) => {
 		await loadsSvc.updateLoad(ev.locals.db, loadId, { refuel: bool(form, 'refuel') });
 	}),
@@ -191,7 +199,7 @@ export const loadActions = {
 	deleteLoad: loadAction('deleteLoad', async (ev, loadId, _f, by) => {
 		await loadsSvc.deleteLoad(ev.locals.db, loadId, { by });
 		return { deleted: true };
-	}),
+	}, (l) => ({ message: deleteConfirm(l.loadNumber), label: 'Delete load' })),
 
 	moveSlot: async (ev: Ev) => {
 		const form = await ev.request.formData();
@@ -206,6 +214,14 @@ export const loadActions = {
 		const form = await ev.request.formData();
 		return runAction('removeSlot', async () => {
 			const s = await slotWithCap(ev, str(form, 'slotId'), 'manifest');
+			const withGroup = bool(form, 'withGroup');
+			const ask = needsConfirm(form, {
+				action: 'removeSlot',
+				message: removeSlotConfirm(s.displayName, withGroup && !!s.groupId),
+				label: 'Remove from load',
+				fields: { slotId: s.id, ...(withGroup ? { withGroup: 'on' } : {}) }
+			});
+			if (ask) return ask;
 			const n = await loadsSvc.removeSlot(ev.locals.db, s.id, { by: ev.locals.user!.id, withGroup: bool(form, 'withGroup') });
 			return { ok: true, action: 'removeSlot', removed: n };
 		});

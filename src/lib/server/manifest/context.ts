@@ -55,6 +55,17 @@ class ActionFail extends Error {
 
 export type FailData = { message: string; code: string; action?: string; details?: Record<string, unknown> };
 
+/**
+ * Destructive actions (complete / cancel / delete load, remove slot) run only with `confirmed=1`.
+ * With JS, `act({ confirm })` asks and adds it; a native submit (no JS, or a tap before
+ * hydration) gets this back instead and the page shows a confirmation step re-posting the fields.
+ */
+export type ConfirmStep = { action: string; message: string; label: string; fields: Record<string, string> };
+export function needsConfirm(form: FormData, step: ConfirmStep) {
+	if (String(form.get('confirmed') ?? '') === '1') return null;
+	return fail(409, { action: step.action, code: 'confirm', message: step.message, confirm: step });
+}
+
 /** Run an action body, mapping domain / permission errors to `fail(400|403|404)` with friendly copy. */
 export async function runAction<T>(action: string, fn: () => Promise<T>, currency = 'USD') {
 	try {

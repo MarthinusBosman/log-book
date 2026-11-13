@@ -79,6 +79,51 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await expect(page.getByTestId('staff-today')).toContainText('of 1 manifested');
 });
 
+test('manifest without JS: destructive load actions ask on a confirmation step first', async ({ page, browser }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Nora NoScript');
+	await page.getByLabel('Email').fill(`nojs-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`NoJS E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-NJS');
+	await dialog.getByLabel('Slots (pax)').fill('8');
+	await dialog.getByLabel('Weight limit (kg)').fill('400');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.getByTestId('load-card')).toBeVisible();
+
+	// Same session, JavaScript off (also what a tap before hydration does: a native form POST)
+	const ctx = await browser.newContext({ javaScriptEnabled: false, storageState: await page.context().storageState(), viewport: page.viewportSize() ?? undefined });
+	const nojs = await ctx.newPage();
+	await nojs.goto('/app/manifest');
+	const card = nojs.getByTestId('load-card');
+	await card.getByLabel('Load 1 actions').click();
+	await card.getByRole('button', { name: 'Mark completed' }).click();
+	const step = nojs.getByTestId('confirm-step');
+	await expect(step).toContainText('Mark load 1 as completed? Wallets are charged and logbooks written.');
+	await step.getByRole('link', { name: 'Go back' }).click();
+	await expect(nojs).toHaveURL(/\/app\/manifest$/);
+	await expect(nojs.getByTestId('confirm-step')).toHaveCount(0);
+	await expect(card).toHaveAttribute('data-status', 'open');
+
+	await card.getByLabel('Load 1 actions').click();
+	await card.getByRole('button', { name: 'Cancel load' }).click();
+	await expect(step).toContainText('Cancel load 1? Wallet holds are released.');
+	await expect(card).toHaveAttribute('data-status', 'open');
+	await step.getByRole('button', { name: 'Cancel load' }).click();
+	await expect(card).toHaveAttribute('data-status', 'cancelled');
+	await ctx.close();
+});
+
 test('public display needs a valid token', async ({ page }) => {
 	const res = await page.goto('/dz/no-such-dz/display?token=nope-nope-nope-nope');
 	expect(res?.status()).toBe(404);

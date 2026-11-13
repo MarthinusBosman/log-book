@@ -4,7 +4,8 @@ import { dropzones } from '../db/schema.ts';
 import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
-import { callPhase, confirmed, formatCountdown, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { needsConfirm } from './context.ts';
+import { callPhase, completeConfirm, confirmed, formatCountdown, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -19,6 +20,28 @@ describe('confirmed (act confirm option)', () => {
 		n = 4;
 		expect(confirmed(() => `Cancel load ${n}?`, (m) => (seen.push(m), true))).toBe(true);
 		expect(seen).toEqual(['Cancel load 3?', 'Cancel load 4?']);
+	});
+});
+
+describe('needsConfirm (destructive actions without JS)', () => {
+	const step = { action: 'complete', message: completeConfirm(3), label: 'Mark completed', fields: { loadId: 'l1' } };
+	test('a post without confirmed=1 gets a 409 confirmation step back with the fields to re-post', () => {
+		const f = new FormData();
+		f.set('loadId', 'l1');
+		const r = needsConfirm(f, step);
+		expect(r?.status).toBe(409);
+		expect(r?.data).toEqual({ action: 'complete', code: 'confirm', message: 'Mark load 3 as completed? Wallets are charged and logbooks written.', confirm: step });
+		f.set('confirmed', 'yes');
+		expect(needsConfirm(f, step)?.status).toBe(409);
+	});
+	test('confirmed=1 (added by act() after the dialog, or by the confirmation step) runs the action', () => {
+		const f = new FormData();
+		f.set('confirmed', '1');
+		expect(needsConfirm(f, step)).toBeNull();
+	});
+	test('remove-slot copy names the jumper and the group', () => {
+		expect(removeSlotConfirm('Vera Visitor')).toBe('Remove Vera Visitor from the load?');
+		expect(removeSlotConfirm('Vera Visitor', true)).toBe('Remove Vera Visitor and their whole group from the load?');
 	});
 });
 

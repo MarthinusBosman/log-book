@@ -144,3 +144,10 @@ export function confirmed(message: string | (() => string) | undefined, ask: (m:
 	const m = typeof message === 'function' ? message() : message;
 	return !m || ask(m);
 }
+
+/** Confirmation copy shared by the JS dialog and the no-JS confirmation step. */
+export const completeConfirm = (n: number) => `Mark load ${n} as completed? Wallets are charged and logbooks written.`;
+export const cancelConfirm = (n: number) => `Cancel load ${n}? Wallet holds are released.`;
+export const deleteConfirm = (n: number) => `Delete load ${n}?`;
+export const removeSlotConfirm = (name: string, withGroup = false) =>
+	withGroup ? `Remove ${name} and their whole group from the load?` : `Remove ${name} from the load?`;

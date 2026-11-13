@@ -22,8 +22,10 @@ type Opts = {
  * errors, keeps the page in place and re-runs load functions after success.
  */
 export function act(opts: Opts = {}): SubmitFunction {
-	return ({ cancel }) => {
+	return ({ cancel, formData }) => {
 		if (!confirmed(opts.confirm)) return cancel();
+		// the server refuses destructive actions without it (no-JS posts get a confirmation step)
+		if (opts.confirm) formData.set('confirmed', '1');
 		opts.pending?.(true);
 		return async ({ result, update }) => {
 			opts.pending?.(false);

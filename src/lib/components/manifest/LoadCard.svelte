@@ -4,7 +4,7 @@
 	import { cn } from '#lib/ui/cn.ts';
 	import { EDITABLE_LOAD_STATUSES } from '#lib/domain/constants.ts';
 	import type { CompleteSummary, LoadVM, SlotVM } from './types.ts';
-	import { clockTime, nextStep } from './manifest.ts';
+	import { cancelConfirm, clockTime, completeConfirm, deleteConfirm, nextStep } from './manifest.ts';
 	import { act } from './forms.ts';
 	import StatusPill from './StatusPill.svelte';
 	import Meter from './Meter.svelte';
@@ -169,19 +169,19 @@
 				{/if}
 				<div class="my-1 h-px bg-border"></div>
 				{#if load.status !== 'landed'}
-					<form method="POST" action="?/complete" use:enhance={act({ confirm: () => `Mark load ${load.loadNumber} as completed? Wallets are charged and logbooks written.`, success: 'Load completed', onSuccess: onDone })}>
+					<form method="POST" action="?/complete" use:enhance={act({ confirm: () => completeConfirm(load.loadNumber), success: 'Load completed', onSuccess: onDone })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={menuItem}><MIcon name="check" class="size-4 text-success" /> Mark completed</button>
 					</form>
 				{/if}
 				{#if editable}
-					<form method="POST" action="?/cancel" use:enhance={act({ confirm: () => `Cancel load ${load.loadNumber}? Wallet holds are released.`, success: 'Load cancelled' })}>
+					<form method="POST" action="?/cancel" use:enhance={act({ confirm: () => cancelConfirm(load.loadNumber), success: 'Load cancelled' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={cn(menuItem, 'text-warning')}><MIcon name="x" class="size-4" /> Cancel load</button>
 					</form>
 				{/if}
 				{#if load.slots.length === 0}
-					<form method="POST" action="?/deleteLoad" use:enhance={act({ confirm: () => `Delete load ${load.loadNumber}?`, success: 'Load has been deleted' })}>
+					<form method="POST" action="?/deleteLoad" use:enhance={act({ confirm: () => deleteConfirm(load.loadNumber), success: 'Load has been deleted' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={cn(menuItem, 'text-danger')}><MIcon name="trash" class="size-4" /> Delete load</button>
 					</form>
@@ -227,6 +227,7 @@
 			{#if step}
 				<form method="POST" action="?/{step.action}" use:enhance={act({ success: () => (step ? STEP_MSG[step.action] : undefined), onSuccess: onDone, pending: (b) => (busy = b) })}>
 					<input type="hidden" name="loadId" value={load.id} />
+					{#if step.action === 'complete'}<input type="hidden" name="confirmed" value="1" />{/if}
 					<Button
 						type="submit"
 						size="sm"

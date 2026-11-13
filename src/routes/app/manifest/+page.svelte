@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ConfirmStep from '#lib/components/manifest/ConfirmStep.svelte';
 	import { goto, invalidate } from '$app/navigation';
 	import { deserialize } from '$app/forms';
 	import { Badge, Button, EmptyState, Icon, toast } from '#lib/ui/index.ts';
@@ -106,7 +107,9 @@
 	</span>
 </div>
 
-{#if form && 'message' in form && form.message}
+{#if form && 'confirm' in form && form.confirm}
+	<ConfirmStep step={form.confirm} />
+{:else if form && 'message' in form && form.message}
 	<p role="alert" class="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{form.message}</p>
 {/if}
 

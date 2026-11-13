@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ConfirmStep from '#lib/components/manifest/ConfirmStep.svelte';
 	import { enhance } from '$app/forms';
 	import { Avatar, Badge, Button, Input, Select } from '#lib/ui/index.ts';
 	import { cn } from '#lib/ui/cn.ts';
@@ -55,7 +56,9 @@
 	<MIcon name="chevronLeft" /> Loads · {prettyDay(load.day, data.today)}
 </a>
 
-{#if form && 'message' in form && form.message}
+{#if form && 'confirm' in form && form.confirm}
+	<ConfirmStep step={form.confirm} />
+{:else if form && 'message' in form && form.message}
 	<p role="alert" class="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{form.message}</p>
 {/if}
 
