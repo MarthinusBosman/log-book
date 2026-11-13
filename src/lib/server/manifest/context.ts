@@ -10,6 +10,7 @@ import { isDomainError } from '../domain/errors.ts';
 import { capabilitiesOf, can } from '../domain/permissions.ts';
 import type { Capability, DropzoneRole } from '../../domain/constants.ts';
 import { friendlyError } from '../../components/manifest/manifest.ts';
+import { parseMoney } from '../../components/staffadmin/money.ts';
 
 export type DzContext = { dz: Dropzone; roles: DropzoneRole[]; caps: Capability[]; userId: string };
 
@@ -103,8 +104,7 @@ export function bool(form: FormData, key: string): boolean {
 	const v = form.get(key);
 	return v === 'on' || v === 'true' || v === '1';
 }
-/** Money input in major units ("450" / "450.50") → minor units. */
+/** Money input in major units ("450" / "450,50") → minor units; null when blank, negative or invalid. */
 export function optMoney(form: FormData, key: string): number | null {
-	const n = optNum(form, key);
-	return n == null ? null : Math.round(n * 100);
+	return parseMoney(str(form, key));
 }

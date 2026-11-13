@@ -82,6 +82,11 @@ describe('form helpers', () => {
 	test('money and seconds', () => {
 		expect(moneyMinor(fd({ a: 'R 450,50' }), 'a')).toBe(45050);
 		expect(moneyMinor(fd({ a: '' }), 'a')).toBeNaN();
+		// Wallet top-ups: the sign is never dropped and "1,000" is a thousand, not 1.00.
+		expect(moneyMinor(fd({ a: '-5' }), 'a')).toBeNaN();
+		expect(moneyMinor(fd({ a: '1,000' }), 'a')).toBe(100000);
+		expect(moneyMinor(fd({ a: '1 000,50' }), 'a')).toBe(100050);
+		expect(moneyMinor(fd({ a: '5abc' }), 'a')).toBeNaN();
 		expect(seconds(fd({ a: '1:05' }), 'a')).toBe(65);
 		expect(seconds(fd({ a: '55' }), 'a')).toBe(55);
 		expect(seconds(fd({ a: '' }), 'a')).toBeNull();

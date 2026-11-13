@@ -10,6 +10,7 @@ import { isDomainError, type DomainErrorCode } from '../domain/errors.ts';
 import { tandemOutstanding } from '../domain/tandems.ts';
 import { getMailer } from '../email/index.ts';
 import { brand } from '../../brand.ts';
+import { parseMoney } from '../../components/staffadmin/money.ts';
 import { formatDay } from './documents.ts';
 
 /** Friendly copy for domain error codes (the service message is used when more specific). */
@@ -62,12 +63,10 @@ export function optNum(f: FormData, k: string): number | null {
 	const n = Number(v.replace(',', '.'));
 	return Number.isFinite(n) ? n : null;
 }
-/** "1 250.50" → 125050 minor units (null when blank/invalid). */
+/** "1 250.50" / "450,50" → minor units; null when blank, NaN when not a valid positive amount. */
 export function moneyToMinor(v: string): number | null {
-	const s = v.replace(/[\s,]/g, '').replace(/^[^\d.-]+/, '');
-	if (!s) return null;
-	const n = Number(s);
-	return Number.isFinite(n) ? Math.round(n * 100) : null;
+	if (!v.trim()) return null;
+	return parseMoney(v) ?? NaN;
 }
 
 export function publicOrigin(url: URL, configured?: string): string {

@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { formatMoney } from '../../domain/constants.ts';
+import { parseMoney } from '../../components/staffadmin/money.ts';
 import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { dropzones } from '../db/schema.ts';
@@ -102,10 +103,7 @@ export function bool(form: FormData, key: string): boolean {
 }
 /** Parse a money input ("450", "450.50", "R 450,5") into minor units; NaN when invalid. */
 export function moneyMinor(form: FormData, key: string): number {
-	const raw = str(form, key).replace(/[^\d.,]/g, '').replace(',', '.');
-	if (!raw) return NaN;
-	const n = Number(raw);
-	return Number.isFinite(n) ? Math.round(n * 100) : NaN;
+	return parseMoney(str(form, key)) ?? NaN;
 }
 /** "mm:ss" or plain seconds → seconds (null when empty). */
 export function seconds(form: FormData, key: string): number | null {

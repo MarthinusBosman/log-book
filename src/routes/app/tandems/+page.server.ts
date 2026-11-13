@@ -59,7 +59,7 @@ export const actions: Actions = {
 			const input = parsePassengerForm(f);
 			if (!input.name) throw new DomainError('invalid', 'Passenger name is required');
 			const deposit = moneyToMinor(str(f, 'deposit')) ?? 0;
-			if (deposit < 0) throw new DomainError('invalid', 'Deposit must be positive');
+			if (!Number.isFinite(deposit) || deposit < 0) throw new DomainError('invalid', 'Enter the deposit as an amount, like 450.00');
 			const p = await createPassenger(event.locals.db, dz.id, { ...input, name: input.name, depositMinor: deposit });
 			id = p.id;
 		} catch (e) {

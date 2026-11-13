@@ -13,6 +13,12 @@ describe('parseMoney', () => {
 		expect(parseMoney('12,50')).toBe(1250);
 		expect(parseMoney('0')).toBe(0);
 		expect(parseMoney('-20', { allowNegative: true })).toBe(-2000);
+		expect(parseMoney('R 450,50')).toBe(45050);
+		expect(parseMoney('ZAR 1 000')).toBe(100000);
+		expect(parseMoney('$12.5')).toBe(1250);
+		expect(parseMoney('1,000')).toBe(100000);
+		expect(parseMoney('12,500,000.5')).toBe(1250000050);
+		expect(parseMoney('1\u00a0000,50')).toBe(100050);
 	});
 	test('rejects junk, negatives and >2 decimals', () => {
 		expect(parseMoney('')).toBeNull();
@@ -20,6 +26,11 @@ describe('parseMoney', () => {
 		expect(parseMoney('1.234')).toBeNull();
 		expect(parseMoney('-5')).toBeNull();
 		expect(parseMoney('1e5')).toBeNull();
+		expect(parseMoney('R -5')).toBeNull();
+		expect(parseMoney('1,00,0')).toBeNull();
+		expect(parseMoney('1.000,50')).toBeNull();
+		expect(parseMoney('5abc')).toBeNull();
+		expect(parseMoney('R')).toBeNull();
 	});
 	test('round-trips and symbols', () => {
 		expect(minorToInput(45050)).toBe('450.50');

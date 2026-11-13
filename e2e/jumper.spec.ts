@@ -235,3 +235,34 @@ test('sign-off: a licensed jumper signs with a drawn signature; a second signer 
 	await ctxA.close();
 	await ctxB.close();
 });
+
+test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousand', async ({ page }) => {
+	await signup(page, 'Wally Wallet');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Wallet DZ ${test.info().project.name} ${Date.now()}`);
+	await page.locator('select[name=country]').selectOption('ZA');
+	await page.locator('select[name=currency]').selectOption('ZAR');
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/settings/features');
+	await page.waitForLoadState('networkidle');
+	await page.locator('label:has(input[name=walletEnabled])').click();
+	await page.getByRole('button', { name: 'Save features' }).click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: /saved/i }).first()).toBeVisible();
+
+	await page.goto('/app/wallet');
+	await page.locator('main a[href^="/app/wallet/"]').first().click();
+	await page.waitForLoadState('networkidle');
+	const form = page.getByTestId('topup-form');
+	await page.locator('#amount').fill('-5');
+	await page.getByTestId('topup-submit').click();
+	await expect(form).toContainText('Enter a valid amount');
+	await expect(page.getByTestId('pending-topups')).toHaveCount(0);
+
+	await page.locator('#amount').fill('1,000');
+	await page.getByTestId('topup-submit').click();
+	await expect(page.getByTestId('pending-topups')).toContainText(/R\s?1\s?000,00/);
+	await page.locator('#amount').fill('150,50');
+	await page.getByTestId('topup-submit').click();
+	await expect(page.getByTestId('pending-topups')).toContainText(/R\s?150,50/);
+});
