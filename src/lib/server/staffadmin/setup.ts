@@ -2,13 +2,11 @@
  * "Set up your dropzone" checklist for owners/admins: derived from data that already exists, so it
  * needs no flags — each step ticks itself off once done and the card disappears when all are.
  */
-import { and, eq, gt, ne, sql } from 'drizzle-orm';
+import { sql, type SQL } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { aircraft, bookingSlots, dropzoneMemberRoles, indemnitySections, pricelistItems, type Dropzone } from '../db/schema.ts';
 
 export type SetupStep = { id: string; title: string; body: string; href: string; done: boolean; optional?: boolean };
-
-const exists = async (db: Database, q: Promise<unknown[]>) => (await q).length > 0;
 
 /** Show the card while a required step is open (the photo is nice-to-have). */
 export const setupPending = (steps: SetupStep[]) => steps.some((s) => !s.done && !s.optional);
@@ -17,20 +15,21 @@ export async function setupChecklist(
 	db: Database,
 	dz: Pick<Dropzone, 'id' | 'slug' | 'description' | 'openDays' | 'photoFileId'>
 ): Promise<SetupStep[]> {
-	const [hasPlane, hasPrices, hasStaff, hasWaiver, hasSlots] = await Promise.all([
-		exists(db, db.select({ id: aircraft.id }).from(aircraft).where(eq(aircraft.dropzoneId, dz.id)).limit(1)),
-		exists(db, db.select({ id: pricelistItems.id }).from(pricelistItems).where(and(eq(pricelistItems.dropzoneId, dz.id), gt(pricelistItems.amountMinor, 0))).limit(1)),
-		exists(
-			db,
-			db
-				.select({ n: sql<number>`1` })
-				.from(dropzoneMemberRoles)
-				.where(and(eq(dropzoneMemberRoles.dropzoneId, dz.id), ne(dropzoneMemberRoles.role, 'owner'), ne(dropzoneMemberRoles.role, 'jumper')))
-				.limit(1)
-		),
-		exists(db, db.select({ id: indemnitySections.id }).from(indemnitySections).where(eq(indemnitySections.dropzoneId, dz.id)).limit(1)),
-		exists(db, db.select({ id: bookingSlots.id }).from(bookingSlots).where(eq(bookingSlots.dropzoneId, dz.id)).limit(1))
-	]);
+	// One statement (a D1 round trip each otherwise): EXISTS per step.
+	const has = (q: SQL) => sql<number>`exists(${q})`;
+	const rows = await db
+		.select({
+			plane: has(sql`select 1 from ${aircraft} where ${aircraft.dropzoneId} = ${dz.id}`),
+			prices: has(sql`select 1 from ${pricelistItems} where ${pricelistItems.dropzoneId} = ${dz.id} and ${pricelistItems.amountMinor} > 0`),
+			staff: has(
+				sql`select 1 from ${dropzoneMemberRoles} where ${dropzoneMemberRoles.dropzoneId} = ${dz.id} and ${dropzoneMemberRoles.role} not in ('owner', 'jumper')`
+			),
+			waiver: has(sql`select 1 from ${indemnitySections} where ${indemnitySections.dropzoneId} = ${dz.id}`),
+			slots: has(sql`select 1 from ${bookingSlots} where ${bookingSlots.dropzoneId} = ${dz.id}`)
+		})
+		.from(sql`(select 1)`);
+	const r = rows[0];
+	const [hasPlane, hasPrices, hasStaff, hasWaiver, hasSlots] = [r?.plane, r?.prices, r?.staff, r?.waiver, r?.slots].map((v) => Number(v) === 1);
 	return [
 		{ id: 'profile', title: 'Describe your dropzone', body: 'Description, opening days and hours.', href: '/app/settings', done: !!dz.description?.trim() && dz.openDays.length > 0 },
 		{ id: 'photo', title: 'Add a photo', body: 'Shown in the directory and on your booking page.', href: '/app/settings', done: !!dz.photoFileId, optional: true },

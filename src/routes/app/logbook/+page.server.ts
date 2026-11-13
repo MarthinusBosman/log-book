@@ -1,4 +1,4 @@
-import { countJumps, listJumps, logbookBreakdown, logbookTotals, nextJumpNumber } from '#lib/server/domain/logbook.ts';
+import { countJumps, listJumps, logbookBreakdown, logbookTotals } from '#lib/server/domain/logbook.ts';
 import { requireUser, todayAt } from '#lib/server/jumper/forms.ts';
 import { dzNameMap, filtersFromUrl, jumpRow } from '#lib/server/jumper/logbook.ts';
 import { JUMP_TYPE_LABELS, type JumpType } from '#lib/domain/constants.ts';
@@ -12,13 +12,14 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const today = await todayAt(locals.db, current?.dropzone.id);
 	const filters = filtersFromUrl(url);
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
-	const [totals, breakdown, jumps, matched, next] = await Promise.all([
+	const [totals, breakdown, jumps, matched] = await Promise.all([
 		logbookTotals(locals.db, user.id, today),
 		logbookBreakdown(locals.db, user.id),
 		listJumps(locals.db, user.id, { ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
-		countJumps(locals.db, user.id, filters),
-		nextJumpNumber(locals.db, user.id)
+		countJumps(locals.db, user.id, filters)
 	]);
+	// totalJumps = max(highest logged, declared count), the same rule as nextJumpNumber()
+	const next = totals.totalJumps + 1;
 	const names = await dzNameMap(locals.db, jumps);
 	const filtered = !!(filters.q || filters.jumpType || filters.dropzoneId || filters.location || filters.year);
 	return {

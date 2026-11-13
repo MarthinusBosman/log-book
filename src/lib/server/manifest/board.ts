@@ -1,13 +1,12 @@
 /** Server-side view-model builders for the manifest board, detail, display and staff dashboard. */
-import { and, eq, inArray, ne } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
-import { slots as slotsTable, tandemPassengers, type Dropzone } from '../db/schema.ts';
+import { tandemPassengers, type Dropzone } from '../db/schema.ts';
 import { listLoadsForDay, type LoadWithSlots } from '../domain/loads.ts';
 import { listUsersWithRole } from '../domain/permissions.ts';
 import { listCheckedIn } from '../domain/checkins.ts';
 import { localDate } from '../domain/time.ts';
-import { avatarMap } from '../avatars.ts';
-import { flagMembershipWarnings } from '../memberships/service.ts';
+import { flagMembershipWarnings, slotPeople, type SlotPerson } from '../memberships/service.ts';
 import type { JumpType } from '../../domain/constants.ts';
 import type { DisplayLoadVM, LoadVM, SlotVM, StaffTodayVM } from '../../components/manifest/types.ts';
 import { ACTIVE_STATUSES } from '../../components/manifest/manifest.ts';
@@ -77,8 +76,15 @@ export async function boardLoads(db: Database, dz: Dropzone, day: string, opts: 
 		listLoadsForDay(db, dz.id, day, { includeCancelled: opts.includeCancelled ?? true }),
 		tiColours(db, dz.id)
 	]);
-	const avatars = await avatarMap(db, list.flatMap((l) => l.slots.map((s) => s.userId)));
-	return flagMembershipWarnings(db, list.map((l) => toLoadVM(l, colours, avatars)));
+	const people = await slotPeople(db, list.flatMap((l) => l.slots.map((s) => s.userId)));
+	return flagMembershipWarnings(db, list.map((l) => toLoadVM(l, colours, avatarsOf(people))), people);
+}
+
+/** id → avatar URL (users without a photo left out), from `slotPeople`. */
+export function avatarsOf(people: Map<string, SlotPerson>): Record<string, string> {
+	const out: Record<string, string> = {};
+	for (const [id, p] of people) if (p.avatar) out[id] = p.avatar;
+	return out;
 }
 
 /** Hangar display: loads that haven't finished yet (planned → departed), no money. */
@@ -132,12 +138,8 @@ export async function staffToday(db: Database, dz: Dropzone, now = Date.now()): 
 			.from(tandemPassengers)
 			.where(and(eq(tandemPassengers.dropzoneId, dz.id), eq(tandemPassengers.jumpDate, day), ne(tandemPassengers.status, 'cancelled')))
 	]);
-	const loadIds = list.map((l) => l.id);
-	const sold = loadIds.length
-		? (await db.select({ id: slotsTable.id, staffRole: slotsTable.staffRole }).from(slotsTable).where(inArray(slotsTable.loadId, loadIds))).filter(
-				(s) => !s.staffRole
-			).length
-		: 0;
+	// boardLoads already holds every slot of these loads: count paying (non-staff) ones here.
+	const sold = list.reduce((n, l) => n + l.slots.filter((s) => !s.staffRole).length, 0);
 	return {
 		day,
 		loadsFlown: list.filter((l) => l.status === 'completed').length,

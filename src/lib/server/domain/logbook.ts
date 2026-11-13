@@ -34,11 +34,17 @@ export async function maxJumpNumber(db: Database, userId: string): Promise<numbe
 
 /** Next jump number = max(highest logged, declared jump count) + 1. */
 export async function nextJumpNumber(db: Database, userId: string): Promise<number> {
-	const [logged, user] = await Promise.all([
-		maxJumpNumber(db, userId),
-		db.select({ d: users.declaredJumpCount }).from(users).where(eq(users.id, userId)).limit(1)
-	]);
-	return Math.max(logged, user[0]?.d ?? 0) + 1;
+	// one statement: the declared count rides along as a scalar subquery
+	const rows = await db
+		.select({ n: max(logbookJumps.jumpNumber), d: declaredJumpCountSql(userId) })
+		.from(logbookJumps)
+		.where(eq(logbookJumps.userId, userId));
+	return Math.max(Number(rows[0]?.n ?? 0), Number(rows[0]?.d ?? 0)) + 1;
+}
+
+/** `users.declared_jump_count` for one user as a scalar subquery (0 when the user is missing). */
+function declaredJumpCountSql(userId: string) {
+	return sql<number | null>`(select ${users.declaredJumpCount} from ${users} where ${users.id} = ${userId})`;
 }
 
 /** Jump dates typed into forms: not before MIN_JUMP_DATE, not in the future (one day of time-zone slack). */
@@ -318,12 +324,13 @@ export async function logbookTotals(db: Database, userId: string, today: string)
 			verified: sql<number>`sum(case when ${logbookJumps.verified} then 1 else 0 end)`,
 			last: sql<string | null>`max(${logbookJumps.jumpDate})`,
 			l30: sql<number>`sum(case when ${logbookJumps.jumpDate} > ${d30} then 1 else 0 end)`,
-			l365: sql<number>`sum(case when ${logbookJumps.jumpDate} > ${d365} then 1 else 0 end)`
+			l365: sql<number>`sum(case when ${logbookJumps.jumpDate} > ${d365} then 1 else 0 end)`,
+			declared: declaredJumpCountSql(userId)
 		})
 		.from(logbookJumps)
 		.where(eq(logbookJumps.userId, userId));
 	const r = rows[0];
-	const declared = (await db.select({ d: users.declaredJumpCount }).from(users).where(eq(users.id, userId)).limit(1))[0]?.d ?? 0;
+	const declared = Number(r?.declared ?? 0);
 	return {
 		logged: Number(r?.logged ?? 0),
 		totalJumps: Math.max(Number(r?.maxNo ?? 0), declared),

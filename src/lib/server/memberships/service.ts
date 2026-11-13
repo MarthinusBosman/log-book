@@ -402,17 +402,33 @@ export function associationShort(a: Association | null | undefined): string {
 	return a.startsWith('pasa') ? 'PASA' : a === 'uspa' ? 'USPA' : ASSOCIATION_LABELS[a];
 }
 
-/** `{ userId: "PASA expired" }` for users whose association membership ends before `day`. */
-export async function membershipWarnings(db: Database, userIds: (string | null | undefined)[], day: string): Promise<Record<string, string>> {
-	const ids = [...new Set(userIds.filter((u): u is string => !!u))];
-	if (ids.length === 0) return {};
-	const out: Record<string, string> = {};
+/** "PASA expired" when the membership ends before `day`, else null. */
+export function membershipWarningFor(r: { association: Association | null; expiry: string | null }, day: string): string | null {
+	return r.association && r.expiry && r.expiry < day ? `${associationShort(r.association)} expired` : null;
+}
+
+export type SlotPerson = { avatar: string | null; association: Association | null; expiry: string | null };
+
+/** Avatar + membership facts for slot users in ONE users read (chunked for D1's 100-param cap). */
+export async function slotPeople(db: Database, userIds: Iterable<string | null | undefined>): Promise<Map<string, SlotPerson>> {
+	const ids = [...new Set([...userIds].filter((u): u is string => !!u))];
+	const out = new Map<string, SlotPerson>();
 	for (let i = 0; i < ids.length; i += 90) {
 		const rows = await db
-			.select({ id: users.id, association: users.association, expiry: users.associationExpiry })
+			.select({ id: users.id, avatar: users.avatar, association: users.association, expiry: users.associationExpiry })
 			.from(users)
 			.where(inArray(users.id, ids.slice(i, i + 90)));
-		for (const r of rows) if (r.association && r.expiry && r.expiry < day) out[r.id] = `${associationShort(r.association)} expired`;
+		for (const { id, ...r } of rows) out.set(id, r);
+	}
+	return out;
+}
+
+/** `{ userId: "PASA expired" }` for users whose association membership ends before `day`. */
+export async function membershipWarnings(db: Database, userIds: (string | null | undefined)[], day: string): Promise<Record<string, string>> {
+	const out: Record<string, string> = {};
+	for (const [id, r] of await slotPeople(db, userIds)) {
+		const w = membershipWarningFor(r, day);
+		if (w) out[id] = w;
 	}
 	return out;
 }
@@ -430,16 +446,20 @@ export async function membershipCheckStates(db: Database, userIds: string[]): Pr
 	return out;
 }
 
-/** Stamp `membershipWarning` on account-holder slots (manifest board/detail). Mutates and returns `loads`. */
+/**
+ * Stamp `membershipWarning` on account-holder slots (manifest board/detail). Mutates and returns `loads`.
+ * Pass `people` (from `slotPeople`) when the caller already read them, to skip the users query.
+ */
 export async function flagMembershipWarnings<L extends { day: string; slots: { userId: string | null; membershipWarning?: string | null }[] }>(
 	db: Database,
-	loads: L[]
+	loads: L[],
+	people?: Map<string, SlotPerson>
 ): Promise<L[]> {
-	const days = [...new Set(loads.map((l) => l.day))];
-	for (const day of days) {
-		const ls = loads.filter((l) => l.day === day);
-		const warn = await membershipWarnings(db, ls.flatMap((l) => l.slots.map((s) => s.userId)), day);
-		for (const l of ls) for (const s of l.slots) s.membershipWarning = s.userId ? (warn[s.userId] ?? null) : null;
-	}
+	const known = people ?? (await slotPeople(db, loads.flatMap((l) => l.slots.map((s) => s.userId))));
+	for (const l of loads)
+		for (const s of l.slots) {
+			const p = s.userId ? known.get(s.userId) : undefined;
+			s.membershipWarning = p ? membershipWarningFor(p, l.day) : null;
+		}
 	return loads;
 }
