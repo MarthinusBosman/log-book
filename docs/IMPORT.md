@@ -113,6 +113,12 @@ order (auto, `YYYY-MM-DD`, `DD/MM/YYYY`, `MM/DD/YYYY`) with a live count of read
 JS the server applies the auto-mapping. Bad rows are reported as warnings, not fatal. CSV exports
 neutralise spreadsheet formula injection.
 
+Optional *Signed by* / *Signer licence* columns (also *Signer*, *Sign-off by*, *Signer's licence no.*)
+are kept on the jump as a **previous sign-off**: shown on the jump page and the printout as
+imported, never counted as signed (no `signed_at`). Changing the jump's facts clears it, like a real
+signature. Both logbook downloads (`/app/logbook/export.csv` and `/app/export/logbook.csv`) are the
+same file (`logbookCsv`), and it reads back in with every column matched.
+
 ## Jump Master connector
 
 *Connect Jump Master account* runs entirely in the browser (`src/lib/import/jumpmaster/client.ts`):

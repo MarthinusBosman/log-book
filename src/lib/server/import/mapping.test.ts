@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { altitudeFt, colour, currencyCode, decodeDocument, decodeValue, hhmm, refPath, toDate, toInstant, weekdayIndex } from '../../import/jumpmaster/values.ts';
 import { inferJumpType, mapJumpMasterDocs, mapJumpType } from '../../import/jumpmaster/map.ts';
 import { BundleError, parseBundle } from '../../import/bundle.ts';
-import { autoMapping, csvCell, csvToBundle, parseCsv, parseDate, parseFreefall, CSV_TEMPLATE } from '../../import/csv.ts';
+import { autoMapping, csvCell, csvToBundle, defaultMapping, parseCsv, parseDate, parseFreefall, CSV_TEMPLATE } from '../../import/csv.ts';
+import { logbookCsv } from '../jumper/csv.ts';
 import { dropzoneDocs, encodeDoc, jumperDocs, UID } from './fixtures.ts';
 import { parseImportPayload } from './jumpmaster/index.ts';
 
@@ -225,8 +226,32 @@ describe('CSV logbook', () => {
 	});
 	test('auto mapping of common headers', () => {
 		const m = autoMapping(['No.', 'Date', 'DZ', 'Plane', 'Exit Altitude', 'Freefall Time', 'Discipline', 'Notes']);
-		expect(m).toEqual({ jumpNumber: 0, jumpDate: 1, location: 2, aircraft: 3, altitudeFt: 4, freefallSeconds: 5, jumpType: 6, description: 7 });
+		expect(m).toEqual({ jumpNumber: 0, jumpDate: 1, location: 2, aircraft: 3, altitudeFt: 4, freefallSeconds: 5, jumpType: 6, description: 7, signerName: -1, signerLicence: -1 });
 		expect(autoMapping(['Foo', 'Date']).jumpNumber).toBe(-1);
+		// sign-off columns; "Signed at" is a date, never the signer
+		const s = autoMapping(['Date', 'Signed at', 'Sign-off by', "Signer's licence no."]);
+		expect([s.signerName, s.signerLicence]).toEqual([2, 3]);
+		expect(autoMapping(['Date', 'Signer', 'Signer licence'])).toMatchObject({ signerName: 1, signerLicence: 2 });
+		expect(autoMapping(['Date', 'Dropzone / location']).location).toBe(1);
+		// headerless files use the template order; nothing lands in the sign-off fields
+		expect(defaultMapping()).toMatchObject({ jumpNumber: 0, description: 7, signerName: -1, signerLicence: -1 });
+	});
+	test('both logbook CSV downloads read back in with every column matched', () => {
+		const base = {
+			id: 'j', userId: 'u', dropzoneId: 'dz1', rigId: null, loadId: null, slotId: null, signerUserId: null, signatureFileId: null,
+			verified: false, source: 'manual' as const, sourceRef: null, createdAt: new Date(), updatedAt: new Date()
+		};
+		const csv = logbookCsv([
+			{ ...base, jumpNumber: 41, jumpDate: '2026-03-01', location: null, dropzoneName: 'Skydive Demo DZ', aircraft: 'C208', altitudeFt: 12000, freefallSeconds: 55, jumpType: 'hop_pop' as const, description: 'Hop, pop', signerName: 'Ina Instructor', signerLicence: 'D-1', signedAt: new Date('2026-03-02T10:00:00Z') },
+			{ ...base, jumpNumber: 42, jumpDate: '2026-03-02', location: 'Mossel Bay', dropzoneName: null, aircraft: null, altitudeFt: null, freefallSeconds: null, jumpType: 'belly' as const, description: null, signerName: null, signerLicence: null, signedAt: null }
+		]);
+		const { bundle, errors, mapping } = csvToBundle(csv);
+		expect(errors).toEqual([]);
+		expect(Object.entries(mapping).filter(([, i]) => i < 0)).toEqual([]);
+		expect(bundle.jumper!.jumps).toMatchObject([
+			{ jumpNumber: 41, jumpDate: '2026-03-01', location: 'Skydive Demo DZ', aircraft: 'C208', altitudeFt: 12000, freefallSeconds: 55, jumpType: 'hop_pop' as const, description: 'Hop, pop', signerName: 'Ina Instructor', signerLicence: 'D-1' },
+			{ jumpNumber: 42, location: 'Mossel Bay', jumpType: 'belly', signerName: null, signerLicence: null }
+		]);
 	});
 	test('dates and freefall', () => {
 		expect(parseDate('2024-03-09')).toBe('2024-03-09');

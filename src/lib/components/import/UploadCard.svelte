@@ -5,6 +5,7 @@
 		CSV_FIELDS,
 		CSV_FIELD_LABELS,
 		autoMapping,
+		defaultMapping,
 		looksLikeHeader,
 		parseCsv,
 		rowsToJumps,
@@ -43,7 +44,7 @@
 		if (text.trimStart().startsWith('{')) return; // JSON bundle — nothing to map
 		rows = parseCsv(text).filter((r) => r.some((c) => c.trim()));
 		hasHeader = rows[0] ? looksLikeHeader(rows[0]) : false;
-		mapping = hasHeader ? autoMapping(rows[0]) : (Object.fromEntries(CSV_FIELDS.map((k, i) => [k, i])) as CsvMapping);
+		mapping = hasHeader ? autoMapping(rows[0]) : defaultMapping();
 	}
 
 	function drop(e: DragEvent) {

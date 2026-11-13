@@ -7,6 +7,7 @@
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import { fmtDate, fmtDateTime } from '#lib/components/jumper/format.ts';
+	import { brand } from '#lib/brand.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -111,6 +112,13 @@
 					<Button variant="outline" class="w-full" onclick={() => share(f.link!)}><JIcon name="link" class="size-4" /> Share link</Button>
 				</div>
 			{:else}
+				{#if j.signerName || j.signerLicence}
+					<div class="mb-4 rounded-xl border border-border bg-surface-2/50 p-4 text-sm" data-testid="imported-signoff">
+						<p class="font-semibold">Previous sign-off: {j.signerName ?? 'name not recorded'}</p>
+						{#if j.signerLicence}<p class="text-muted">Licence {j.signerLicence}</p>{/if}
+						<p class="mt-1 text-xs text-muted">Carried over from your imported logbook. {brand.name} can't check it, so it doesn't count as signed here.</p>
+					</div>
+				{/if}
 				<p class="text-sm text-muted">Get this jump signed by an instructor or another licensed jumper. They scan a QR code or open a link and sign with their own account — their name and licence are recorded.</p>
 				<form method="POST" action="?/signlink" class="mt-4" use:enhance={() => { busySign = true; return async ({ update }) => { await update({ reset: false }); busySign = false; }; }}>
 					<Button type="submit" class="w-full" loading={busySign} data-testid="create-sign-link"><JIcon name="qr" class="size-4" /> Get signed</Button>

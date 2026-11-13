@@ -62,7 +62,7 @@
 					<td class="py-1.5 pr-2">{j.jumpType ? (JUMP_TYPE_LABELS[j.jumpType as JumpType] ?? j.jumpType) : ''}</td>
 					<td class="py-1.5 pr-2">{j.description ?? ''}</td>
 					<td class="py-1.5 text-xs">
-						{#if j.signedAt}{j.signerName}{j.signerLicence ? ` (${j.signerLicence})` : ''}{#if j.signatureUrl}<img src={j.signatureUrl} alt="Signature of {j.signerName}" class="mt-0.5 block h-7 max-w-32 object-contain dark:invert print:invert-0" />{/if}{:else if j.verified}DZ verified{/if}
+						{#if j.signedAt}{j.signerName}{j.signerLicence ? ` (${j.signerLicence})` : ''}{#if j.signatureUrl}<img src={j.signatureUrl} alt="Signature of {j.signerName}" class="mt-0.5 block h-7 max-w-32 object-contain dark:invert print:invert-0" />{/if}{:else if j.verified}DZ verified{:else if j.signerName || j.signerLicence}<span data-testid="print-imported-signoff">{j.signerName ?? ''}{j.signerLicence ? ` (${j.signerLicence})` : ''} · imported</span>{/if}
 					</td>
 				</tr>
 			{:else}

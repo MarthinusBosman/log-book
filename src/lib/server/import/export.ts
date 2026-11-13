@@ -28,7 +28,7 @@ import {
 } from '../db/schema.ts';
 import { getPriceMap } from '../domain/pricing.ts';
 import { emptyBundle, type BPerson, type BRig, type Bundle } from '../../import/bundle.ts';
-import { toCsv } from '../../import/csv.ts';
+import { logbookCsv } from '../jumper/csv.ts';
 import { selectIn } from './db.ts';
 
 const nativeRef = (table: string, id: string) => `slot:${table}/${id}`;
@@ -113,38 +113,18 @@ export async function exportJumper(db: Database, userId: string, origin: string 
 	return b;
 }
 
-export const LOGBOOK_CSV_HEADER = [
-	'Jump #',
-	'Date',
-	'Dropzone',
-	'Aircraft',
-	'Altitude (ft)',
-	'Freefall (s)',
-	'Jump type',
-	'Description',
-	'Signed by',
-	'Signer licence',
-	'Verified'
-];
-
+/**
+ * Logbook spreadsheet: the same file as the Logbook page's CSV button (`logbookCsv`), so both
+ * downloads read back in through the CSV importer with every column matched.
+ */
 export async function exportLogbookCsv(db: Database, userId: string): Promise<string> {
-	const jumps = await db.select().from(logbookJumps).where(eq(logbookJumps.userId, userId)).orderBy(asc(logbookJumps.jumpNumber));
-	return toCsv(
-		LOGBOOK_CSV_HEADER,
-		jumps.map((j) => [
-			j.jumpNumber,
-			j.jumpDate,
-			j.location,
-			j.aircraft,
-			j.altitudeFt,
-			j.freefallSeconds,
-			j.jumpType,
-			j.description,
-			j.signerName,
-			j.signerLicence,
-			j.verified ? 'yes' : ''
-		])
-	);
+	const jumps = await db
+		.select({ jump: logbookJumps, dropzoneName: dropzones.name })
+		.from(logbookJumps)
+		.leftJoin(dropzones, eq(dropzones.id, logbookJumps.dropzoneId))
+		.where(eq(logbookJumps.userId, userId))
+		.orderBy(asc(logbookJumps.jumpNumber));
+	return logbookCsv(jumps.map((r) => ({ ...r.jump, dropzoneName: r.dropzoneName })));
 }
 
 /** A dropzone's operational data (for moving between instances / self-hosting). */

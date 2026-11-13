@@ -8,7 +8,18 @@ import { emptyBundle, type BJump, type Bundle } from './bundle.ts';
 import { altitudeFt } from './jumpmaster/values.ts';
 import { inferJumpType } from './jumpmaster/map.ts';
 
-export const CSV_FIELDS = ['jumpNumber', 'jumpDate', 'location', 'aircraft', 'altitudeFt', 'freefallSeconds', 'jumpType', 'description'] as const;
+export const CSV_FIELDS = [
+	'jumpNumber',
+	'jumpDate',
+	'location',
+	'aircraft',
+	'altitudeFt',
+	'freefallSeconds',
+	'jumpType',
+	'description',
+	'signerName',
+	'signerLicence'
+] as const;
 export type CsvField = (typeof CSV_FIELDS)[number];
 export const CSV_FIELD_LABELS: Record<CsvField, string> = {
 	jumpNumber: 'Jump number',
@@ -18,7 +29,9 @@ export const CSV_FIELD_LABELS: Record<CsvField, string> = {
 	altitudeFt: 'Exit altitude (ft)',
 	freefallSeconds: 'Freefall (seconds)',
 	jumpType: 'Jump type',
-	description: 'Description / notes'
+	description: 'Description / notes',
+	signerName: 'Signed by',
+	signerLicence: 'Signer licence'
 };
 
 /** column index per field (-1 = not mapped). */
@@ -82,13 +95,22 @@ export function parseCsv(text: string, delimiter = detectDelimiter(text)): strin
 const SYNONYMS: Record<CsvField, RegExp> = {
 	jumpNumber: /^(jump\s*(#|no\.?|num(ber)?)|#|no\.?|number|nr|jump)$/i,
 	jumpDate: /^(date|jump\s*date|day|when)$/i,
-	location: /^(drop\s*zone|dz|location|place|site|where)$/i,
+	// also our own export's "Dropzone / location"
+	location: /^(drop\s*zone|dz|location|place|site|where)(\s*\/\s*(drop\s*zone|dz|location|place|site))?$/i,
 	aircraft: /^(aircraft|plane|airplane|aeroplane|a\/c)$/i,
 	altitudeFt: /^(exit\s*)?(alt(itude)?|height)(\s*\(?(ft|feet|m)\)?)?$/i,
 	freefallSeconds: /^(free\s*-?fall|ff|delay|ff\s*time|freefall\s*time)(\s*\(?(s|sec|secs|seconds)\)?)?$/i,
 	jumpType: /^(jump\s*)?(type|discipline|kind)$/i,
-	description: /^(description|desc|notes?|comments?|remarks?|details)$/i
+	description: /^(description|desc|notes?|comments?|remarks?|details)$/i,
+	// "Signed by", "Signer", "Signature", "Sign-off by" — not "Signed at"/"Signed on" (a date)
+	signerName: /^(signed\s*(off\s*)?by|signer(\s*name)?|signature|sign[\s-]*off(\s*by)?)$/i,
+	signerLicence: /^(signer'?s?\s*(licen[cs]e|lic\.?)(\s*(#|no\.?|num(ber)?))?|licen[cs]e\s*of\s*signer)$/i
 };
+
+/** Mapping for a file without a header: the template's column order (sign-off columns unmapped). */
+export function defaultMapping(): CsvMapping {
+	return Object.fromEntries(CSV_FIELDS.map((f, i) => [f, i < TEMPLATE_HEADER.length ? i : -1])) as CsvMapping;
+}
 
 /** Guess the mapping from a header row (falls back to the template's column order). */
 export function autoMapping(header: string[]): CsvMapping {
@@ -206,7 +228,11 @@ export function rowsToJumps(rows: string[][], mapping: CsvMapping, order: DateOr
 			altitudeFt: altitudeFt(get(r, 'altitudeFt')),
 			freefallSeconds: parseFreefall(get(r, 'freefallSeconds')),
 			jumpType: typeRaw ? parseJumpType(typeRaw) : inferJumpType(description),
-			description
+			description,
+			// A sign-off recorded elsewhere (paper logbook, another app, our own export). Kept as text:
+			// it is shown as an imported sign-off, never as a verified Log-Book signature.
+			signerName: get(r, 'signerName').slice(0, 120) || null,
+			signerLicence: get(r, 'signerLicence').slice(0, 60) || null
 		});
 	});
 	return { jumps, errors };
@@ -221,9 +247,7 @@ export function csvToBundle(
 	const hasHeader = opts.hasHeader ?? (rows[0] ? looksLikeHeader(rows[0]) : false);
 	const header = hasHeader ? rows[0] : null;
 	const data = hasHeader ? rows.slice(1) : rows;
-	const mapping =
-		opts.mapping ??
-		(header ? autoMapping(header) : (Object.fromEntries(CSV_FIELDS.map((f, i) => [f, i])) as CsvMapping));
+	const mapping = opts.mapping ?? (header ? autoMapping(header) : defaultMapping());
 	const { jumps, errors } = rowsToJumps(data, mapping, opts.dateOrder);
 	const bundle = emptyBundle('csv');
 	bundle.people = [{ ref: 'self', name: opts.name ?? 'Me', ratings: [] }];

@@ -116,8 +116,10 @@ export async function updateJump(
 	const factsChanged = (['jumpDate', 'location', 'aircraft', 'altitudeFt', 'freefallSeconds', 'jumpType'] as const).some(
 		(k) => patch[k] !== undefined && patch[k] !== jump[k]
 	);
+	// A sign-off vouches for the facts as they were: changing them clears it, including a sign-off
+	// carried over from an import (signer name without `signedAt`).
 	const clearSig =
-		factsChanged && jump.signedAt
+		factsChanged && (jump.signedAt || jump.signerName || jump.signerLicence)
 			? { signerUserId: null, signerName: null, signerLicence: null, signatureFileId: null, signedAt: null }
 			: {};
 	const rows = await db

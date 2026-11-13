@@ -1,10 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 const CSV = [
-	'No.,Date,DZ,Plane,Exit alt,FF,Discipline,Notes',
-	'1,09/03/2024,Skydive E2E,C208,12000,60,Belly,"First solo, stable exit"',
-	'2,10/03/2024,Skydive E2E,C208,12000,0:55,Freefly,ff',
-	'x,not a date,,,,,,'
+	'No.,Date,DZ,Plane,Exit alt,FF,Discipline,Notes,Signed by',
+	'1,09/03/2024,Skydive E2E,C208,12000,60,Belly,"First solo, stable exit",Ina Paper',
+	'2,10/03/2024,Skydive E2E,C208,12000,0:55,Freefly,ff,',
+	'x,not a date,,,,,,,'
 ].join('\n');
 
 test('logbook CSV import: map columns → preview → import → history → export', async ({ page }) => {
@@ -45,11 +45,17 @@ test('logbook CSV import: map columns → preview → import → history → exp
 	await expect(page.getByTestId('job-history')).toContainText('succeeded');
 	await page.screenshot({ path: `test-results/import-${test.info().project.name}.png`, fullPage: true });
 
+	// The "Signed by" column comes across as a previous (unverified) sign-off
+	await page.goto('/app/logbook');
+	await page.getByTestId('jump-card').filter({ hasText: 'First solo' }).click();
+	await expect(page.getByTestId('imported-signoff')).toContainText('Previous sign-off: Ina Paper');
+	await expect(page.getByTestId('signed')).toHaveCount(0);
+
 	// Export: CSV + bundle contain the imported jumps
 	await page.goto('/app/export');
 	await expect(page.getByTestId('export-json')).toBeVisible();
 	const csv = await (await page.request.get('/app/export/logbook.csv')).text();
-	expect(csv).toContain('2024-03-09,Skydive E2E,C208,12000,60,belly');
+	expect(csv).toContain('2024-03-09,Skydive E2E,C208,12000,60,Belly,"First solo, stable exit",no,Ina Paper');
 	const bundle = await (await page.request.get('/app/export/me.json')).json();
 	expect(bundle.format).toBe('slot-bundle');
 	expect(bundle.jumper.jumps).toHaveLength(2);

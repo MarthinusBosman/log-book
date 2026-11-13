@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
+import { logbookJumps } from '../db/schema.ts';
 import { isDomainError } from './errors.ts';
 import { addJump, assertJumpDateInRange, deleteJump, getJump, importJumps, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
 import { setRatings } from './profile.ts';
@@ -100,6 +102,16 @@ describe('sign-off', () => {
 		const a = await updateJump(db, owner.id, j.id, { altitudeFt: 14000 });
 		expect(a.signedAt).toBeNull();
 		expect(a.signerUserId).toBeNull();
+	});
+
+	test('an imported sign-off (name, no signature) is cleared by fact edits too', async () => {
+		const owner = await makeUser(db);
+		const j = await addJump(db, owner.id, { jumpDate: DAY, altitudeFt: 12000 });
+		await db.update(logbookJumps).set({ signerName: 'Paper Signer', signerLicence: 'D-9' }).where(eq(logbookJumps.id, j.id));
+		const d = await updateJump(db, owner.id, j.id, { description: 'Notes only' });
+		expect(d).toMatchObject({ signerName: 'Paper Signer', signerLicence: 'D-9' });
+		const a = await updateJump(db, owner.id, j.id, { altitudeFt: 13000 });
+		expect(a).toMatchObject({ signerName: null, signerLicence: null, signedAt: null });
 	});
 
 	test('only the owner edits/deletes; verified jumps keep date/DZ/aircraft', async () => {
