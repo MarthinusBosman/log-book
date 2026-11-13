@@ -4,7 +4,8 @@
 	import { Button, Dialog, Input, Select } from '#lib/ui/index.ts';
 	import { SLOT_STAFF_ROLE_LABELS, formatMoney, type JumpType, type SlotExtra } from '#lib/domain/constants.ts';
 	import { act } from './forms.ts';
-	import { removeSlotConfirm } from './manifest.ts';
+	import { page } from '$app/state';
+	import { formAction, removeSlotConfirm } from './manifest.ts';
 	import JumpFields from './JumpFields.svelte';
 	import type { SlotVM } from './types.ts';
 
@@ -58,7 +59,7 @@
 					</li>
 				</ul>
 				{#if canPay && !s.paid && s.totalMinor > 0}
-					<form method="POST" action="?/markPaid" class="mt-2 flex gap-2" use:enhance={act({ success: 'Slot marked as paid', onSuccess: close })}>
+					<form method="POST" action={formAction(page.url, 'markPaid')} class="mt-2 flex gap-2" use:enhance={act({ success: 'Slot marked as paid', onSuccess: close })}>
 						<input type="hidden" name="slotId" value={s.id} />
 						<Select name="provider" value="cash" class="flex-1" options={[{ value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'eft', label: 'EFT' }, { value: 'manual', label: 'Other' }]} />
 						<Button type="submit" variant="secondary" class="h-11">Mark paid</Button>
@@ -69,7 +70,7 @@
 			{#if editable}
 				<form
 					method="POST"
-					action="?/updateSlot"
+					action={formAction(page.url, 'updateSlot')}
 					class="flex flex-col gap-4"
 					use:enhance={act({ success: 'Slot updated', onSuccess: close, pending: (b) => (busy = b) })}
 				>
@@ -114,7 +115,7 @@
 				<section class="flex flex-col gap-3 border-t border-border pt-5">
 					<h3 class="text-sm font-semibold">Move or remove</h3>
 					{#if otherLoads.length}
-						<form method="POST" action="?/moveSlot" class="flex flex-wrap items-end gap-2" use:enhance={act({ success: (d) => `Moved to load ${d.toLoadNumber}`, onSuccess: close })}>
+						<form method="POST" action={formAction(page.url, 'moveSlot')} class="flex flex-wrap items-end gap-2" use:enhance={act({ success: (d) => `Moved to load ${d.toLoadNumber}`, onSuccess: close })}>
 							<input type="hidden" name="slotId" value={s.id} />
 							<Select label="Move to load" name="toLoadId" class="min-w-40 flex-1" options={otherLoads.map((l) => ({ value: l.id, label: `Load ${l.loadNumber} · ${l.free} free`, disabled: l.free === 0 }))} />
 							{#if s.groupId}<label class="flex h-11 items-center gap-2 text-sm"><input type="checkbox" name="withGroup" checked class="size-4 accent-[var(--dz-primary)]" /> whole group</label>{/if}
@@ -123,7 +124,7 @@
 					{/if}
 					<form
 						method="POST"
-						action="?/removeSlot"
+						action={formAction(page.url, 'removeSlot')}
 						class="flex flex-wrap items-center gap-3"
 						use:enhance={act({ confirm: () => removeSlotConfirm(s.displayName), success: 'Removed from load', onSuccess: close })}
 					>

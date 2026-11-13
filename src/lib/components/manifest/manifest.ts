@@ -114,6 +114,28 @@ export function shiftDay(day: string, days: number): string {
 	return new Date(Date.parse(`${day}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
 
+/** The page's query string minus any `/action` key a native form POST left in it. */
+function queryWithoutAction(search: string): string {
+	const q = new URLSearchParams(search);
+	for (const k of [...q.keys()]) if (k.startsWith('/')) q.delete(k);
+	return q.toString();
+}
+
+/**
+ * Form `action` for a named action that keeps the page's own query (e.g. the board's `?day=`),
+ * so a no-JS POST re-renders the same day instead of jumping back to today.
+ */
+export function formAction(url: { search: string }, name: string): string {
+	const s = queryWithoutAction(url.search);
+	return `?/${name}${s ? `&${s}` : ''}`;
+}
+
+/** Link back to the current page without the `?/action` of a native POST. */
+export function pageWithoutAction(url: { pathname: string; search: string }): string {
+	const s = queryWithoutAction(url.search);
+	return url.pathname + (s ? `?${s}` : '');
+}
+
 /** Stable hue for a jump group so grouped slots share a colour stripe. */
 export function groupHue(id: string): number {
 	return [...id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);

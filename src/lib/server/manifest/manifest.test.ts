@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formatCountdown, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, pageWithoutAction, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -55,6 +55,14 @@ describe('manifest time helpers', () => {
 		expect(zonedTime('2026-11-11', '25:00', 'UTC')).toBeNull();
 		expect(zonedTime('nope', '08:00', 'UTC')).toBeNull();
 	});
+	test('formAction keeps the board day, drops a previous action', () => {
+		expect(formAction({ search: '' }, 'complete')).toBe('?/complete');
+		expect(formAction({ search: '?day=2026-11-20' }, 'complete')).toBe('?/complete&day=2026-11-20');
+		expect(formAction({ search: '?/cancel&day=2026-11-20' }, 'cancel')).toBe('?/cancel&day=2026-11-20');
+		expect(pageWithoutAction({ pathname: '/app/manifest', search: '?/cancel&day=2026-11-20' })).toBe('/app/manifest?day=2026-11-20');
+		expect(pageWithoutAction({ pathname: '/app/manifest', search: '?/cancel' })).toBe('/app/manifest');
+	});
+
 	test('shiftDay crosses month ends', () => {
 		expect(shiftDay('2026-11-30', 1)).toBe('2026-12-01');
 		expect(shiftDay('2026-03-01', -1)).toBe('2026-02-28');

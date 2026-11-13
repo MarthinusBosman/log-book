@@ -4,7 +4,8 @@
 	import { cn } from '#lib/ui/cn.ts';
 	import { EDITABLE_LOAD_STATUSES } from '#lib/domain/constants.ts';
 	import type { CompleteSummary, LoadVM, SlotVM } from './types.ts';
-	import { cancelConfirm, clockTime, completeConfirm, deleteConfirm, nextStep } from './manifest.ts';
+	import { page } from '$app/state';
+	import { cancelConfirm, clockTime, completeConfirm, deleteConfirm, formAction, nextStep } from './manifest.ts';
 	import { act } from './forms.ts';
 	import StatusPill from './StatusPill.svelte';
 	import Meter from './Meter.svelte';
@@ -119,7 +120,7 @@
 		</div>
 		{#if canManifest && !done}
 			<Menu label="Load {load.loadNumber} actions">
-				<form method="POST" action="?/setOpen" use:enhance={act({ success: () => (load.isOpen ? 'Load closed' : 'Load opened to jumpers') })}>
+				<form method="POST" action={formAction(page.url, 'setOpen')} use:enhance={act({ success: () => (load.isOpen ? 'Load closed' : 'Load opened to jumpers') })}>
 					<input type="hidden" name="loadId" value={load.id} />
 					<input type="hidden" name="open" value={load.isOpen ? '0' : '1'} />
 					<button class={menuItem} disabled={!editable}>
@@ -128,30 +129,30 @@
 					</button>
 				</form>
 				{#if load.status === 'called'}
-					<form method="POST" action="?/cancelCall" use:enhance={act({ success: '20 min call cancelled' })}>
+					<form method="POST" action={formAction(page.url, 'cancelCall')} use:enhance={act({ success: '20 min call cancelled' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={menuItem}><MIcon name="x" class="size-4 text-muted" /> Cancel 20 min call</button>
 					</form>
 				{/if}
 				{#if load.status === 'called'}
-					<form method="POST" action="?/call" use:enhance={act({ success: '20 min call has reset' })}>
+					<form method="POST" action={formAction(page.url, 'call')} use:enhance={act({ success: '20 min call has reset' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<input type="hidden" name="reset" value="1" />
 						<button class={menuItem}><MIcon name="refresh" class="size-4 text-muted" /> Reset 20 min call</button>
 					</form>
 				{/if}
-				<form method="POST" action="?/refuel" use:enhance={act({ success: () => (load.refuel ? 'Refuel cancelled' : 'Marked as a refuel load') })}>
+				<form method="POST" action={formAction(page.url, 'refuel')} use:enhance={act({ success: () => (load.refuel ? 'Refuel cancelled' : 'Marked as a refuel load') })}>
 					<input type="hidden" name="loadId" value={load.id} />
 					<input type="hidden" name="refuel" value={load.refuel ? '0' : '1'} />
 					<button class={menuItem}><MIcon name="fuel" class="size-4 text-muted" /> {load.refuel ? 'Cancel refuel' : 'Refuel load'}</button>
 				</form>
 				{#if load.shutdownMinutes}
-					<form method="POST" action="?/shutdown" use:enhance={act({ success: 'Shutdown cancelled' })}>
+					<form method="POST" action={formAction(page.url, 'shutdown')} use:enhance={act({ success: 'Shutdown cancelled' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={menuItem}><MIcon name="power" class="size-4 text-muted" /> Cancel shutdown</button>
 					</form>
 				{:else}
-					<form method="POST" action="?/shutdown" class="flex items-center gap-1.5 px-2.5 py-1.5" use:enhance={act({ success: 'Shutdown set' })}>
+					<form method="POST" action={formAction(page.url, 'shutdown')} class="flex items-center gap-1.5 px-2.5 py-1.5" use:enhance={act({ success: 'Shutdown set' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<MIcon name="power" class="size-4 shrink-0 text-muted" />
 						<label class="sr-only" for="sd-{load.id}">Shutdown minutes</label>
@@ -169,19 +170,19 @@
 				{/if}
 				<div class="my-1 h-px bg-border"></div>
 				{#if load.status !== 'landed'}
-					<form method="POST" action="?/complete" use:enhance={act({ confirm: () => completeConfirm(load.loadNumber), success: 'Load completed', onSuccess: onDone })}>
+					<form method="POST" action={formAction(page.url, 'complete')} use:enhance={act({ confirm: () => completeConfirm(load.loadNumber), success: 'Load completed', onSuccess: onDone })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={menuItem}><MIcon name="check" class="size-4 text-success" /> Mark completed</button>
 					</form>
 				{/if}
 				{#if editable}
-					<form method="POST" action="?/cancel" use:enhance={act({ confirm: () => cancelConfirm(load.loadNumber), success: 'Load cancelled' })}>
+					<form method="POST" action={formAction(page.url, 'cancel')} use:enhance={act({ confirm: () => cancelConfirm(load.loadNumber), success: 'Load cancelled' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={cn(menuItem, 'text-warning')}><MIcon name="x" class="size-4" /> Cancel load</button>
 					</form>
 				{/if}
 				{#if load.slots.length === 0}
-					<form method="POST" action="?/deleteLoad" use:enhance={act({ confirm: () => deleteConfirm(load.loadNumber), success: 'Load has been deleted' })}>
+					<form method="POST" action={formAction(page.url, 'deleteLoad')} use:enhance={act({ confirm: () => deleteConfirm(load.loadNumber), success: 'Load has been deleted' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={cn(menuItem, 'text-danger')}><MIcon name="trash" class="size-4" /> Delete load</button>
 					</form>
@@ -225,7 +226,7 @@
 	{#if canManifest && !done}
 		<footer class="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2.5">
 			{#if step}
-				<form method="POST" action="?/{step.action}" use:enhance={act({ success: () => (step ? STEP_MSG[step.action] : undefined), onSuccess: onDone, pending: (b) => (busy = b) })}>
+				<form method="POST" action={formAction(page.url, step.action)} use:enhance={act({ success: () => (step ? STEP_MSG[step.action] : undefined), onSuccess: onDone, pending: (b) => (busy = b) })}>
 					<input type="hidden" name="loadId" value={load.id} />
 					{#if step.action === 'complete'}<input type="hidden" name="confirmed" value="1" />{/if}
 					<Button

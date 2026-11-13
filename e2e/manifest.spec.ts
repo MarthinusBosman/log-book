@@ -124,6 +124,45 @@ test('manifest without JS: destructive load actions ask on a confirmation step f
 	await ctx.close();
 });
 
+test('manifest without JS: actions on another day stay on that day', async ({ page, browser }) => {
+	const project = test.info().project.name;
+	const day = '2030-01-15';
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Dana DayKeeper');
+	await page.getByLabel('Email').fill(`nojs-day-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`NoJS Day E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	const ctx = await browser.newContext({ javaScriptEnabled: false, storageState: await page.context().storageState(), viewport: page.viewportSize() ?? undefined });
+	const nojs = await ctx.newPage();
+	await nojs.goto(`/app/manifest?day=${day}`);
+	// create a load for that day with a native POST: the board re-renders the same day
+	const created = await nojs.request.post(`/app/manifest?/createLoad&day=${day}`, {
+		form: { day, count: '1', aircraftName: 'ZS-DAY', capacity: '8', weightLimitKg: '400' },
+		headers: { Accept: 'text/html', Origin: new URL(nojs.url()).origin }
+	});
+	expect(created.status()).toBeLessThan(400);
+	await nojs.goto(`/app/manifest?day=${day}`);
+	const card = nojs.getByTestId('load-card');
+	await expect(card).toHaveCount(1);
+	await expect(card.locator(`form[action="?/cancel&day=${day}"]`)).toHaveCount(1);
+
+	await card.getByLabel('Load 1 actions').click();
+	await card.getByRole('button', { name: 'Cancel load' }).click();
+	const step = nojs.getByTestId('confirm-step');
+	await expect(step).toBeVisible();
+	await expect(step.getByRole('link', { name: 'Go back' })).toHaveAttribute('href', `/app/manifest?day=${day}`);
+	await step.getByRole('button', { name: 'Cancel load' }).click();
+	await expect(nojs).toHaveURL(new RegExp(`day=${day}`));
+	await expect(card).toHaveAttribute('data-status', 'cancelled');
+	await ctx.close();
+});
+
 test('public display needs a valid token', async ({ page }) => {
 	const res = await page.goto('/dz/no-such-dz/display?token=nope-nope-nope-nope');
 	expect(res?.status()).toBe(404);

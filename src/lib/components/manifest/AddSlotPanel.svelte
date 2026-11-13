@@ -3,7 +3,9 @@
 	import { Button, Input, Select } from '#lib/ui/index.ts';
 	import { ROLE_LABELS, SLOT_EXTRA_LABELS, SLOT_STAFF_ROLE_LABELS, formatMoney, type DropzoneRole, type JumpType, type SlotExtra } from '#lib/domain/constants.ts';
 	import { cn } from '#lib/ui/cn.ts';
+	import { page } from '$app/state';
 	import { act } from './forms.ts';
+	import { formAction } from './manifest.ts';
 	import JumpFields from './JumpFields.svelte';
 	import PeoplePicker, { type Person } from './PeoplePicker.svelte';
 
@@ -145,7 +147,7 @@
 		</div>
 		<div class="mt-4" role="tabpanel">
 				{#if tab === 'checked'}
-					<form method="POST" action="?/addMembers" class="flex flex-col gap-3" use:enhance={done(() => (selChecked = []))}>
+					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => (selChecked = []))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<PeoplePicker idPrefix="ci" people={checkedPeople} bind:selected={selChecked} empty="Nobody is checked in at the moment." />
 						<JumpFields idPrefix="ci" bind:jumpType={jtA} bind:extras={exA} {currency} count={Math.max(1, selChecked.length)} />
@@ -159,7 +161,7 @@
 						</Button>
 					</form>
 				{:else if tab === 'members'}
-					<form method="POST" action="?/addMembers" class="flex flex-col gap-3" use:enhance={done(() => (selMembers = []))}>
+					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => (selMembers = []))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<PeoplePicker idPrefix="mb" people={memberPeople} bind:selected={selMembers} />
 						<JumpFields idPrefix="mb" bind:jumpType={jtB} bind:extras={exB} {currency} count={Math.max(1, selMembers.length)} />
@@ -171,7 +173,7 @@
 						<Button type="submit" loading={busy} disabled={selMembers.length === 0}>Add {selMembers.length > 1 ? `${selMembers.length} jumpers` : 'jumper'}</Button>
 					</form>
 				{:else if tab === 'tandem'}
-					<form method="POST" action="?/addTandem" class="flex flex-col gap-3" use:enhance={done(() => ((passengerId = ''), (tiId = ''), (videoId = '')))}>
+					<form method="POST" action={formAction(page.url, 'addTandem')} class="flex flex-col gap-3" use:enhance={done(() => ((passengerId = ''), (tiId = ''), (videoId = '')))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<fieldset>
 							<legend class="mb-1.5 text-sm font-medium">1. Passenger</legend>
@@ -223,7 +225,7 @@
 						<Button type="submit" loading={busy} disabled={!passengerId || !tiId} data-testid="add-tandem">Add tandem group</Button>
 					</form>
 				{:else if tab === 'team'}
-					<form method="POST" action="?/addTeam" class="flex flex-col gap-3" use:enhance={done(() => {})}>
+					<form method="POST" action={formAction(page.url, 'addTeam')} class="flex flex-col gap-3" use:enhance={done(() => {})}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<Select label="Team" name="teamId" placeholder={teams.length ? 'Choose team…' : 'No teams yet'} value="" options={teams.map((t) => ({ value: t.id, label: t.discipline ? `${t.name} · ${t.discipline}` : t.name }))} />
 						<JumpFields idPrefix="tm" bind:jumpType={jtTeam} bind:extras={exTeam} {currency} />
@@ -233,7 +235,7 @@
 						<Button type="submit" loading={busy} disabled={!teams.length}>Add whole team</Button>
 					</form>
 				{:else if tab === 'staff'}
-					<form method="POST" action="?/addMembers" class="flex flex-col gap-3" use:enhance={done(() => (selStaff = []))}>
+					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => (selStaff = []))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<PeoplePicker idPrefix="st" people={staffPeople} bind:selected={selStaff} multiple={false} />
 						<Select
@@ -249,7 +251,7 @@
 						<Button type="submit" loading={busy} disabled={selStaff.length === 0}>Add staff jumper</Button>
 					</form>
 				{:else if tab === 'custom'}
-					<form method="POST" action="?/addCustom" class="flex flex-col gap-3" use:enhance={done(() => {})}>
+					<form method="POST" action={formAction(page.url, 'addCustom')} class="flex flex-col gap-3" use:enhance={done(() => {})}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<p class="text-sm text-muted">A jumper without an account (visitor, demo).</p>
 						<Input label="Jumper name" name="displayName" required />

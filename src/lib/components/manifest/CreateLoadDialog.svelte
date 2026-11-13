@@ -2,7 +2,9 @@
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { Button, Dialog, Input, Select } from '#lib/ui/index.ts';
+	import { page } from '$app/state';
 	import { act } from './forms.ts';
+	import { formAction } from './manifest.ts';
 
 	type Plane = { id: string; name: string; capacity: number; weightLimitKg: number | null; defaultPilotId: string | null };
 	type Props = {
@@ -44,7 +46,7 @@
 <Dialog bind:open title="Create new load/s" description="Numbers continue from the day's existing loads." variant="right">
 	<form
 		method="POST"
-		action="?/createLoad"
+		action={formAction(page.url, 'createLoad')}
 		class="flex flex-col gap-4"
 		id="create-load-form"
 		use:enhance={act({
