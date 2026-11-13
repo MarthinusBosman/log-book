@@ -5,6 +5,7 @@
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
 	import { IMAGE_PRESETS, downscaleInput } from '#lib/client/resize-image.ts';
 	import { CURRENCIES } from '#lib/domain/currency.ts';
+	import { countryOptions } from '#lib/domain/countries.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -26,6 +27,7 @@
 		[...new Set([data.dz.currency, ...CURRENCIES])].map((c) => ({ value: c, label: c }))
 	);
 	const tzOptions = $derived(data.timezones.map((t) => ({ value: t, label: t.replace(/_/g, ' ') })));
+	const countryOpts = $derived([{ value: '', label: 'Not set' }, ...countryOptions(data.dz.country)]);
 
 	let resizing = $state(false);
 	async function onPick(e: Event) {
@@ -62,7 +64,7 @@
 				<Input label="Address" name="address" value={data.dz.address ?? ''} class="sm:col-span-2" autocomplete="street-address" />
 				<Input label="Latitude" name="lat" inputmode="decimal" value={data.dz.lat ?? ''} placeholder="-33.0286" />
 				<Input label="Longitude" name="lng" inputmode="decimal" value={data.dz.lng ?? ''} placeholder="18.1667" />
-				<Input label="Country code" name="country" maxlength={2} value={data.dz.country ?? ''} placeholder="ZA" />
+				<Select label="Country" name="country" autocomplete="country" value={data.dz.country ?? ''} options={countryOpts} />
 				<Select label="Timezone" name="timezone" value={data.dz.timezone} options={tzOptions} />
 				<Select
 					label="Currency"

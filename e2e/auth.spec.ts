@@ -29,12 +29,14 @@ test('signup → dashboard → logout → login → dashboard', async ({ page })
 	// Create a dropzone so the staff navigation + switcher are populated.
 	await page.goto('/app/dropzones/new');
 	await page.getByLabel('Dropzone name').fill(`Skydive E2E ${test.info().project.name} ${Date.now()}`);
-	// Currency follows the country until the owner picks one (retry: needs hydration).
-	const country = page.locator('input[name=country]');
+	// Country is a named picker (no more typed codes); currency follows it until the owner
+	// picks one (retry: needs hydration).
+	const country = page.locator('select[name=country]');
 	const currency = page.locator('select[name=currency]');
+	await expect(country.locator('option[value="ZA"]')).toHaveText('South Africa');
 	await expect(async () => {
-		await country.fill('');
-		await country.pressSequentially('za');
+		await country.selectOption('NA');
+		await country.selectOption('ZA');
 		await expect(currency).toHaveValue('ZAR', { timeout: 1000 });
 	}).toPass();
 	// Timezone is a picker; a forged unknown zone is refused (it used to 500 the new DZ's dashboard).

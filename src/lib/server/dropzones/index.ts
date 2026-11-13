@@ -3,6 +3,7 @@ import type { Database } from '../db/index.ts';
 import { dropzoneMemberRoles, dropzoneMembers, dropzones, type Dropzone } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
 import { ROLE_PRECEDENCE, STAFF_ROLES, type DropzoneRole } from '../../domain/constants.ts';
+import { normalizeCountry } from '../../domain/countries.ts';
 import { seedDefaultPricelist } from '../domain/pricing.ts';
 
 import type { Membership } from '../../types.ts';
@@ -87,8 +88,10 @@ export function timezoneList(): string[] {
 export function checkDropzoneBasics(input: { country?: string | null; timezone?: string; currency?: string }):
 	| { ok: true; country: string | null; timezone: string; currency: string }
 	| { ok: false; message: string } {
-	const country = input.country?.trim().toUpperCase() || null;
-	if (country && !/^[A-Z]{2}$/.test(country)) return { ok: false, message: 'Country must be a 2-letter code such as ZA.' };
+	const raw = input.country?.trim() || null;
+	const country = raw ? normalizeCountry(raw) : null;
+	// Country picks the repack interval: an unknown code would silently fall back to the default.
+	if (raw && !country) return { ok: false, message: `Unknown country "${raw}". Pick one from the list, e.g. South Africa (ZA).` };
 	const currency = (input.currency ?? 'USD').trim().toUpperCase() || 'USD';
 	if (!/^[A-Z]{3}$/.test(currency)) return { ok: false, message: 'Currency must be a 3-letter code such as ZAR or USD.' };
 	const tz = (input.timezone ?? 'UTC').trim() || 'UTC';

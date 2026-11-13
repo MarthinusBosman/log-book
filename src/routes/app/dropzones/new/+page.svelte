@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { Button, Card, Input, Select } from '#lib/ui/index.ts';
 	import { CURRENCIES, currencyForCountry } from '#lib/domain/currency.ts';
+	import { countryFromLanguage, countryOptions } from '#lib/domain/countries.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -12,6 +13,14 @@
 	let timezone = $state(untrack(() => form?.timezone) ?? 'UTC');
 	onMount(() => {
 		if (!form?.timezone) timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		// Preselect the country from the browser's language region (en-ZA → South Africa).
+		if (!form?.country && !country) {
+			const guess = navigator.languages.map(countryFromLanguage).find(Boolean);
+			if (guess) {
+				country = guess;
+				onCountry();
+			}
+		}
 	});
 	// The browser's zone may be an alias missing from the server's list: keep it selectable.
 	const tzOptions = $derived(
@@ -25,6 +34,7 @@
 		const guess = currencyForCountry(country);
 		if (guess && !currencyTouched) currency = guess;
 	}
+	const countryOpts = $derived([{ value: '', label: 'Choose a country' }, ...countryOptions(country)]);
 	const currencyOptions = $derived([...new Set([currency, ...CURRENCIES])].map((c) => ({ value: c, label: c })));
 </script>
 
@@ -47,15 +57,15 @@
 			}}
 		>
 			<Input label="Dropzone name" name="name" required placeholder="Skydive Robertson" value={form?.name ?? ''} />
-			<div class="grid gap-4 sm:grid-cols-2">
-				<Input
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+				<Select
 					label="Country"
 					name="country"
-					placeholder="ZA"
-					maxlength={2}
-					hint="2-letter ISO code"
+					autocomplete="country"
 					bind:value={country}
-					oninput={onCountry}
+					onchange={onCountry}
+					options={countryOpts}
+					hint="Suggests the currency and the reserve repack interval."
 				/>
 				<Select
 					label="Currency"

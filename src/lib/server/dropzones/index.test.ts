@@ -18,7 +18,10 @@ describe('checkDropzoneBasics', () => {
 	test('rejects what would break dates and prices', () => {
 		expect(checkDropzoneBasics({ timezone: 'Mars/Olympus' })).toMatchObject({ ok: false, message: expect.stringContaining('Unknown timezone') });
 		expect(checkDropzoneBasics({ currency: 'ZZZZ' })).toMatchObject({ ok: false, message: expect.stringContaining('Currency') });
-		expect(checkDropzoneBasics({ country: '1!' })).toMatchObject({ ok: false, message: expect.stringContaining('Country') });
+		expect(checkDropzoneBasics({ country: '1!' })).toMatchObject({ ok: false, message: expect.stringContaining('Unknown country') });
+		// A typed code that isn't a country used to be stored and silently ignored (repack interval).
+		expect(checkDropzoneBasics({ country: 'QQ' })).toMatchObject({ ok: false, message: expect.stringContaining('Pick one from the list') });
+		expect(checkDropzoneBasics({ country: 'uk' })).toMatchObject({ ok: true, country: 'GB' });
 	});
 
 	test('timezone list holds common zones', () => {

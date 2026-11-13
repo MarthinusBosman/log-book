@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button, Icon } from '#lib/ui/index.ts';
 	import { SLOT_EXTRA_LABELS, formatMoney } from '#lib/domain/constants.ts';
+	import { countryName } from '#lib/domain/countries.ts';
 	import { fmtDay } from '#lib/components/tandems/model.ts';
 	import type { PageProps } from './$types';
 
@@ -24,14 +25,7 @@
 				: null
 	);
 	const bookHref = $derived(`/dz/${dz.slug}/book`);
-	const countryName = $derived.by(() => {
-		if (!dz.country) return null;
-		try {
-			return new Intl.DisplayNames(['en'], { type: 'region' }).of(dz.country) ?? dz.country;
-		} catch {
-			return dz.country;
-		}
-	});
+	const countryLabel = $derived(dz.country ? countryName(dz.country) : null);
 </script>
 
 <svelte:head>
@@ -51,7 +45,7 @@
 		<div class="absolute -bottom-24 -left-24 -z-10 size-[22rem] rounded-full bg-cyan-400/10 blur-[100px]"></div>
 	{/if}
 	<div class="mx-auto max-w-5xl px-4 pt-16 pb-14 text-white sm:px-6 sm:pt-24 sm:pb-20">
-		<p class="text-xs font-semibold tracking-[0.2em] text-brand-300 uppercase">Tandem skydiving{countryName ? ` · ${countryName}` : ''}</p>
+		<p class="text-xs font-semibold tracking-[0.2em] text-brand-300 uppercase">Tandem skydiving{countryLabel ? ` · ${countryLabel}` : ''}</p>
 		<h1 class="mt-3 max-w-2xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl">{dz.name}</h1>
 		{#if dz.description}<p class="mt-5 max-w-xl text-base text-pretty text-white/75 sm:text-lg">{dz.description}</p>{/if}
 		<div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
