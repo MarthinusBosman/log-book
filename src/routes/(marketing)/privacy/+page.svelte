@@ -191,7 +191,7 @@
 			outside South Africa. Section 72 of POPIA allows this when the recipient is bound by law or a binding agreement
 			that gives protection comparable to POPIA. Cloudflare processes data under its data processing terms, which
 			include the EU Standard Contractual Clauses and commit it to security and confidentiality comparable to POPIA.
-			Resend (email delivery, United States) processes recipient addresses and message content under its data
+			Resend (email delivery; a United States company, sending our email from its EU region in Ireland) processes recipient addresses and message content under its data
 			processing agreement on the same basis.
 			Payment providers and the other services above process data under their own terms; the payment providers in use
 			include South African companies.

@@ -23,7 +23,8 @@
 		"INSTANCE_MODE": "global",
 		"STORAGE_DRIVER": "r2",
 		"CANONICAL_HOST": "log-book.app",
-		"APP_ORIGIN": "https://log-book.app"
+		"APP_ORIGIN": "https://log-book.app",
+		"EMAIL_REPLY_TO": "hello@log-book.app"
 	},
 	// Hosted domains: log-book.app is canonical; www and log-book.io 301 to it (CANONICAL_HOST).
 	"routes": [
