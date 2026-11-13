@@ -12,6 +12,7 @@ import {
 	linkedAccounts,
 	logbookJumps,
 	notifications,
+	payments,
 	rigs,
 	sessions,
 	slots,
@@ -27,7 +28,8 @@ import { addJump, signJump } from './logbook.ts';
 import { grantRole } from './permissions.ts';
 import { createLoads, addSlot, completeLoad } from './loads.ts';
 import { topUp } from './wallet.ts';
-import { signIndemnity } from './indemnity.ts';
+import { signIndemnity, listSignatures } from './indemnity.ts';
+import { requestTopUp } from './payments.ts';
 import { checkIn } from './checkins.ts';
 import { createRig } from './gear.ts';
 import { addBuddy, createTeam } from './teams.ts';
@@ -35,7 +37,7 @@ import { notify } from './notifications.ts';
 import { isDomainError } from './errors.ts';
 import { searchUsers } from './profile.ts';
 import { DELETED_USER_NAME, accountDeletionPreview, blockedMessage, deleteAccount, deletedEmail } from './account.ts';
-import { createUser } from '../auth/users.ts';
+import { createUser, findUserByEmail, validateEmail } from '../auth/users.ts';
 
 const png = (seed: number) => new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, seed]);
 
@@ -119,6 +121,8 @@ describe('account deletion', () => {
 		await addSlot(db, load.id, { userId: u.id, jumpType: 'belly' }, { now: NOW });
 		await completeLoad(db, load.id, { now: NOW });
 		await checkIn(db, { dropzoneId: dz.id, userId: u.id, now: NOW });
+		const pendingTopUp = await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 5000, provider: 'manual', now: NOW });
+		const pendingOnline = await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 7000, provider: 'payfast', now: NOW });
 
 		// Shared content-addressed key: another user uploaded identical avatar bytes.
 		const otherAvatar = await saveFile(db, storage, { data: png(1), mime: 'image/png', purpose: 'avatar', ownerUserId: other.id });
@@ -191,6 +195,16 @@ describe('account deletion', () => {
 		const ci = await db.select().from(checkins).where(eq(checkins.userId, u.id));
 		expect(ci).toHaveLength(1);
 		expect(ci[0].checkedOutAt).not.toBeNull();
+		// Pay-at-manifest request cancelled (can't be collected any more); online checkout untouched.
+		expect((await db.select().from(payments).where(eq(payments.id, pendingTopUp.id)))[0].status).toBe('cancelled');
+		expect((await db.select().from(payments).where(eq(payments.id, pendingOnline.id)))[0].status).toBe('pending');
+		// Staff see the waiver without the placeholder address.
+		const [signed] = await listSignatures(db, dz.id, { userId: u.id });
+		expect(signed).toMatchObject({ signerName: 'Dana Delete', email: null, accountDeleted: true });
+
+		// The tombstone can't be found by email (sign-in, password reset) nor invited.
+		expect(await findUserByEmail(db, deletedEmail(u.id))).toBeUndefined();
+		expect(validateEmail(deletedEmail(u.id))).not.toBeNull();
 
 		// Gone from search, can't be deleted twice, and the email can sign up again.
 		expect(await searchUsers(db, 'Deleted')).toHaveLength(0);

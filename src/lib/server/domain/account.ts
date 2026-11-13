@@ -205,6 +205,12 @@ export async function deleteAccount(db: Database, storage: Storage, userId: stri
 		db.delete(notifications).where(eq(notifications.userId, userId)),
 		db.update(notifications).set({ actorUserId: null }).where(eq(notifications.actorUserId, userId)),
 		db.delete(importJobs).where(eq(importJobs.userId, userId)),
+		// Unpaid pay-at-manifest top-up requests can no longer be collected (online checkouts stay
+		// pending: if the provider confirms one later, the money is recorded and the DZ refunds it).
+		db
+			.update(payments)
+			.set({ status: 'cancelled' })
+			.where(and(eq(payments.userId, userId), eq(payments.purpose, 'wallet_topup'), eq(payments.status, 'pending'), eq(payments.provider, 'manual'))),
 		// Feedback issues stay on GitHub (no name/email there); the link back to this account goes.
 		db.delete(feedbackSubmissions).where(eq(feedbackSubmissions.userId, userId)),
 		db.delete(logbookJumps).where(eq(logbookJumps.userId, userId)),

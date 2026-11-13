@@ -93,7 +93,7 @@
 								{#if s.guardianName}<span class="text-sm font-normal text-muted">· guardian {s.guardianName}</span>{/if}
 							</p>
 							<p class="truncate text-xs text-muted">
-								{s.audience === 'tandem' ? 'Tandem' : 'Sport'} · {fmt(s.signedAt)}{s.email ? ` · ${s.email}` : ''}
+								{s.audience === 'tandem' ? 'Tandem' : 'Sport'} · {fmt(s.signedAt)}{s.email ? ` · ${s.email}` : ''}{s.accountDeleted ? ' · account deleted' : ''}
 							</p>
 						</div>
 						{#if s.tandemPassengerId}

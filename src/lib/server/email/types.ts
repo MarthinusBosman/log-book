@@ -12,6 +12,14 @@ export type EmailMessage = {
 	idempotencyKey?: string;
 };
 
+/**
+ * Placeholder addresses we create ourselves (deleted-account tombstones, imported people without an
+ * email) use the reserved `.invalid` TLD (RFC 2606): never deliverable, never shown, never sent to.
+ */
+export function isPlaceholderEmail(email: string | null | undefined): boolean {
+	return !!email && /\.invalid$/i.test(email.trim());
+}
+
 export interface Mailer {
 	/** Resolves once the provider accepted the message; throws `EmailError` otherwise. */
 	send(message: EmailMessage): Promise<void>;

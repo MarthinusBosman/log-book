@@ -4,9 +4,9 @@
  * Callers must treat `send()` failures as non-fatal where the action itself succeeded.
  */
 import { mailerFromEnv } from './resend.ts';
-import type { EmailMessage, Mailer } from './types.ts';
+import { isPlaceholderEmail, type EmailMessage, type Mailer } from './types.ts';
 
-export { ConsoleMailer, EmailError, type EmailMessage, type Mailer } from './types.ts';
+export { ConsoleMailer, EmailError, isPlaceholderEmail, type EmailMessage, type Mailer } from './types.ts';
 
 let mailer: Mailer | null = null;
 let fromEnv: Promise<Mailer> | null = null;
@@ -24,12 +24,23 @@ const envMailer: Mailer = {
 	}
 };
 
+/** Skips placeholder (`.invalid`) recipients: they bounce and hurt the sending domain's reputation. */
+const guarded: Mailer = {
+	async send(message: EmailMessage) {
+		if (isPlaceholderEmail(message.to)) {
+			console.info('[email] skipped: placeholder recipient');
+			return;
+		}
+		return (mailer ?? envMailer).send(message);
+	}
+};
+
 export function getMailer(): Mailer {
-	return mailer ?? envMailer;
+	return guarded;
 }
 
 /** For tests / alternate providers. */
-export function setMailer(m: Mailer): void {
+export function setMailer(m: Mailer | null): void {
 	mailer = m;
 }
 

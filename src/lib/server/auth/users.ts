@@ -1,6 +1,7 @@
 import { and, eq, gt, isNull } from 'drizzle-orm';
 import type { Database } from '../db';
 import { passwordResetTokens, users, type User } from '../db/schema';
+import { isPlaceholderEmail } from '../email/types.ts';
 import { hashPassword, validatePasswordStrength, verifyPassword } from './password';
 import { invalidateAllUserSessions } from './session';
 import { generateToken, hashToken, newId } from './token';
@@ -15,6 +16,8 @@ export function normalizeEmail(email: string): string {
 
 export function validateEmail(email: string): string | null {
 	if (!email || email.length > 254 || !EMAIL_RE.test(email)) return 'Enter a valid email address.';
+	// Our own placeholders (deleted accounts, imported people) end in `.invalid`: never a real address.
+	if (isPlaceholderEmail(email)) return 'Enter a valid email address.';
 	return null;
 }
 
@@ -27,8 +30,13 @@ export class AuthError extends Error {
 	}
 }
 
+/** Live accounts only: a deleted account's tombstone can't sign in or reset its password. */
 export async function findUserByEmail(db: Database, email: string): Promise<User | undefined> {
-	const rows = await db.select().from(users).where(eq(users.email, normalizeEmail(email))).limit(1);
+	const rows = await db
+		.select()
+		.from(users)
+		.where(and(eq(users.email, normalizeEmail(email)), isNull(users.deletedAt)))
+		.limit(1);
 	return rows[0];
 }
 

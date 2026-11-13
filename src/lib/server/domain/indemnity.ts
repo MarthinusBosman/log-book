@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, like, or } from 'drizzle-orm';
+import { and, asc, desc, eq, like, or, sql } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import {
 	dropzones,
@@ -247,7 +247,9 @@ export async function listSignatures(
 			signerName: indemnitySignatures.signerName,
 			guardianName: indemnitySignatures.guardianName,
 			userId: indemnitySignatures.userId,
-			email: users.email,
+			// Placeholder addresses (deleted account, imported person) are not shown.
+			email: sql<string | null>`case when ${users.email} like '%.invalid' then null else ${users.email} end`,
+			accountDeleted: sql<boolean>`${users.deletedAt} is not null`.mapWith(Boolean),
 			tandemPassengerId: indemnitySignatures.tandemPassengerId,
 			pdfFileId: indemnitySignatures.pdfFileId,
 			signedAt: indemnitySignatures.signedAt
