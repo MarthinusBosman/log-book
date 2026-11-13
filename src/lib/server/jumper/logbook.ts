@@ -127,7 +127,9 @@ export function jumpRow(j: LogbookJump, dzNames: Map<string, string>) {
 		source: j.source,
 		signerName: j.signerName,
 		signerLicence: j.signerLicence,
-		signedAt: j.signedAt?.getTime() ?? null
+		signedAt: j.signedAt?.getTime() ?? null,
+		/** Drawn signature image (served by /app/logbook/signature/<id> to the jumper and the signer). */
+		signatureUrl: j.signedAt && j.signatureFileId ? `/app/logbook/signature/${j.signatureFileId}` : null
 	};
 }
 

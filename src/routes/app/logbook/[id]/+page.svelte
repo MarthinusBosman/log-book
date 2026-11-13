@@ -94,6 +94,9 @@
 					<div class="min-w-0 text-sm">
 						<p class="font-semibold">Signed by {j.signerName}</p>
 						<p class="text-muted">{j.signerLicence ? `Licence ${j.signerLicence} · ` : ''}{fmtDateTime(j.signedAt)}</p>
+						{#if j.signatureUrl}
+							<img src={j.signatureUrl} alt="Signature of {j.signerName}" class="mt-2 h-14 max-w-full rounded-lg bg-white object-contain p-1" data-testid="signature-img" />
+						{/if}
 					</div>
 				</div>
 				<p class="mt-3 text-xs text-muted">Changing the date, place, plane, altitude, freefall or type clears the signature.</p>

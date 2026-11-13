@@ -45,6 +45,11 @@ export const actions: Actions = {
 		const form = await request.formData();
 		if (!form.get('confirm')) return fail(400, { message: 'Tick the box to confirm you witnessed or supervised this jump.' });
 		try {
+			if (r.jump.signedAt) {
+				// already signed: the domain returns it unchanged for the same signer, refuses anyone else (no file saved)
+				await signJump(locals.db, { jumpId: r.jump.id, signerUserId: user.id });
+				return { success: 'Jump has been signed' };
+			}
 			let signatureFileId: string | null = null;
 			const sig = str(form, 'signature');
 			if (sig) {

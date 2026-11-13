@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from '../db/index.ts';
 import { isDomainError } from './errors.ts';
-import { addJump, assertJumpDateInRange, deleteJump, importJumps, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
+import { addJump, assertJumpDateInRange, deleteJump, getJump, importJumps, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
 import { setRatings } from './profile.ts';
 import { addSlot, completeLoad, createLoads } from './loads.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from './testing.ts';
@@ -68,7 +68,26 @@ describe('sign-off', () => {
 		expect(signed.signedAt).toBeInstanceOf(Date);
 		// a rating also qualifies
 		await setRatings(db, unlicensed.id, 'pasa', [{ rating: 'Coach' }]);
-		await signJump(db, { jumpId: j.id, signerUserId: unlicensed.id });
+		const j2 = await addJump(db, owner.id, { jumpDate: DAY });
+		expect((await signJump(db, { jumpId: j2.id, signerUserId: unlicensed.id })).signerUserId).toBe(unlicensed.id);
+	});
+
+	test('a signed jump keeps its first signer; the same signer re-submitting is a no-op', async () => {
+		const owner = await makeUser(db);
+		const first = await makeUser(db, { name: 'First Signer', licence: 'D-1' });
+		const second = await makeUser(db, { name: 'Second Signer', licence: 'D-2' });
+		const j = await addJump(db, owner.id, { jumpDate: DAY });
+		const signed = await signJump(db, { jumpId: j.id, signerUserId: first.id, now: Date.parse('2026-11-14T12:00:00Z') });
+		const err = await signJump(db, { jumpId: j.id, signerUserId: second.id }).catch((e) => e);
+		expect(isDomainError(err, 'conflict')).toBe(true);
+		expect(err.message).toContain('First Signer');
+		const again = await signJump(db, { jumpId: j.id, signerUserId: first.id, now: Date.parse('2026-11-15T12:00:00Z') });
+		expect(again.signedAt?.getTime()).toBe(signed.signedAt?.getTime());
+		const after = await getJump(db, j.id);
+		expect(after).toMatchObject({ signerUserId: first.id, signerName: 'First Signer' });
+		// once facts change the signature is cleared and anyone licensed may sign again
+		await updateJump(db, owner.id, j.id, { altitudeFt: 4000 });
+		expect((await signJump(db, { jumpId: j.id, signerUserId: second.id })).signerName).toBe('Second Signer');
 	});
 
 	test('editing jump facts clears the signature; description edits keep it', async () => {

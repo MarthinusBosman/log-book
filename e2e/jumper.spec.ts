@@ -111,3 +111,65 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
 	await page.screenshot({ path: `test-results/jumper-${project}.png`, fullPage: false });
 });
+
+async function addLicence(page: Page, licence: string) {
+	await page.goto('/app/profile?tab=credentials');
+	await page.getByLabel('Skydive association').selectOption('pasa');
+	await page.getByLabel('Association number').fill('54321');
+	await page.getByLabel('Membership expiry').fill('2030-01-01');
+	await page.getByLabel('Licence number').fill(licence);
+	await page.getByRole('button', { name: 'Save credentials' }).click();
+	await expect(page.getByText('Credentials updated successfully')).toBeVisible();
+}
+
+test('sign-off: a licensed jumper signs with a drawn signature; a second signer cannot replace it', async ({ page, browser }) => {
+	await signup(page, 'Sam Student');
+	await page.goto('/app/logbook/new');
+	await page.getByLabel('Location').fill('Skydive Test Field');
+	await page.getByLabel('Aircraft').fill('Cessna 182');
+	await page.getByTestId('save-jump').click();
+	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]+$/);
+	const jumpUrl = page.url();
+	await page.getByTestId('create-sign-link').click();
+	const link = await page.getByLabel('Sign-off link').inputValue();
+
+	// The instructor signs, drawing on the pad
+	const ctxA = await browser.newContext({ baseURL: new URL(link).origin });
+	const a = await ctxA.newPage();
+	await signup(a, 'Ina Instructor');
+	await addLicence(a, 'D-777');
+	await a.goto(link);
+	await a.waitForLoadState('networkidle');
+	const pad = (await a.locator('canvas').boundingBox())!;
+	await a.mouse.move(pad.x + 20, pad.y + pad.height / 2);
+	await a.mouse.down();
+	for (let i = 1; i <= 12; i++) await a.mouse.move(pad.x + 20 + i * 15, pad.y + pad.height / 2 + (i % 2 ? -15 : 15));
+	await a.mouse.up();
+	await a.getByLabel(/I witnessed or supervised/).check();
+	await a.getByTestId('sign-now').click();
+	await expect(a.getByTestId('sign-done')).toContainText('Jump has been signed');
+
+	// Someone else with the same link can't overwrite it (page and a forced POST)
+	const ctxB = await browser.newContext({ baseURL: new URL(link).origin });
+	const b = await ctxB.newPage();
+	await signup(b, 'Other Jumper');
+	await addLicence(b, 'C-888');
+	await b.goto(link);
+	await expect(b.getByTestId('sign-done')).toContainText('Already signed by Ina Instructor');
+	const forced = await b.request.post(link, { form: { confirm: '1' }, headers: { accept: 'application/json', origin: new URL(link).origin } });
+	expect(await forced.text()).toContain('already been signed by Ina Instructor');
+
+	// The jumper sees the signer and the drawn signature
+	await page.goto(jumpUrl);
+	await expect(page.getByTestId('signed')).toContainText('Signed by Ina Instructor');
+	await expect(page.getByTestId('signed')).toContainText('Licence D-777');
+	const img = page.getByTestId('signature-img');
+	await expect(img).toHaveAttribute('alt', 'Signature of Ina Instructor');
+	await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+	// …which only the jumper and the signer may load
+	const src = (await img.getAttribute('src'))!;
+	expect((await a.request.get(src)).status()).toBe(200);
+	expect((await b.request.get(src)).status()).toBe(404);
+	await ctxA.close();
+	await ctxB.close();
+});

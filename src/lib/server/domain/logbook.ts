@@ -137,6 +137,8 @@ export async function deleteJump(db: Database, userId: string, jumpId: string): 
 /**
  * Sign off another jumper's jump. The signer must not be the owner and must hold a licence
  * (users.licence) or at least one rating. Stores a snapshot of the signer's name + licence.
+ * A signed jump stays signed: another signer gets `conflict`, the same signer gets the jump back
+ * unchanged (no second notification). Editing jump facts clears the signature (`updateJump`).
  */
 export async function signJump(
 	db: Database,
@@ -144,6 +146,12 @@ export async function signJump(
 ): Promise<LogbookJump> {
 	const jump = assertFound(await getJump(db, input.jumpId), 'Jump');
 	if (jump.userId === input.signerUserId) throw new DomainError('cannot_sign_own_jump', 'You cannot sign your own jump');
+	if (jump.signedAt) {
+		// A sign-off link stays valid for days: never let a second person replace the first signature.
+		// The same signer submitting again (double tap, back + resubmit) is a no-op.
+		if (jump.signerUserId === input.signerUserId) return jump;
+		throw new DomainError('conflict', `This jump has already been signed by ${jump.signerName ?? 'someone else'}`);
+	}
 	const signer = assertFound(
 		(await db.select().from(users).where(eq(users.id, input.signerUserId)).limit(1))[0],
 		'Signer'
