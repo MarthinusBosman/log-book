@@ -207,6 +207,8 @@ describe('jumper wallet history', () => {
 		expect(rows[0].title).toBe('Reserved for a jump');
 		expect(rows[1].title).toBe('Jump charged');
 		expect(rows[1].loadDay).toBe(DAY);
+		expect(rows[2].method).toBe('Cash');
+		expect(rows[1].method).toBeNull();
 		// header figures still add up: available + reserved = latest balance
 		expect(acc.availableMinor + acc.pendingMinor).toBe(rows[0].balanceAfterMinor);
 	});
@@ -223,5 +225,21 @@ describe('jumper wallet history', () => {
 			['a', 'out', 500, 'Packing fee'],
 			['b', 'in', 700, null]
 		]);
+	});
+
+	test('top-ups say how they were paid in words; manual is left out', async () => {
+		const { walletHistory } = await import('../../domain/wallet-history.ts');
+		const { paymentMethodLabel } = await import('../../domain/constants.ts');
+		const base = { availableAfterMinor: 0, pendingAfterMinor: 0, relatedEntryId: null, createdAt: NOW, type: 'topup', amountMinor: 1000, reason: 'Top-up' };
+		const rows = walletHistory([
+			{ ...base, id: 'a', provider: 'paystack' },
+			{ ...base, id: 'b', provider: 'eft' },
+			{ ...base, id: 'c', provider: 'manual' },
+			{ ...base, id: 'd', provider: null }
+		]);
+		expect(rows.map((r) => r.method)).toEqual(['Paystack', 'EFT', null, null]);
+		expect(paymentMethodLabel('payfast')).toBe('PayFast');
+		expect(paymentMethodLabel('something-new')).toBe('something-new');
+		expect(paymentMethodLabel(null)).toBe('');
 	});
 });

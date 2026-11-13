@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { untrack } from 'svelte';
 	import { Button, Dialog, Input, Select } from '#lib/ui/index.ts';
-	import { SLOT_STAFF_ROLE_LABELS, formatMoney, type JumpType, type SlotExtra } from '#lib/domain/constants.ts';
+	import { SLOT_STAFF_ROLE_LABELS, formatMoney, paymentMethodLabel, type JumpType, type SlotExtra } from '#lib/domain/constants.ts';
 	import { act } from './forms.ts';
 	import { page } from '$app/state';
 	import { formAction, removeSlotConfirm } from './manifest.ts';
@@ -55,7 +55,7 @@
 						<span>Total</span><span class="tabular-nums">{formatMoney(s.totalMinor, currency)}</span>
 					</li>
 					<li class="text-xs text-subtle">
-						{s.paid ? `Paid${s.paidVia ? ` via ${s.paidVia}` : ''}` : s.held ? 'Reserved in wallet — charged when the load completes' : 'Unpaid'}
+						{s.paid ? `Paid${s.paidVia ? ` via ${paymentMethodLabel(s.paidVia)}` : ''}` : s.held ? 'Reserved in wallet — charged when the load completes' : 'Unpaid'}
 					</li>
 				</ul>
 				{#if canPay && !s.paid && s.totalMinor > 0}

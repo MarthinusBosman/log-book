@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Button, Icon } from '#lib/ui/index.ts';
-	import { formatMoney } from '#lib/domain/constants.ts';
+	import { formatMoney, paymentMethodLabel } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	let form: HTMLFormElement | undefined = $state();
-	const label = $derived(data.provider === 'payfast' ? 'PayFast' : data.provider);
+	const label = $derived(paymentMethodLabel(data.provider));
 
 	// Auto-continue once hydrated; the button covers no-JS and blocked auto-submits.
 	onMount(() => {

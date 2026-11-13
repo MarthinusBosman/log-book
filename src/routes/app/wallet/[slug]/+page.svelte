@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { Badge, Button, Card, EmptyState, Icon, Tabs, cn, toast } from '#lib/ui/index.ts';
-	import { formatMoney } from '#lib/domain/constants.ts';
+	import { formatMoney, paymentMethodLabel } from '#lib/domain/constants.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -182,7 +182,7 @@
 						<ul class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
 							{#each data.paid as s (s.id)}
 								<li class="flex items-center justify-between gap-3 px-4 py-3 text-sm">
-									<span><span class="block font-medium">Load {s.loadNumber} · {s.title}</span><span class="text-muted">{fmtDate(s.day)}{s.paidVia ? ` · ${s.paidVia}` : ''}</span></span>
+									<span><span class="block font-medium">Load {s.loadNumber} · {s.title}</span><span class="text-muted">{fmtDate(s.day)}{s.paidVia ? ` · ${paymentMethodLabel(s.paidVia)}` : ''}</span></span>
 									<span class="font-medium tabular-nums">{formatMoney(s.totalMinor, s.currency)}</span>
 								</li>
 							{/each}
@@ -201,7 +201,7 @@
 								</span>
 								<span class="min-w-0 flex-1">
 									<span class="block truncate font-medium">{e.title}{e.detail ? ` · ${e.detail}` : ''}</span>
-									<span class="block truncate text-xs text-muted">{#if held && e.loadNumber != null}Load {e.loadNumber}{e.loadDay ? ` on ${fmtDate(e.loadDay)}` : ''}{:else}{e.loadNumber != null ? `Load ${e.loadNumber} · ` : ''}{fmtDateTime(e.createdAt)}{/if}</span>
+									<span class="block truncate text-xs text-muted">{#if held && e.loadNumber != null}Load {e.loadNumber}{e.loadDay ? ` on ${fmtDate(e.loadDay)}` : ''}{:else}{e.method ? `${e.method} · ` : ''}{e.loadNumber != null ? `Load ${e.loadNumber} · ` : ''}{fmtDateTime(e.createdAt)}{/if}</span>
 								</span>
 								<span class="text-right tabular-nums">
 									{#if held}

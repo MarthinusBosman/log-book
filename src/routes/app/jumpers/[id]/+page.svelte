@@ -11,6 +11,7 @@
 		ROLE_LABELS,
 		SLOT_STAFF_ROLE_LABELS,
 		formatMoney,
+		paymentMethodLabel,
 		type Association,
 		type JumpType,
 		type SlotStaffRole
@@ -186,7 +187,7 @@
 									<td class="hidden py-2.5 pr-3 pl-5 text-xs whitespace-nowrap text-muted tabular-nums sm:table-cell">{fmtTime(e.createdAt)}</td>
 									<td class="py-2.5 pr-3 pl-5 sm:pl-3">
 										<span class="font-medium">{LEDGER_TYPE_LABELS[e.type]}</span>
-										{#if e.provider && e.type === 'topup'}<span class="text-xs text-muted uppercase"> · {e.provider}</span>{/if}
+										{#if e.provider && e.type === 'topup'}<span class="text-xs text-muted"> · {paymentMethodLabel(e.provider)}</span>{/if}
 										{#if e.reason}<span class="block text-xs text-muted">{e.reason}</span>{/if}
 										<span class="block text-[11px] text-subtle tabular-nums sm:hidden">{fmtTime(e.createdAt)}{e.createdByName ? ` · ${e.createdByName}` : ''}</span>
 									</td>
@@ -228,7 +229,7 @@
 								</td>
 								<td class="py-2.5 pr-5 pl-3 text-right tabular-nums">
 									{s.staffRole ? '—' : money(s.totalMinor)}
-									{#if !s.staffRole}<span class="block text-xs {s.paid ? 'text-success' : 'text-warning'}">{s.paid ? `Paid${s.paidVia ? ` · ${s.paidVia}` : ''}` : 'Unpaid'}</span>{/if}
+									{#if !s.staffRole}<span class="block text-xs {s.paid ? 'text-success' : 'text-warning'}">{s.paid ? `Paid${s.paidVia ? ` · ${paymentMethodLabel(s.paidVia)}` : ''}` : 'Unpaid'}</span>{/if}
 								</td>
 							</tr>
 						{:else}

@@ -3,7 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { Avatar, Badge, Button, Input, Select } from '#lib/ui/index.ts';
 	import { cn } from '#lib/ui/cn.ts';
-	import { JUMP_TYPE_LABELS, formatMoney } from '#lib/domain/constants.ts';
+	import { JUMP_TYPE_LABELS, formatMoney, paymentMethodLabel } from '#lib/domain/constants.ts';
 	import LoadCard from '#lib/components/manifest/LoadCard.svelte';
 	import AddSlotPanel from '#lib/components/manifest/AddSlotPanel.svelte';
 	import SlotEditor from '#lib/components/manifest/SlotEditor.svelte';
@@ -119,7 +119,7 @@
 								{:else}
 									<span class="font-medium tabular-nums">{formatMoney(s.totalMinor, data.dz.currency)}</span>
 									<span class={cn('block text-[11px]', s.paid ? 'text-success' : s.held ? 'text-muted' : 'text-warning')}>
-										{s.paid ? `Paid${s.paidVia ? ` · ${s.paidVia}` : ''}` : s.held ? 'In wallet' : 'Unpaid'}
+										{s.paid ? `Paid${s.paidVia ? ` · ${paymentMethodLabel(s.paidVia)}` : ''}` : s.held ? 'In wallet' : 'Unpaid'}
 									</span>
 								{/if}
 							</div>

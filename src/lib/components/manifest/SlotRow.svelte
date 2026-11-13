@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { JUMP_TYPE_LABELS, formatMoney } from '#lib/domain/constants.ts';
+	import { JUMP_TYPE_LABELS, formatMoney, paymentMethodLabel } from '#lib/domain/constants.ts';
 	import { cn } from '#lib/ui/cn.ts';
 	import type { SlotVM } from './types.ts';
 	import SlotTags from './SlotTags.svelte';
@@ -49,7 +49,7 @@
 			{#if slot.staffRole && slot.totalMinor === 0}
 				<span class="text-subtle">Staff</span>
 			{:else if slot.paid}
-				<span class="inline-flex items-center gap-1 font-medium text-success" title="Paid{slot.paidVia ? ` (${slot.paidVia})` : ''}"><MIcon name="check" class="size-3.5" />Paid</span>
+				<span class="inline-flex items-center gap-1 font-medium text-success" title="Paid{slot.paidVia ? ` (${paymentMethodLabel(slot.paidVia)})` : ''}"><MIcon name="check" class="size-3.5" />Paid</span>
 			{:else}
 				<span class={cn('font-medium tabular-nums', slot.held ? 'text-muted' : 'text-warning')} title={slot.held ? 'Reserved in wallet' : 'Unpaid'}>
 					{formatMoney(slot.totalMinor, currency)}

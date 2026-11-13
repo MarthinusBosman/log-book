@@ -86,6 +86,8 @@ test('owner runs the back office', async ({ page }) => {
 	await page.getByRole('button', { name: 'Record' }).click();
 	await expect(page.getByText('Funds added to the wallet')).toBeVisible();
 	await expect(page.getByRole('cell', { name: /Cash at manifest/ })).toBeVisible();
+	// The method reads as a word, not a raw id.
+	await expect(page.getByRole('cell', { name: /Top-up · Cash/ })).toBeVisible();
 
 	// Staff + reports render; CSV export works.
 	await go(page, '/app/staff');
@@ -102,6 +104,7 @@ test('owner runs the back office', async ({ page }) => {
 	// On a phone the bar lists stack the bar under its label so names aren't cut short.
 	await page.setViewportSize({ width: 390, height: 844 });
 	const row = page.getByRole('list', { name: 'Top-ups by method' }).getByRole('listitem').first();
+	await expect(page.getByRole('list', { name: 'Top-ups by method' }).getByText('Cash', { exact: true }).first()).toBeVisible();
 	const label = (await row.locator('span[title]').boundingBox())!;
 	const bar = (await row.locator('svg').boundingBox())!;
 	expect(bar.y).toBeGreaterThanOrEqual(label.y + label.height - 1);

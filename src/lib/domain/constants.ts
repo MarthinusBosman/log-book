@@ -331,6 +331,23 @@ export const LEDGER_TYPE_LABELS: Record<LedgerType, string> = {
 
 export const PAYMENT_PROVIDERS = ['stripe', 'payfast', 'paystack', 'yoco', 'manual', 'cash', 'card', 'eft', 'wallet'] as const;
 export type PaymentProvider = (typeof PAYMENT_PROVIDERS)[number];
+/** How money was paid, in words (ledger entries, slots `paid_via`, payments). */
+export const PAYMENT_METHOD_LABELS: Record<PaymentProvider, string> = {
+	stripe: 'Stripe',
+	payfast: 'PayFast',
+	paystack: 'Paystack',
+	yoco: 'Yoco',
+	manual: 'Other',
+	cash: 'Cash',
+	card: 'Card',
+	eft: 'EFT',
+	wallet: 'Wallet'
+};
+/** Label for a stored provider/method id; unknown ids pass through, empty → ''. */
+export function paymentMethodLabel(id: string | null | undefined): string {
+	if (!id) return '';
+	return PAYMENT_METHOD_LABELS[id as PaymentProvider] ?? id;
+}
 export const PAYMENT_PURPOSES = ['wallet_topup', 'slots', 'tandem', 'tandem_deposit', 'subscription'] as const;
 export type PaymentPurpose = (typeof PAYMENT_PURPOSES)[number];
 export const PAYMENT_RECORD_STATUSES = ['pending', 'succeeded', 'failed', 'refunded', 'cancelled'] as const;

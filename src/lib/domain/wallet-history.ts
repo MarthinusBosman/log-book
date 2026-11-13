@@ -14,7 +14,7 @@
  *
  * Staff views keep the raw ledger.
  */
-import { LEDGER_TYPE_LABELS, type LedgerType } from './constants.ts';
+import { LEDGER_TYPE_LABELS, paymentMethodLabel, type LedgerType } from './constants.ts';
 
 export type LedgerRow = {
 	id: string;
@@ -24,6 +24,7 @@ export type LedgerRow = {
 	pendingAfterMinor: number;
 	relatedEntryId: string | null;
 	reason: string | null;
+	provider?: string | null;
 	loadNumber?: number | null;
 	loadDay?: string | null;
 	createdAt: number;
@@ -35,6 +36,8 @@ export type HistoryRow = {
 	direction: 'in' | 'out' | 'reserved';
 	title: string;
 	detail: string | null;
+	/** How a top-up was paid ("Paystack", "Cash", …); null for other rows. */
+	method: string | null;
 	amountMinor: number;
 	balanceAfterMinor: number;
 	loadNumber: number | null;
@@ -59,6 +62,8 @@ export function walletHistory(rows: LedgerRow[]): HistoryRow[] {
 			direction,
 			title: r.type === 'hold' ? 'Reserved for a jump' : label,
 			detail: r.reason && r.reason !== label ? r.reason : null,
+			// 'manual' says nothing to a jumper (imports, "other" at the desk): omit it.
+			method: r.type === 'topup' && r.provider && r.provider !== 'manual' ? paymentMethodLabel(r.provider) : null,
 			amountMinor: Math.abs(r.amountMinor),
 			balanceAfterMinor: r.availableAfterMinor + r.pendingAfterMinor,
 			loadNumber: r.loadNumber ?? null,

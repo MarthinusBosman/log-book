@@ -73,6 +73,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				pendingAfterMinor: e.pendingAfterMinor,
 				relatedEntryId: e.relatedEntryId,
 				reason: e.reason,
+				provider: e.provider,
 				loadNumber: e.loadNumber,
 				loadDay: e.loadDay,
 				createdAt: e.createdAt.getTime()

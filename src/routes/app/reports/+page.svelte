@@ -7,7 +7,7 @@
 	import ColumnChart from '#lib/components/staffadmin/charts/ColumnChart.svelte';
 	import BarList from '#lib/components/staffadmin/charts/BarList.svelte';
 	import { timeSeries } from '#lib/components/staffadmin/series.ts';
-	import { SLOT_EXTRA_LABELS, formatMoney, type SlotExtra } from '#lib/domain/constants.ts';
+	import { SLOT_EXTRA_LABELS, formatMoney, paymentMethodLabel, type SlotExtra } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -172,7 +172,7 @@
 						label="Top-ups by method"
 						color="var(--color-success)"
 						format={money}
-						rows={data.wallet.topupsByProvider.map((p) => ({ label: p.provider.toUpperCase(), value: p.amountMinor }))}
+						rows={data.wallet.topupsByProvider.map((p) => ({ label: paymentMethodLabel(p.provider), value: p.amountMinor }))}
 						empty="No top-ups."
 					/>
 				</div>
