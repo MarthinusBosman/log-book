@@ -8,7 +8,8 @@
 	import StatTile from './StatTile.svelte';
 	import { DUE_TONES, countdown, dueLabel, fmtDate, fmtFreefall, fmtNumber, fmtTime } from './format.ts';
 
-	let { data }: { data: JumperDashboardData } = $props();
+	/** `member`: the user already belongs to a dropzone (no "Find a dropzone" nudge then). */
+	let { data, member = false }: { data: JumperDashboardData; member?: boolean } = $props();
 
 	let now = $state(Date.now());
 	onMount(() => {
@@ -107,7 +108,7 @@
 							<Button href="/app/check-in" size="lg"><Icon name="plane" class="size-5" /> Join a load</Button>
 						{:else}
 							<Button href="/app/check-in" size="lg"><Icon name="checkin" class="size-5" /> Check in now</Button>
-							<Button href="/app/dropzones" size="lg" variant="secondary">Find a dropzone</Button>
+							{#if !member}<Button href="/app/dropzones" size="lg" variant="secondary">Find a dropzone</Button>{/if}
 						{/if}
 					</div>
 				</div>

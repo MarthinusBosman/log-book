@@ -80,5 +80,5 @@
 
 <div class="mt-6 lg:mt-8">
 	{#if data.isStaff}<h2 class="mb-4 text-lg font-semibold tracking-tight">My jumping</h2>{/if}
-	<JumperDashboard data={data.jumper} />
+	<JumperDashboard data={data.jumper} member={!!data.current} />
 </div>

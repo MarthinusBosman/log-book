@@ -99,6 +99,9 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await page.getByRole('button', { name: 'Save all' }).first().click();
 	await expect(page.locator('[role=status], [data-sonner-toast], .toast, [aria-live]').filter({ hasText: 'Price list updated' }).first()).toBeVisible();
 	await page.goto(`/dz/${slug}/book`);
+	// Calendar days have a spoken date as their name, not the ISO string.
+	const spoken = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(`${tomorrow}T00:00:00Z`));
+	await expect(page.locator(`[data-date="${tomorrow}"]`)).toHaveAttribute('aria-label', new RegExp(`^${spoken}, \\d+ places? left$`));
 	await page.locator(`[data-date="${tomorrow}"]`).click();
 	await page.locator('[data-time="10:00"]').click();
 	await page.getByRole('button', { name: 'More jumpers' }).click();
@@ -114,6 +117,10 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
 	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
 	await clickVisible(page, ['next', 'next-mobile']);
+	// Extras toggles (if the DZ prices any) say which jumper they are for.
+	for (const label of await page.locator('[data-extra$="-1"]').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')))) {
+		expect(label).toMatch(/^Add .+ for Max Mate$/);
+	}
 	await page.getByTestId('terms').check();
 	await clickVisible(page, ['confirm', 'confirm-mobile']);
 	await expect(page).toHaveURL(/\?(.+&)?g=[A-Z0-9]{4}-[A-Z0-9]{4}/);

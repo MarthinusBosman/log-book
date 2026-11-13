@@ -5,7 +5,7 @@
 	import { formatMoney, type SlotExtra } from '#lib/domain/constants.ts';
 	import BookingSteps from '#lib/components/tandems/BookingSteps.svelte';
 	import MonthCalendar from '#lib/components/tandems/MonthCalendar.svelte';
-	import { EXTRA_COPY, ageOn, fmtDay, limitWarnings } from '#lib/components/tandems/model.ts';
+	import { EXTRA_COPY, ageOn, extraToggleLabel, fmtDay, limitWarnings } from '#lib/components/tandems/model.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -233,7 +233,7 @@
 							<Input label="Full name" name="j{i}_name" bind:value={j.name} required autocomplete={i === 0 ? 'name' : 'off'} class="sm:col-span-2" />
 							<Input label="Email" name="j{i}_email" type="email" bind:value={j.email} required inputmode="email" autocomplete={i === 0 ? 'email' : 'off'} />
 							<Input label="Mobile number" name="j{i}_phone" type="tel" bind:value={j.phone} required inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
-							<Input label="Date of birth" name="j{i}_dob" type="date" bind:value={j.dob} required min="1900-01-01" max={data.today} data-dob />
+							<Input label="Date of birth" name="j{i}_dob" type="date" bind:value={j.dob} required min="1900-01-01" max={data.today} autocomplete={i === 0 ? 'bday' : 'off'} data-dob />
 							<div class="grid grid-cols-2 gap-3">
 								<Input label="Weight (kg)" name="j{i}_weightKg" type="number" inputmode="decimal" min="20" max="250" step="0.1" bind:value={j.weightKg} required data-weight />
 								<Input label="Height (cm)" name="j{i}_heightCm" type="number" inputmode="numeric" min="80" max="250" bind:value={j.heightCm} />
@@ -291,6 +291,7 @@
 										<button
 											type="button"
 											aria-pressed={sel}
+											aria-label={extraToggleLabel(EXTRA_COPY[e.code].title, count > 1 ? j.name.trim() || `Jumper ${i + 1}` : null)}
 											onclick={() => toggleExtra(i, e.code)}
 											data-extra="{e.code}-{i}"
 											class={cn(

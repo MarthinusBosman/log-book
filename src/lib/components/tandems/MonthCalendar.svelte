@@ -1,6 +1,7 @@
 <script lang="ts">
 	/** Month calendar for picking a booking date. `available` maps YYYY-MM-DD → places left. */
 	import { cn } from '#lib/ui/cn.ts';
+	import { calendarDayLabel as dayLabel } from './model.ts';
 
 	type Props = { available: Record<string, number>; min: string; max: string; value?: string | null; onselect?: (date: string) => void };
 	let { available, min, max, value = $bindable(null), onselect }: Props = $props();
@@ -59,7 +60,7 @@
 					type="button"
 					disabled={!left}
 					aria-pressed={sel}
-					aria-label="{d}{left ? `, ${left} places` : ', unavailable'}"
+					aria-label={dayLabel(d, left)}
 					data-date={d}
 					onclick={() => {
 						value = d;

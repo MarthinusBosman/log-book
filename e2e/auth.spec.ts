@@ -55,6 +55,8 @@ test('signup → dashboard → logout → login → dashboard', async ({ page })
 	await expect(page.getByTestId('setup-checklist')).toContainText('0 of 7 done');
 	// The icon-only Display button (phones) keeps its accessible name.
 	await expect(page.getByTestId('next-load').getByRole('link', { name: 'Display' })).toBeVisible();
+	// Already a member: the jumper card doesn't nudge them to find a dropzone.
+	await expect(page.getByTestId('jumper-dashboard').getByRole('link', { name: 'Find a dropzone' })).toHaveCount(0);
 	await expect(page.getByTestId('setup-checklist').getByRole('link', { name: /Add your aircraft/ })).toHaveAttribute('href', '/app/aircraft');
 	await page.screenshot({ path: `test-results/dashboard-${test.info().project.name}.png`, fullPage: true });
 

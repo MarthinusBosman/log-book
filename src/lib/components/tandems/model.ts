@@ -116,6 +116,17 @@ export function fmtDay(date: string, opts: Intl.DateTimeFormatOptions = { weekda
 	return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', ...opts }).format(new Date(`${date}T00:00:00Z`));
 }
 
+/** Spoken name for a booking-calendar day: "Saturday 14 November, 1 place left" (not the ISO date). */
+export function calendarDayLabel(date: string, placesLeft: number): string {
+	const day = fmtDay(date, { weekday: 'long', day: 'numeric', month: 'long' });
+	return placesLeft > 0 ? `${day}, ${placesLeft} ${placesLeft === 1 ? 'place' : 'places'} left` : `${day}, unavailable`;
+}
+
+/** Accessible name for an extras toggle: "Add Video for Thandi Nkosi" (single jumper: "Add Video"). */
+export function extraToggleLabel(extraTitle: string, jumperName: string | null): string {
+	return jumperName ? `Add ${extraTitle} for ${jumperName}` : `Add ${extraTitle}`;
+}
+
 export function addDaysIso(date: string, days: number): string {
 	return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }
