@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { JUMP_TYPE_LABELS, LOAD_STATUS_LABELS, EDITABLE_LOAD_STATUSES, formatMoney, type JumpType, type LoadStatus } from '#lib/domain/constants.ts';
+	import { JUMP_TYPE_LABELS, LOAD_STATUS_LABELS, SELF_SERVICE_LOAD_STATUSES, formatMoney, type JumpType, type LoadStatus } from '#lib/domain/constants.ts';
 	import { Badge, Button, cn, toast } from '#lib/ui/index.ts';
 	import type { LoadCard, PriceTable } from '#lib/server/jumper/manifest.ts';
 	import JIcon from './JIcon.svelte';
@@ -48,7 +48,8 @@
 	});
 	let leaving = $state(false);
 
-	const editable = $derived(EDITABLE_LOAD_STATUSES.includes(load.status as LoadStatus));
+	const editable = $derived(SELF_SERVICE_LOAD_STATUSES.includes(load.status as LoadStatus));
+	const boarding = $derived(load.status === 'boarding');
 	const call = $derived(load.status === 'called' && load.callDueAt ? countdown(load.callDueAt, now) : null);
 	const tone = $derived(
 		load.status === 'called' ? 'warning' : load.status === 'boarding' ? 'danger' : load.full ? 'neutral' : 'success'
@@ -151,6 +152,9 @@
 						</form>
 					</div>
 				{/if}
+				{#if boarding && !load.mine.staffRole}
+					<p class="text-sm text-muted" data-testid="boarding-note">Boarding: ask manifest to make changes</p>
+				{/if}
 			</div>
 			{#if panel === 'change'}
 				<div class="mt-4 border-t border-border pt-4">
@@ -174,7 +178,9 @@
 		</div>
 	{:else}
 		<div class="border-t border-border p-4 sm:p-5">
-			{#if !editable || !load.isOpen}
+			{#if boarding}
+				<Button disabled class="w-full" variant="secondary">Boarding · ask manifest</Button>
+			{:else if !editable || !load.isOpen}
 				<Button disabled class="w-full" variant="secondary">Closed</Button>
 			{:else if load.full}
 				<Button disabled class="w-full" variant="secondary">Load is full</Button>

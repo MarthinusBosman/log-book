@@ -9,7 +9,7 @@ import { listRatings, membershipStatus } from '../domain/profile.ts';
 import { listAccountsForUser } from '../domain/wallet.ts';
 import { needsSportIndemnity } from '../domain/indemnity.ts';
 import { addDays, daysBetween, localDate } from '../domain/time.ts';
-import { ASSOCIATION_LABELS, type DueStatus } from '../../domain/constants.ts';
+import { ASSOCIATION_LABELS, SELF_SERVICE_LOAD_STATUSES, type DueStatus } from '../../domain/constants.ts';
 
 export type JumperAlert = { id: string; tone: 'warning' | 'danger'; title: string; body: string; href: string };
 
@@ -42,7 +42,9 @@ export async function loadJumperDashboard(
 	const checkedInDzId = checkin?.dropzone.id ?? null;
 	const checkedInDz = checkedInDzId ? (checkedInDzId === dz?.id ? dz : await dropzoneById(checkedInDzId)) : undefined;
 	const openLoads = checkedInDz ? await openLoadsToday(db, checkedInDz, now) : [];
-	const joinable = openLoads.filter((l) => !l.stats.full && !l.slots.some((s) => s.userId === userId));
+	const joinable = openLoads.filter(
+		(l) => SELF_SERVICE_LOAD_STATUSES.includes(l.status) && !l.stats.full && !l.slots.some((s) => s.userId === userId)
+	);
 
 	// warnings
 	const alerts: JumperAlert[] = [];

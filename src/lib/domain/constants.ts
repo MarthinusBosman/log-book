@@ -268,6 +268,11 @@ export const LOAD_STATUS_LABELS: Record<LoadStatus, string> = {
 };
 /** Statuses during which slots can still be added/removed/moved. */
 export const EDITABLE_LOAD_STATUSES: readonly LoadStatus[] = ['planned', 'open', 'called', 'boarding'];
+/**
+ * Statuses during which jumpers may join, leave or change their own slot. Once a load is boarding
+ * ("Gear up & go") only manifest changes it, so the boarding list and weights stay what staff see.
+ */
+export const SELF_SERVICE_LOAD_STATUSES: readonly LoadStatus[] = ['planned', 'open', 'called'];
 export const CALL_MINUTES = 20;
 
 // ── Logbook ─────────────────────────────────────────────────────────────────

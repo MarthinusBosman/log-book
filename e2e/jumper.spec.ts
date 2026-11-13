@@ -112,6 +112,68 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	await page.screenshot({ path: `test-results/jumper-${project}.png`, fullPage: false });
 });
 
+test('self-manifest stops at boarding: the jumper can no longer join or leave', async ({ page }) => {
+	const project = test.info().project.name;
+	await signup(page, 'Bo Boarding');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Boarding E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// Two open loads
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-BRD');
+	await dialog.getByLabel('Slots (pax)').fill('6');
+	await dialog.getByLabel('Weight limit (kg)').fill('600');
+	await dialog.getByLabel('Number of loads').fill('2');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.locator('[data-testid=load-card][data-load-number="2"]')).toBeVisible();
+
+	// Check in and join load 1 from the phone view
+	await page.goto('/app/check-in');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	const load1 = page.locator('[data-testid=load-card][data-load="1"]');
+	const load2Id = new URLSearchParams(
+		(await page.locator('[data-testid=load-card][data-load="2"]').getByTestId('join-solo').getAttribute('href'))!.slice(1)
+	).get('join')!;
+	await load1.getByTestId('join-solo').click();
+	await load1.getByRole('button', { name: 'Join this load' }).click();
+	await expect(load1.getByText('You’re on this load')).toBeVisible();
+
+	// Manifest: 20 min call → boarding on both loads
+	await page.goto('/app/manifest');
+	for (const n of ['1', '2']) {
+		const card = page.locator(`[data-testid=load-card][data-load-number="${n}"]`);
+		for (const status of ['called', 'boarding']) {
+			await card.getByTestId('next-step').click();
+			await expect(card).toHaveAttribute('data-status', status);
+		}
+	}
+
+	await page.goto('/app/check-in');
+	await expect(load1.getByTestId('boarding-note')).toBeVisible();
+	await expect(load1.getByRole('button', { name: 'Leave' })).toHaveCount(0);
+	const load2 = page.locator('[data-testid=load-card][data-load="2"]');
+	await expect(load2.getByRole('button', { name: 'Boarding · ask manifest' })).toBeDisabled();
+	await expect(load2.getByTestId('join-solo')).toHaveCount(0);
+
+	// The server refuses it too (no-JS / stale page)
+	const origin = new URL(page.url()).origin;
+	const res = await page.request.post('/app/check-in?/join', {
+		form: { loadId: load2Id, jumpType: 'belly' },
+		headers: { origin, accept: 'application/json', 'x-sveltekit-action': 'true' }
+	});
+	expect(await res.text()).toContain('is boarding: ask manifest');
+	await page.reload();
+	await expect(load2.getByText('You’re on this load')).toHaveCount(0);
+});
+
 async function addLicence(page: Page, licence: string) {
 	await page.goto('/app/profile?tab=credentials');
 	await page.getByLabel('Skydive association').selectOption('pasa');

@@ -8,6 +8,7 @@ import {
 	addSlots,
 	addTandemGroup,
 	assertFits,
+	assertSelfService,
 	boardLoad,
 	cancelCall,
 	completeLoad,
@@ -16,11 +17,13 @@ import {
 	describeJump,
 	getLoad,
 	joinLoad,
+	leaveLoad,
 	listLoadsForDay,
 	loadStats,
 	moveSlot,
 	setLoadOpen,
-	startCall
+	startCall,
+	updateSlot
 } from './loads.ts';
 import { createAircraft } from './dropzone-admin.ts';
 import { checkIn } from './checkins.ts';
@@ -148,6 +151,32 @@ describe('manifest rules', () => {
 		const v = await makeUser(db);
 		await addSlot(db, load.id, { userId: v.id, jumpType: 'freefly' }, { by: owner.id });
 		expect((await notes(v.id)).map((n) => n.type)).toEqual(['added_to_load']);
+	});
+
+	test('jumpers cannot join, leave or change a boarding load; staff still can', async () => {
+		const { dz, owner } = await makeDropzone(db);
+		const [load] = await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 6, open: true });
+		const u = await makeUser(db);
+		const slot = await joinLoad(db, { loadId: load.id, userId: u.id, jumpType: 'belly' });
+		await startCall(db, load.id, { now: NOW });
+		await updateSlot(db, slot.id, { jumpType: 'freefly' }, { by: u.id, selfService: true }); // called: still fine
+		await boardLoad(db, load.id, { now: NOW });
+
+		const late = await makeUser(db);
+		const joinErr = await joinLoad(db, { loadId: load.id, userId: late.id, jumpType: 'belly' }).catch((e) => e);
+		expect(isDomainError(joinErr, 'load_locked')).toBe(true);
+		expect(joinErr.message).toBe('Load 1 is boarding: ask manifest to make changes');
+		expect(isDomainError(await leaveLoad(db, load.id, u.id).catch((e) => e), 'load_locked')).toBe(true);
+		expect(isDomainError(await updateSlot(db, slot.id, { jumpType: 'belly' }, { by: u.id, selfService: true }).catch((e) => e), 'load_locked')).toBe(true);
+		expect((await getLoad(db, load.id)).slots.map((s) => s.userId)).toEqual([u.id]);
+
+		// Manifest can still change the boarding list.
+		await addSlot(db, load.id, { userId: late.id, jumpType: 'belly' }, { by: owner.id });
+		await updateSlot(db, slot.id, { jumpType: 'belly' }, { by: owner.id });
+		expect((await getLoad(db, load.id)).slots).toHaveLength(2);
+
+		expect(() => assertSelfService({ status: 'called', loadNumber: 1 })).not.toThrow();
+		expect(() => assertSelfService({ status: 'departed', loadNumber: 1 })).toThrow('This load is closed for changes');
 	});
 
 	test('tandem group: passenger price minus deposit, TI pay incl. handcam, passenger manifested', async () => {

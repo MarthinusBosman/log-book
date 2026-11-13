@@ -236,7 +236,7 @@ export const actions: Actions = {
 			const slot = (await locals.db.select().from(slots).where(and(eq(slots.id, slotId), eq(slots.userId, user.id))).limit(1))[0];
 			if (!slot) throw new DomainError('not_found', 'Slot not found');
 			if (slot.staffRole) throw new DomainError('forbidden', 'Staff slots are managed by manifest');
-			await loads.updateSlot(locals.db, slotId, { jumpType: asJumpType(str(form, 'jumpType'), CHANGE_JUMP_TYPES), extras: asExtras(form) }, { by: user.id });
+			await loads.updateSlot(locals.db, slotId, { jumpType: asJumpType(str(form, 'jumpType'), CHANGE_JUMP_TYPES), extras: asExtras(form) }, { by: user.id, selfService: true });
 			return { action: 'change', loadId: slot.loadId, success: 'Jump type has been changed' };
 		} catch (e) {
 			return domainFail(e, { action: 'change' });

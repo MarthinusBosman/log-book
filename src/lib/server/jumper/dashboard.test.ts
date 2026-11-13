@@ -3,7 +3,7 @@ import type { Database } from '../db/index.ts';
 import type { Dropzone } from '../db/schema.ts';
 import { checkIn } from '../domain/checkins.ts';
 import { addSection, needsSportIndemnity, setIndemnityActive } from '../domain/indemnity.ts';
-import { createLoads, openLoadsToday } from '../domain/loads.ts';
+import { boardLoad, createLoads, openLoadsToday } from '../domain/loads.ts';
 import { DAY, NOW, freshDb, makeDropzone, makeUser } from '../domain/testing.ts';
 import { loadJumperDashboard } from './dashboard.ts';
 
@@ -48,5 +48,10 @@ describe('dropzone row reuse (fewer D1 round trips)', () => {
 		expect(viaGetter).toEqual(plain);
 		expect(plain.joinableLoads).toBe(1);
 		expect(plain.alerts.some((a) => a.id === 'waiver')).toBe(true);
+
+		// A boarding load is listed but can't be joined from the phone any more.
+		const [only] = await openLoadsToday(db, dz, NOW);
+		await boardLoad(db, only.id, { now: NOW });
+		expect((await loadJumperDashboard(db, u.id, dz.id, NOW)).joinableLoads).toBe(0);
 	});
 });

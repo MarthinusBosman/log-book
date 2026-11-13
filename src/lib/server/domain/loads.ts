@@ -17,6 +17,7 @@ import { newId } from '../auth/token.ts';
 import {
 	CALL_MINUTES,
 	EDITABLE_LOAD_STATUSES,
+	SELF_SERVICE_LOAD_STATUSES,
 	JUMP_TYPE_LABELS,
 	SLOT_STAFF_ROLE_LABELS,
 	type JumpType,
@@ -591,6 +592,7 @@ export async function addSlots(db: Database, loadId: string, inputs: SlotInput[]
 	const now = opts.now ?? Date.now();
 	const load = await getLoad(db, loadId);
 	if (!EDITABLE_LOAD_STATUSES.includes(load.status)) throw new DomainError('load_locked', 'This load is closed for changes');
+	if (opts.selfManifest) assertSelfService(load);
 	if (opts.selfManifest && !load.isOpen) throw new DomainError('load_locked', 'This load is not open for jumpers');
 	const onLoad = new Set(load.slots.map((s) => s.userId).filter(Boolean));
 	const adding = new Set<string>();
@@ -692,11 +694,17 @@ export type SlotPatch = Partial<
 >;
 
 /** Change jump type / extras / price override / flags; recomputes price and adjusts the wallet hold. */
-export async function updateSlot(db: Database, slotId: string, patch: SlotPatch, opts: { by?: string | null; now?: number } = {}): Promise<Slot> {
+export async function updateSlot(
+	db: Database,
+	slotId: string,
+	patch: SlotPatch,
+	opts: { by?: string | null; now?: number; selfService?: boolean } = {}
+): Promise<Slot> {
 	const now = opts.now ?? Date.now();
 	const slot = assertFound((await db.select().from(slots).where(eq(slots.id, slotId)).limit(1))[0], 'Slot');
 	const load = await getLoad(db, slot.loadId);
 	if (!EDITABLE_LOAD_STATUSES.includes(load.status)) throw new DomainError('load_locked', 'This load is closed for changes');
+	if (opts.selfService) assertSelfService(load);
 	if (slot.paid && (patch.jumpType || patch.extras || patch.baseOverrideMinor !== undefined)) {
 		throw new DomainError('conflict', 'Slot is already paid');
 	}
@@ -793,10 +801,23 @@ export async function removeSlot(
 	return ids.length;
 }
 
+/**
+ * Jumper-initiated changes (join, leave, change jump type) stop once the load is boarding:
+ * after "Gear up & go" only manifest edits it, so staff never board with a list they didn't see.
+ */
+export function assertSelfService(load: Pick<Load, 'status' | 'loadNumber'>): void {
+	if (SELF_SERVICE_LOAD_STATUSES.includes(load.status)) return;
+	if (load.status === 'boarding') {
+		throw new DomainError('load_locked', `Load ${load.loadNumber} is boarding: ask manifest to make changes`);
+	}
+	throw new DomainError('load_locked', 'This load is closed for changes');
+}
+
 /** Jumper leaves a load themselves. */
 export async function leaveLoad(db: Database, loadId: string, userId: string, now = Date.now()): Promise<void> {
 	const s = (await db.select().from(slots).where(and(eq(slots.loadId, loadId), eq(slots.userId, userId))).limit(1))[0];
 	if (!s) throw new DomainError('not_found', 'You are not on this load');
+	assertSelfService(await getLoad(db, loadId));
 	await removeSlot(db, s.id, { by: userId, now });
 }
 

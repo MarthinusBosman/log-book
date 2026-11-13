@@ -32,7 +32,9 @@ export function friendlyError(e: DomainError): string {
 		case 'load_locked':
 			return e.message === 'This load is not open for jumpers'
 				? 'This load isn’t open for self-manifest. Ask manifest to add you.'
-				: 'This load is closed for changes.';
+				: e.message.includes(' is boarding')
+					? `${e.message}.`
+					: 'This load is closed for changes.';
 		case 'already_on_load':
 			return 'You are already jumping on this load.';
 		case 'membership_expired':
