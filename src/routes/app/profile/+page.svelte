@@ -102,7 +102,7 @@
 			<form method="POST" action="?/info" class="space-y-4" use:enhance={submit('info')} data-testid="info-form">
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Input label="Full name" name="name" value={p.name} required autocomplete="name" />
-					<Input label="Email" value={p.email} readonly disabled hint="Contact support to change your email" />
+					<Input label="Email" value={p.email} readonly disabled hint="Change it under Security" />
 					<Input label="Phone number" name="phone" type="tel" value={p.phone ?? ''} autocomplete="tel" />
 					<Input label="Date of birth" name="dob" type="date" value={p.dob ?? ''} min="1900-01-01" max={data.today} />
 				</div>
@@ -212,8 +212,30 @@
 	</div>
 {:else}
 	<div class="max-w-xl">
+		<Card class="mb-6" title="Email address" description="You sign in with this address, and receipts and resets go to it.">
+			<p class="text-sm">Current: <span class="font-medium wrap-anywhere" data-testid="current-email">{p.email}</span></p>
+			{#if data.emailChange}
+				<div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2.5 text-sm" data-testid="email-change-pending">
+					<p class="min-w-0">Waiting for you to confirm <span class="font-medium wrap-anywhere">{data.emailChange.newEmail}</span>: open the link we emailed there (valid for 1 hour).</p>
+					<form method="POST" action="?/cancelEmail&tab=security" use:enhance={submit('cancelEmail')}>
+						<Button type="submit" size="sm" variant="outline" loading={busy === 'cancelEmail'}>Cancel change</Button>
+					</form>
+				</div>
+			{/if}
+			<form method="POST" action="?/email&tab=security" class="mt-4 space-y-4" use:enhance={submit('email', true)} data-testid="email-form">
+				<Input label="New email" name="newEmail" type="email" autocomplete="email" required value={f?.action === 'email' ? ((form as { newEmail?: string } | null)?.newEmail ?? '') : ''} />
+				{#if data.hasPassword}
+					<Input label="Current password" name="password" type="password" autocomplete="current-password" required />
+				{/if}
+				<FormAlert message={err('email')} />
+				<div class="flex items-center justify-between gap-3">
+					<p class="text-xs text-muted">Nothing changes until you open the link we send to the new address.</p>
+					<Button type="submit" loading={busy === 'email'} class="shrink-0">Send link</Button>
+				</div>
+			</form>
+		</Card>
 		<Card title="Change password" description="Other devices will be signed out.">
-			<form method="POST" action="?/password" class="space-y-4" use:enhance={submit('password', true)} data-testid="password-form">
+			<form method="POST" action="?/password&tab=security" class="space-y-4" use:enhance={submit('password', true)} data-testid="password-form">
 				<Input label="Current password" name="current" type="password" autocomplete="current-password" required />
 				<Input label="New password" name="next" type="password" autocomplete="new-password" minlength={8} required />
 				<Input label="Confirm new password" name="confirm" type="password" autocomplete="new-password" required />

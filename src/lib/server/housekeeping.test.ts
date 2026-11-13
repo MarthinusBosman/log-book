@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { inArray, sql } from 'drizzle-orm';
 import { freshDb, makeDropzone, makeUser } from './domain/testing.ts';
-import { fileBlobs, files, indemnitySignatures, passwordResetTokens, sessions } from './db/schema.ts';
+import { emailChangeTokens, fileBlobs, files, indemnitySignatures, passwordResetTokens, sessions } from './db/schema.ts';
 import { runHousekeeping, sweepFiles } from './housekeeping.ts';
 import { MemoryStorage } from './storage/memory.ts';
 import { saveFile } from './domain/files.ts';
@@ -28,6 +28,10 @@ describe('runHousekeeping', () => {
 			{ id: 'used-old', userId: u.id, expiresAt: new Date(NOW + H), usedAt: new Date(NOW - 25 * H) },
 			{ id: 'fresh', userId: u.id, expiresAt: new Date(NOW + H) }
 		]);
+		await db.insert(emailChangeTokens).values([
+			{ id: 'old', userId: u.id, newEmail: 'a@example.com', expiresAt: new Date(NOW - 25 * H) },
+			{ id: 'fresh', userId: u.id, newEmail: 'b@example.com', expiresAt: new Date(NOW + H) }
+		]);
 		await db.insert(files).values({ id: 'f1', key: 'avatar/kept.jpg', mime: 'image/jpeg', size: 1, purpose: 'avatar' });
 		const b = new Uint8Array([1]);
 		await db.insert(fileBlobs).values([
@@ -38,11 +42,12 @@ describe('runHousekeeping', () => {
 		]);
 
 		const r = await runHousekeeping(db, NOW);
-		expect(r).toEqual({ sessions: 1, resetTokens: 2, orphanBlobs: 2, abandonedCheckouts: 0 });
+		expect(r).toEqual({ sessions: 1, resetTokens: 3, orphanBlobs: 2, abandonedCheckouts: 0 });
 
 		const ids = (rows: { id: string }[]) => rows.map((x) => x.id).sort();
 		expect(ids(await db.select({ id: sessions.id }).from(sessions))).toEqual(['live']);
 		expect(ids(await db.select({ id: passwordResetTokens.id }).from(passwordResetTokens))).toEqual(['fresh']);
+		expect(ids(await db.select({ id: emailChangeTokens.id }).from(emailChangeTokens))).toEqual(['fresh']);
 		const keys = (await db.all(sql`select distinct key from file_blobs order by key`)) as { key: string }[];
 		expect(keys.map((k) => k.key)).toEqual(['avatar/kept.jpg', 'avatar/uploading.jpg']);
 

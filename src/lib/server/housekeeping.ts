@@ -1,12 +1,13 @@
 import { and, eq, inArray, isNotNull, lt, notInArray, or, sql } from 'drizzle-orm';
 import type { Database } from './db/index.ts';
-import { fileBlobs, files, indemnitySignatures, logbookJumps, passwordResetTokens, sessions, tandemPassengers } from './db/schema.ts';
+import { emailChangeTokens, fileBlobs, files, indemnitySignatures, logbookJumps, passwordResetTokens, sessions, tandemPassengers } from './db/schema.ts';
 import type { Storage } from './storage/types.ts';
 import { deleteFile } from './domain/files.ts';
 import { expireAbandonedCheckouts } from './domain/online-payments.ts';
 
 export type HousekeepingResult = {
 	sessions: number;
+	/** Expired or used password-reset and email-change links. */
 	resetTokens: number;
 	orphanBlobs: number;
 	/** Online checkouts left pending for 48 h, marked cancelled. */
@@ -39,11 +40,14 @@ export async function runHousekeeping(db: Database, now = Date.now()): Promise<H
 	const t = await db
 		.delete(passwordResetTokens)
 		.where(or(lt(passwordResetTokens.expiresAt, dayAgo), and(isNotNull(passwordResetTokens.usedAt), lt(passwordResetTokens.usedAt, dayAgo))));
+	const e = await db
+		.delete(emailChangeTokens)
+		.where(or(lt(emailChangeTokens.expiresAt, dayAgo), and(isNotNull(emailChangeTokens.usedAt), lt(emailChangeTokens.usedAt, dayAgo))));
 	const b = await db
 		.delete(fileBlobs)
 		.where(and(lt(fileBlobs.createdAt, new Date(now - HOUR)), notInArray(fileBlobs.key, db.select({ key: files.key }).from(files))));
 	const abandonedCheckouts = await expireAbandonedCheckouts(db, now);
-	return { sessions: changes(s), resetTokens: changes(t), orphanBlobs: changes(b), abandonedCheckouts };
+	return { sessions: changes(s), resetTokens: changes(t) + changes(e), orphanBlobs: changes(b), abandonedCheckouts };
 }
 
 /** Max objects examined per run by the orphan sweep (keeps a cron invocation short). */

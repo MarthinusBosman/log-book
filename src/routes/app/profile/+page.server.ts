@@ -10,6 +10,10 @@ import { bool, domainFail, int, num, opt, requireUser, str, todayAt } from '#lib
 import { ASSOCIATIONS, KNOWN_RATINGS, RATING_BODIES, type Association, type RatingBody } from '#lib/domain/constants.ts';
 import { pasaActions, pasaCheckVM } from '#lib/server/memberships/web.ts';
 import { lockedCredentials } from '#lib/server/memberships/service.ts';
+import { cancelEmailChange, pendingEmailChange, requestEmailChange } from '#lib/server/auth/email-change.ts';
+import { getMailer, idempotencyKey } from '#lib/server/email/index.ts';
+import { publicOrigin } from '#lib/server/config.ts';
+import { brand } from '#lib/brand.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const TABS = ['info', 'credentials', 'security'] as const;
@@ -18,11 +22,12 @@ const AVATAR_MAX = maxBytesFor('image/jpeg', 'avatar');
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const user = requireUser(locals, url);
 	const { current } = await parent();
-	const [u, ratings, today, pasa] = await Promise.all([
+	const [u, ratings, today, pasa, emailChange] = await Promise.all([
 		locals.db.select().from(users).where(eq(users.id, user.id)).limit(1),
 		listRatings(locals.db, user.id),
 		todayAt(locals.db, current?.dropzone.id),
-		pasaCheckVM(locals.db, user.id)
+		pasaCheckVM(locals.db, user.id),
+		pendingEmailChange(locals.db, user.id)
 	]);
 	const me = u[0];
 	const tab = (TABS as readonly string[]).includes(url.searchParams.get('tab') ?? '') ? (url.searchParams.get('tab') as (typeof TABS)[number]) : 'info';
@@ -51,7 +56,9 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 		membership: membershipStatus(me, today),
 		ratings: ratings.map((r) => ({ id: r.id, body: r.body, rating: r.rating, expiresOn: r.expiresOn, verified: !!r.verifiedAt })),
 		knownRatings: KNOWN_RATINGS,
-		pasa
+		pasa,
+		hasPassword: !!me.passwordHash,
+		emailChange: emailChange ? { newEmail: emailChange.newEmail } : null
 	};
 };
 
@@ -169,5 +176,37 @@ export const actions: Actions = {
 			return domainFail(e, { action: 'password' });
 		}
 		return { action: 'password', success: 'Password changed. Other devices have been signed out.' };
+	},
+
+	/** Mails a confirmation link to the new address; the email only changes once it's followed. */
+	email: async ({ locals, request, url }) => {
+		const user = requireUser(locals);
+		const form = await request.formData();
+		const newEmail = str(form, 'newEmail');
+		try {
+			const req = await requestEmailChange(locals.db, { userId: user.id, newEmail, password: String(form.get('password') ?? '') });
+			const link = `${publicOrigin(url.origin)}/confirm-email?token=${req.token}`;
+			try {
+				await getMailer().send({
+					to: req.newEmail,
+					subject: `Confirm your new ${brand.name} email`,
+					text: `Hi ${req.name},\n\nConfirm that ${req.newEmail} is your new ${brand.name} sign-in email (link valid for 1 hour):\n${link}\n\nIf you didn't ask for this, ignore this email: nothing changes.`,
+					idempotencyKey: await idempotencyKey('email-change', req.token)
+				});
+			} catch (e) {
+				console.error('[email-change] confirmation not sent', e instanceof Error ? e.message : e);
+				await cancelEmailChange(locals.db, user.id);
+				return fail(502, { action: 'email', newEmail, message: 'We couldn’t send the confirmation email. Please try again later.' });
+			}
+			return { action: 'email', newEmail: '', success: `Check ${req.newEmail} for a confirmation link` };
+		} catch (e) {
+			return domainFail(e, { action: 'email', newEmail });
+		}
+	},
+
+	cancelEmail: async ({ locals }) => {
+		const user = requireUser(locals);
+		await cancelEmailChange(locals.db, user.id);
+		return { action: 'email', success: 'Email change cancelled' };
 	}
 };

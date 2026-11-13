@@ -15,6 +15,7 @@ import {
 	dropzoneMemberRoles,
 	dropzoneMembers,
 	dropzones,
+	emailChangeTokens,
 	federationOutbox,
 	feedbackSubmissions,
 	files,
@@ -195,6 +196,7 @@ export async function deleteAccount(db: Database, storage: Storage, userId: stri
 		// Sign-in and links.
 		db.delete(sessions).where(eq(sessions.userId, userId)),
 		db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId)),
+		db.delete(emailChangeTokens).where(eq(emailChangeTokens.userId, userId)),
 		db.delete(linkedAccounts).where(eq(linkedAccounts.userId, userId)),
 		db.delete(federationOutbox).where(eq(federationOutbox.userId, userId)),
 		// Personal data.

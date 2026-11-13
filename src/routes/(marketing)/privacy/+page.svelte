@@ -128,7 +128,7 @@
 				<tr><td>Manifest, check-in, wallets, payments, waivers and tandem bookings for a dropzone</td><td>The dropzone’s contract with you and its legal and financial record-keeping duties; we act on its instructions</td></tr>
 				<tr><td>Weight, licence and currency checks before a jump</td><td>Safety: needed for the dropzone to run loads within aircraft and gear limits</td></tr>
 				<tr><td>PASA membership verification, Jump Master import, linking a self-hosted dropzone account</td><td>Your request (consent); you can disconnect at any time</td></tr>
-				<tr><td>Service emails (password reset, invitations, booking confirmations)</td><td>Needed to provide the service</td></tr>
+				<tr><td>Service emails (password reset, email-change confirmation, invitations, booking confirmations)</td><td>Needed to provide the service</td></tr>
 				<tr><td>Marketing messages from your dropzones</td><td>Your opt-in on your profile; switch it off at any time</td></tr>
 				<tr><td>Security, fraud prevention and keeping the service working</td><td>Our legitimate interest in a safe, working service</td></tr>
 			</tbody>
@@ -268,7 +268,7 @@
 		<p>Under POPIA you can:</p>
 		<ul>
 			<li><strong>Access</strong> your information: Profile → Export your data downloads your logbook (CSV) and a full copy (JSON). Ask us for anything not in the export.</li>
-			<li><strong>Correct</strong> it: edit your profile, credentials, logbook and gear yourself. Ask us to change your email address.</li>
+			<li><strong>Correct</strong> it: edit your profile, credentials, logbook and gear yourself. Change your email address under Profile → Security (we confirm the new address by email).</li>
 			<li><strong>Delete</strong> it: Profile → Security → Delete account removes your account straight away, as described above. You can also email <a href={mail}>{brand.privacyEmail}</a>.</li>
 			<li><strong>Object</strong> to processing based on our legitimate interests, and withdraw consent (unlink PASA, Jump Master or a self-hosted dropzone; switch off marketing) at any time.</li>
 		</ul>

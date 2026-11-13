@@ -149,6 +149,24 @@ export const passwordResetTokens = sqliteTable(
 	(t) => [index('password_reset_tokens_user_id_idx').on(t.userId)]
 );
 
+/** Pending self-service email changes: the link mailed to the NEW address (auth/email-change.ts). */
+export const emailChangeTokens = sqliteTable(
+	'email_change_tokens',
+	{
+		/** sha256(token) hex */
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		/** Normalised address the user asked to switch to. */
+		newEmail: text('new_email').notNull(),
+		expiresAt: ms('expires_at').notNull(),
+		usedAt: ms('used_at'),
+		createdAt: createdAt()
+	},
+	(t) => [index('email_change_tokens_user_id_idx').on(t.userId)]
+);
+
 /** PASA string ratings and USPA dated ratings. */
 export const userRatings = sqliteTable(
 	'user_ratings',

@@ -49,6 +49,8 @@ the same module backed by Miniflare, so `bun run dev:cf` uses the *local* D1 in 
   through the `Mailer` interface (`src/lib/server/email`): Resend when `RESEND_API_KEY` is set
   (fetch, 5 s timeout, ≤ 3 tries on network errors/5xx/429 with an `Idempotency-Key`), else the
   console. Callers treat send failures as non-fatal (forgot-password never reveals them).
+* Email change (Profile → Security): password + single-use 1 h link to the new address
+  (`email_change_tokens`, hashed); the old address gets a notice after the switch. See DOMAIN.md.
 * Account deletion (self-service, `/app/profile/delete`): personal data is deleted, dropzone records are kept and
   the `users` row becomes an anonymous tombstone; see `docs/DOMAIN.md` → account.ts.
 * Authorisation: users are global; membership is `dropzone_members (dropzone_id, user_id, status)`
