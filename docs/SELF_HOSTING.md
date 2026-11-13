@@ -525,7 +525,8 @@ newer one isn't supported.
 
 * `GET /api/health` → `{"ok":true,"version":"0.0.1+abc1234","db":{"ok":true,…}}` (503 if the DB is
   down); used by the image's `HEALTHCHECK`.
-* Hourly in-process job: deletes expired sessions/reset tokens and orphaned DB file chunks, and
+* Hourly in-process job: deletes expired sessions/reset tokens and orphaned DB file chunks, expires
+  online checkouts left pending for 48 h, and
   retries the federation outbox.
 * Security headers (CSP with per-request nonces, `frame-ancestors 'self'`, Referrer-Policy,
   Permissions-Policy, HSTS on https) are set by the app; no proxy config needed.

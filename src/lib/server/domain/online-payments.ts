@@ -7,7 +7,7 @@
  * Confirmation is idempotent: a payment already `succeeded`, or a provider tx id already recorded,
  * is a no-op. Money that arrives after a cancel/fail is still applied (it really was paid).
  */
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, ne } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { payments, tandemPassengers, type Payment } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
@@ -214,6 +214,34 @@ export async function cancelPendingOnlinePayment(db: Database, id: string): Prom
 			.where(and(eq(payments.id, id), eq(payments.status, 'pending')))
 			.returning()
 	)[0];
+}
+
+/** How long an online checkout may stay `pending` before housekeeping calls it abandoned. */
+export const ABANDONED_CHECKOUT_MS = 48 * 3_600_000;
+
+/**
+ * Online checkouts the customer never finished (closed the provider tab, went back): still
+ * `pending` after ABANDONED_CHECKOUT_MS → `cancelled` ("expired"), so they stop showing as
+ * "waiting for <provider>" in the jumper's wallet and in Settings → Payments. Pay-at-manifest
+ * requests are left alone (staff collect those). A genuine success that arrives later is still
+ * applied by `confirmOnlinePayment`. Returns how many were expired (≤ `limit` per run).
+ */
+export async function expireAbandonedCheckouts(db: Database, now = Date.now(), limit = 200): Promise<number> {
+	const stale = await db
+		.select()
+		.from(payments)
+		.where(and(eq(payments.status, 'pending'), ne(payments.provider, 'manual'), lt(payments.createdAt, new Date(now - ABANDONED_CHECKOUT_MS))))
+		.limit(limit);
+	let n = 0;
+	for (const p of stale) {
+		const r = await db
+			.update(payments)
+			.set({ status: 'cancelled', metadata: { ...meta(p), failureReason: 'expired: checkout not completed' } })
+			.where(and(eq(payments.id, p.id), eq(payments.status, 'pending')))
+			.returning({ id: payments.id });
+		n += r.length;
+	}
+	return n;
 }
 
 /** Online payments for a dropzone, newest first (settings page "recent payments"). */

@@ -7,6 +7,9 @@ import { MemoryStorage } from './storage/memory.ts';
 import { saveFile } from './domain/files.ts';
 import { addJump, deleteJump, signJump, updateJump } from './domain/logbook.ts';
 import { eq } from 'drizzle-orm';
+import { confirmOnlinePayment, createOnlineTopUp, expireAbandonedCheckouts, getPayment } from './domain/online-payments.ts';
+import { requestTopUp } from './domain/payments.ts';
+import { getAccount } from './domain/wallet.ts';
 
 const NOW = Date.parse('2026-11-14T08:00:00Z');
 const H = 3_600_000;
@@ -35,7 +38,7 @@ describe('runHousekeeping', () => {
 		]);
 
 		const r = await runHousekeeping(db, NOW);
-		expect(r).toEqual({ sessions: 1, resetTokens: 2, orphanBlobs: 2 });
+		expect(r).toEqual({ sessions: 1, resetTokens: 2, orphanBlobs: 2, abandonedCheckouts: 0 });
 
 		const ids = (rows: { id: string }[]) => rows.map((x) => x.id).sort();
 		expect(ids(await db.select({ id: sessions.id }).from(sessions))).toEqual(['live']);
@@ -43,7 +46,34 @@ describe('runHousekeeping', () => {
 		const keys = (await db.all(sql`select distinct key from file_blobs order by key`)) as { key: string }[];
 		expect(keys.map((k) => k.key)).toEqual(['avatar/kept.jpg', 'avatar/uploading.jpg']);
 
-		expect(await runHousekeeping(db, NOW)).toEqual({ sessions: 0, resetTokens: 0, orphanBlobs: 0 });
+		expect(await runHousekeeping(db, NOW)).toEqual({ sessions: 0, resetTokens: 0, orphanBlobs: 0, abandonedCheckouts: 0 });
+	});
+
+	test('expires online checkouts left pending for 48 h; pay-at-manifest requests stay; a late success still credits', async () => {
+		const db = freshDb();
+		const { dz } = await makeDropzone(db, { walletEnabled: true });
+		const u = await makeUser(db);
+		const start = (provider: 'paystack' | 'manual', ageH: number) =>
+			provider === 'manual'
+				? requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 50_000, provider, now: NOW - ageH * H })
+				: createOnlineTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 50_000, provider, returnTo: '/app/wallet/x', now: NOW - ageH * H });
+		const old = await start('paystack', 49);
+		const recent = await start('paystack', 47);
+		const manual = await start('manual', 100);
+
+		expect((await runHousekeeping(db, NOW)).abandonedCheckouts).toBe(1);
+		const status = async (id: string) => (await getPayment(db, id))!;
+		expect((await status(old.id)).status).toBe('cancelled');
+		expect((await status(old.id)).metadata).toMatchObject({ returnTo: '/app/wallet/x', failureReason: 'expired: checkout not completed' });
+		expect((await status(recent.id)).status).toBe('pending');
+		expect((await status(manual.id)).status).toBe('pending');
+		expect(await expireAbandonedCheckouts(db, NOW)).toBe(0);
+
+		// The provider's (retried) webhook for the expired checkout still applies the money.
+		const r = await confirmOnlinePayment(db, { paymentId: old.id, provider: 'paystack', outcome: 'succeeded', providerTxId: 'ps_late', amountMinor: 50_000, currency: 'ZAR', now: NOW });
+		expect(r.applied).toBe(true);
+		expect((await status(old.id)).status).toBe('succeeded');
+		expect((await getAccount(db, u.id, dz.id))!.availableMinor).toBe(50_000);
 	});
 });
 

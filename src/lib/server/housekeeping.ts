@@ -3,11 +3,14 @@ import type { Database } from './db/index.ts';
 import { fileBlobs, files, indemnitySignatures, logbookJumps, passwordResetTokens, sessions, tandemPassengers } from './db/schema.ts';
 import type { Storage } from './storage/types.ts';
 import { deleteFile } from './domain/files.ts';
+import { expireAbandonedCheckouts } from './domain/online-payments.ts';
 
 export type HousekeepingResult = {
 	sessions: number;
 	resetTokens: number;
 	orphanBlobs: number;
+	/** Online checkouts left pending for 48 h, marked cancelled. */
+	abandonedCheckouts: number;
 	/** Storage sweep (only when a storage driver is passed). */
 	files?: { staleImports: number; legacyPdfs: number; orphanSignatures: number; orphanObjects: number };
 	federation?: { sent: number; failed: number; dropped: number } | { skipped: string } | { error: string };
@@ -26,7 +29,8 @@ function changes(r: unknown): number {
  * Periodic cleanup, safe to run any time (idempotent):
  *  - expired sessions and expired/used password-reset tokens (kept 1 day for audit),
  *  - `file_blobs` parts with no `files` row (an upload that failed between storing the bytes and
- *    recording the metadata), once older than an hour.
+ *    recording the metadata), once older than an hour,
+ *  - online checkouts still pending after 48 h (abandoned at the provider) → cancelled.
  */
 export async function runHousekeeping(db: Database, now = Date.now()): Promise<HousekeepingResult> {
 	const nowDate = new Date(now);
@@ -38,7 +42,8 @@ export async function runHousekeeping(db: Database, now = Date.now()): Promise<H
 	const b = await db
 		.delete(fileBlobs)
 		.where(and(lt(fileBlobs.createdAt, new Date(now - HOUR)), notInArray(fileBlobs.key, db.select({ key: files.key }).from(files))));
-	return { sessions: changes(s), resetTokens: changes(t), orphanBlobs: changes(b) };
+	const abandonedCheckouts = await expireAbandonedCheckouts(db, now);
+	return { sessions: changes(s), resetTokens: changes(t), orphanBlobs: changes(b), abandonedCheckouts };
 }
 
 /** Max objects examined per run by the orphan sweep (keeps a cron invocation short). */

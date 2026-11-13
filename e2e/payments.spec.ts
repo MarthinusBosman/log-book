@@ -183,7 +183,24 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'cancelled');
 	await expect(page.getByTestId('wallet-balance')).toContainText('750');
 
+	// Abandoned Paystack checkout (customer comes back without paying): listed as pending with a
+	// Check button that asks the provider (still unpaid → "Not confirmed yet"), then cancelled.
+	await page.locator('#amount').fill('200');
+	await page.getByTestId('topup-provider-paystack').check();
+	await page.getByTestId('topup-submit').click();
+	await expect(page.getByTestId('mock-amount')).toContainText('200.00');
+	await page.goto(`/app/wallet/${slug}`);
+	await page.waitForLoadState('networkidle');
+	await expect(page.getByTestId('pending-topups')).toContainText('not confirmed by Paystack yet');
+	await page.getByTestId('topup-check').click();
+	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'pending');
+	await expect(page.getByTestId('payment-notice')).toContainText('Not confirmed yet');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('pending-topups').getByRole('button', { name: 'Cancel' }).click();
+	await expect(page.getByTestId('pending-topups')).toHaveCount(0);
+	await expect(page.getByTestId('wallet-balance')).toContainText('750');
+
 	// Owner sees the payments in Settings → Payments.
 	await page.goto('/app/settings/payments');
-	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(6);
+	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(7);
 });

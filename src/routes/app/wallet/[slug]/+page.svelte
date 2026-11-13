@@ -54,7 +54,7 @@
 		<JIcon name={ok ? 'checkCircle' : wait ? 'clock' : 'alert'} class={cn('mt-0.5 size-5 shrink-0', ok ? 'text-success' : wait ? 'text-primary' : 'text-warning')} />
 		<p class="min-w-0 flex-1">
 			{#if ok}<span class="font-medium">{formatMoney(notice.amountMinor, notice.currency)} added to your wallet</span> <span class="text-muted">· paid via {notice.provider}</span>
-			{:else if wait}<span class="font-medium">Payment processing</span> <span class="text-muted">· waiting for {notice.provider} to confirm. <a href={page.url.href} class="font-medium text-primary hover:underline">Refresh</a></span>
+			{:else if wait}<span class="font-medium">Not confirmed yet</span> <span class="text-muted">· {notice.provider} hasn’t confirmed this top-up. If you finished paying it shows up within a minute (<a href={page.url.href} class="font-medium text-primary hover:underline">refresh</a>); if not, cancel it under Pending top-ups.</span>
 			{:else}<span class="font-medium">Top-up not completed</span> <span class="text-muted">· no money was taken.</span>{/if}
 		</p>
 	</div>
@@ -114,14 +114,20 @@
 				<ul class="divide-y divide-border" data-testid="pending-topups">
 					{#each pending as r (r.id)}
 						<li class="flex items-center justify-between gap-3 px-5 py-3 text-sm">
-							<span>
+							<span class="min-w-0">
 								<span class="block font-medium tabular-nums">{formatMoney(r.amountMinor, r.currency)}</span>
-								<span class="text-muted">Requested {relativeTime(r.createdAt)} · {r.provider === 'manual' ? 'pay at manifest' : `waiting for ${r.providerLabel}`}</span>
+								<span class="text-muted">{r.provider === 'manual' ? `Requested ${relativeTime(r.createdAt)} · pay at manifest` : `Started ${relativeTime(r.createdAt)} · not confirmed by ${r.providerLabel} yet`}</span>
 							</span>
-							<form method="POST" action="?/cancel" use:enhance={submit('cancel')}>
-								<input type="hidden" name="paymentId" value={r.id} />
-								<Button type="submit" variant="ghost" size="sm">Cancel</Button>
-							</form>
+							<span class="flex shrink-0 items-center gap-1">
+								{#if r.provider !== 'manual'}
+									<!-- Asks the provider whether it was paid (never trusts the browser), then lands back here with ?payment=. -->
+									<Button href="/pay/{r.id}/return" variant="secondary" size="sm" data-sveltekit-reload data-testid="topup-check">Check</Button>
+								{/if}
+								<form method="POST" action="?/cancel" use:enhance={submit('cancel')}>
+									<input type="hidden" name="paymentId" value={r.id} />
+									<Button type="submit" variant="ghost" size="sm">Cancel</Button>
+								</form>
+							</span>
 						</li>
 					{/each}
 				</ul>

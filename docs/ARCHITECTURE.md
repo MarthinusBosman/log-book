@@ -174,7 +174,7 @@ by part) or `r2` (binding `FILES`, untested). Metadata always lives in `files`. 
   CSP on non-HTML responses except PDFs (sandbox breaks browser PDF viewers).
 * `GET /api/health` → version (`__APP_VERSION__` = package version + git sha), target, mode, DB status.
 * `POST /api/cron` (`src/lib/server/housekeeping.ts`): expired sessions/reset tokens, orphaned blob
-  chunks, federation outbox flush (dropzone mode). Auth: in-isolate token from the Worker's
+  chunks, online checkouts abandoned for 48 h (→ cancelled), federation outbox flush (dropzone mode). Auth: in-isolate token from the Worker's
   `scheduled()` (`scripts/cf-postbuild.ts`) or `Bearer $CRON_SECRET`.
 
 ## Feedback (GitHub issues)

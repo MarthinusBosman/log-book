@@ -30,6 +30,8 @@ provider ──► POST /api/payments/:provider/:dropzoneId   (webhook / ITN, ve
 customer ──► /pay/:id/return ──► (if still pending: server-side status check where the provider has one)
             ──► back to the booking / wallet page with ?payment=:id (shows "Payment received / processing")
 customer cancels ──► /pay/:id/cancel ──► payment cancelled (a later genuine success still applies)
+customer abandons ──► jumper wallet lists it under "Pending top-ups" with Check (= /pay/:id/return) + Cancel
+                  ──► still pending after 48 h: housekeeping marks it cancelled ("expired"; late success still applies)
 ```
 
 * **Idempotency.** A payment already `succeeded`, or a provider transaction id already recorded
