@@ -24,3 +24,4 @@ export * as profile from './profile.ts';
 export * as files from './files.ts';
 export * as imports from './imports.ts';
 export * as federation from './federation.ts';
+export * as account from './account.ts';

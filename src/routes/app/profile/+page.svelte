@@ -224,5 +224,12 @@
 		<form method="POST" action="/logout" class="mt-4">
 			<Button type="submit" variant="ghost"><JIcon name="logOut" class="size-4" /> Log out</Button>
 		</form>
+		<Card class="mt-6" title="Delete account" description="Remove your account and personal data for good.">
+			<p class="text-sm text-muted">
+				Your logbook, gear and profile are deleted. Dropzones keep the records they must (waivers, manifest, wallet
+				transactions), no longer linked to you. Export your data first if you want a copy.
+			</p>
+			<div class="mt-4 flex justify-end"><Button href="/app/profile/delete" variant="outline" data-testid="delete-account-link">Delete account…</Button></div>
+		</Card>
 	</div>
 {/if}

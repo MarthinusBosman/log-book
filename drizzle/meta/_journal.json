@@ -43,6 +43,13 @@
       "when": 1794461237637,
       "tag": "0005_payment_providers",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794565433829,
+      "tag": "0006_account_deletion",
+      "breakpoints": true
     }
   ]
 }

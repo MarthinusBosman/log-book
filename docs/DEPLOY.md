@@ -100,6 +100,11 @@ token on `globalThis` and calls the app's own fetch handler with `POST /api/cron
   (≤ 100 per run) and R2 objects no `files` row references (older than 1 h, ≤ 2000 per run),
 * a federation outbox flush on dropzone instances (no-op on the global instance).
 
+Account deletion (`/app/profile/delete`) removes the user's avatar and the sign-off images on their
+own jumps immediately (objects only when no other `files` row shares the key); waiver signatures
+and sign-offs they gave on others' jumps are kept. An object whose delete fails is picked up by
+the orphan-object sweep above.
+
 Test locally: `wrangler dev --test-scheduled`, then `curl -X POST "localhost:8788/__scheduled?cron=17+*+*+*+*"`.
 The opportunistic outbox flush after mutating `/app` requests still runs as before.
 

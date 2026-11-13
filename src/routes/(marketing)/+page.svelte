@@ -8,6 +8,7 @@
 	import PhoneLogbook from '#lib/components/marketing/PhoneLogbook.svelte';
 	import PhoneNextLoad from '#lib/components/marketing/PhoneNextLoad.svelte';
 	import Seo from '#lib/components/marketing/Seo.svelte';
+	import { page } from '$app/state';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -139,6 +140,14 @@
 {/snippet}
 
 <!-- ───────────────────────── Hero ───────────────────────── -->
+{#if page.url.searchParams.get('deleted') === '1' && !data.user}
+	<div class="mx-auto max-w-6xl px-5 pt-6 sm:px-8">
+		<p class="rounded-xl border border-success/30 bg-success/10 px-4 py-3 text-sm text-success" role="status" data-testid="account-deleted">
+			Your account has been deleted and you've been signed out. Blue skies.
+		</p>
+	</div>
+{/if}
+
 <section class="relative isolate">
 	<div class="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
 		<div class="hero-glow absolute -top-40 left-1/2 h-[46rem] w-[90rem] -translate-x-1/2"></div>

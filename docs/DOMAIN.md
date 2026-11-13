@@ -35,7 +35,7 @@ leave `0001_domain` as it is.
 
 | Table | Purpose / key columns |
 |---|---|
-| `users` | Identity + profile (`phone, address, dob, emergencyName/Phone, marketingOptIn, avatarFileId`) + credentials (`association` pasa/pasa_temp/pasa_student/uspa/other, `associationNumber, associationExpiry, associationVerifiedAt, licence, declaredJumpCount, weightKg, loadingWeightKg`), `isSuperAdmin`. |
+| `users` | Identity + profile (`phone, address, dob, emergencyName/Phone, marketingOptIn, avatarFileId`) + credentials (`association` pasa/pasa_temp/pasa_student/uspa/other, `associationNumber, associationExpiry, associationVerifiedAt, licence, declaredJumpCount, weightKg, loadingWeightKg`), `isSuperAdmin`, `deletedAt` (anonymous tombstone, see account.ts). |
 | `user_ratings` | `(userId, body pasa/uspa/other, rating)` unique, `value`, `expiresOn`, `verifiedAt`. |
 | `user_buddies` | Jump buddies, one row per direction (`userId → buddyId`). |
 | `files` | Blob metadata: `key` (storage key), `mime, size, purpose` (avatar/dz_photo/signature/indemnity_pdf/tandem_pdf/import/other), owner, dz. |
@@ -193,6 +193,16 @@ Aircraft and payments:
 - `updateProfile(db, userId, patch)` validates the input. `membershipStatus(user, today)` returns none, valid, expiring (≤30 days) or expired. `listRatings`, `setRatings(db, userId, body, ratings, {verified})`, `searchUsers(db, q)`.
 - `saveFile(db, storage, {data, mime, purpose, ownerUserId?, dropzoneId?})` accepts png/jpg/webp/pdf/json/csv up to 10 MB. `getFile`, `readFileBlob`, `deleteFile`, `decodeDataUrl` (signature pads). Get the storage with `getStorage()` from `#lib/server/storage/index.ts`.
 - `startImportJob`, `finishImportJob`, `listImportJobs`. The importer itself lives in `src/lib/server/import/` (docs/IMPORT.md).
+
+### account.ts (self-service deletion, `/app/profile/delete`)
+- `accountDeletionPreview(db, userId)` → `{hasPassword, email, soleOwnerOf[], activeLoads[], wallets[] (non-zero), retained {waivers, slots, ledgerEntries, checkins, payments}, linkedAccounts, blocked}`; `blockedMessage(preview)`.
+- `deleteAccount(db, storage, userId, {now})` throws `conflict` when the user is the **only owner** of a dropzone or is on a load that isn't completed/cancelled.
+- The `users` row is **never deleted**: `wallet_accounts`, `ledger_entries` and `checkins` cascade from it and the dropzone must keep them. It becomes a tombstone: `deletedAt`, name `Deleted user`, email `deleted-<id>@deleted.invalid` (frees the real address for signup), every profile/credential column null, no password. `searchUsers` skips tombstones.
+- **Deleted** (one `runAtomic` batch): sessions, reset tokens, linked accounts/grants, federation outbox, ratings, PASA check, buddies (both directions), notifications, import jobs, own logbook jumps, personal rigs + service history, personal teams, team memberships, dropzone memberships/roles/follows.
+- **Detached** (link nulled, row kept): sign-offs the user gave on others' jumps (`signerUserId`; name/licence snapshot stays), team coach/video, aircraft default pilot, notification actor, service-event performer, `files.ownerUserId` of kept files. Open check-ins are closed.
+- **Retained, pointing at the tombstone**: indemnity signatures (+ their signature images), slots (their `displayName`/`licence` snapshot is the DZ's copy), wallet accounts + ledger, check-ins, payments, loads (pilot/creator).
+- **Files**: candidates = avatar, the user's own `dropzoneId IS NULL` uploads (avatar/signature/import/other) and sign-off images on the user's own jumps; any still referenced by a waiver (columns or snapshot JSON), another user's logbook, a dropzone photo/logo or a tandem PDF is kept. Rows go in the batch; afterwards each object is deleted only if no `files` row still shares its content-addressed key (a failure is left to the orphan-object sweep).
+- **Federation**: global side, the user's grants go, so further pushes for that `sub` are dropped; dropzone side, the outgoing link + queued pushes go. Copies already on another instance are not touched (separate account there: the user deletes it there). Documented on the confirmation screen.
 
 ### federation.ts
 - `outboxStatementsForJumps(db, jumps, now)` — called by `completeLoad()` inside its atomic batch; queues `jump_upsert` rows for jumpers with an outgoing global link.

@@ -107,7 +107,9 @@ export const users = sqliteTable(
 		loadingWeightKg: real('loading_weight_kg'),
 		isSuperAdmin: bool('is_super_admin').notNull().default(false),
 		updatedAt: ms('updated_at'),
-		sourceRef: text('source_ref')
+		sourceRef: text('source_ref'),
+		/** Account deleted by its owner: the row is an anonymous tombstone kept for dropzone records (domain/account.ts). */
+		deletedAt: ms('deleted_at')
 	},
 	(t) => [
 		uniqueIndex('users_email_unique').on(t.email),

@@ -248,7 +248,7 @@
 		<ul>
 			<li><strong>Access</strong> your information: Profile → Export your data downloads your logbook (CSV) and a full copy (JSON). Ask us for anything not in the export.</li>
 			<li><strong>Correct</strong> it: edit your profile, credentials, logbook and gear yourself. Ask us to change your email address.</li>
-			<li><strong>Delete</strong> it: email <a href={mail}>{brand.privacyEmail}</a> and we will delete your account as described above.</li>
+			<li><strong>Delete</strong> it: Profile → Security → Delete account removes your account straight away, as described above. You can also email <a href={mail}>{brand.privacyEmail}</a>.</li>
 			<li><strong>Object</strong> to processing based on our legitimate interests, and withdraw consent (unlink PASA, Jump Master or a self-hosted dropzone; switch off marketing) at any time.</li>
 		</ul>
 		<p>

@@ -1,4 +1,4 @@
-import { and, eq, like, ne, or } from 'drizzle-orm';
+import { and, eq, isNull, like, ne, or } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { sessions, userRatings, users, type User, type UserRating } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
@@ -137,7 +137,7 @@ export async function searchUsers(db: Database, q: string, limit = 20) {
 	return db
 		.select({ id: users.id, name: users.name, avatar: users.avatar, email: users.email, licence: users.licence })
 		.from(users)
-		.where(or(like(users.name, term), like(users.email, term)))
+		.where(and(isNull(users.deletedAt), or(like(users.name, term), like(users.email, term))))
 		.orderBy(users.name)
 		.limit(limit);
 }

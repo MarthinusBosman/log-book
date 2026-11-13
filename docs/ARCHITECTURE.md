@@ -47,6 +47,8 @@ the same module backed by Miniflare, so `bun run dev:cf` uses the *local* D1 in 
   reports `needsRehash` and `authenticate()` transparently upgrades old hashes.
 * Password reset: single-use hashed token, 1 h expiry, resets sign out all sessions. Email goes
   through the `Mailer` interface (`src/lib/server/email`), console implementation for now.
+* Account deletion (self-service, `/app/profile/delete`): personal data is deleted, dropzone records are kept and
+  the `users` row becomes an anonymous tombstone; see `docs/DOMAIN.md` → account.ts.
 * Authorisation: users are global; membership is `dropzone_members (dropzone_id, user_id, status)`
   and a member can hold **several roles** in `dropzone_member_roles` (owner, admin, manifest, staff,
   tandem_instructor, aff_instructor, instructor, coach, videographer, rigger, pilot, jumper). Roles map
