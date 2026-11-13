@@ -163,6 +163,25 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await expect(page).toHaveURL(/[?&]g=/);
 	await expect(page.getByTestId('group-total')).toContainText(/5[\s ]?400/);
 
+	// Abandoned group balance checkout: the customer comes back via the booking link (no
+	// ?payment=), sees "Not confirmed yet", checks with the provider (still unpaid), then cancels.
+	const bookingUrl = new URL(page.url());
+	bookingUrl.searchParams.delete('payment');
+	await page.getByTestId('pay-with-paystack').click();
+	await expect(page.getByTestId('mock-amount')).toContainText('5400.00');
+	await page.goto(bookingUrl.href);
+	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'pending');
+	await expect(page.getByTestId('payment-notice')).toContainText('Not confirmed yet');
+	await page.getByTestId('payment-check').click();
+	await expect(page).toHaveURL(/[?&]payment=/);
+	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'pending');
+	await page.getByTestId('payment-cancel').click();
+	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'cancelled');
+	await expect(page).toHaveURL(/[?&]g=/);
+	await page.goto(bookingUrl.href);
+	await expect(page.getByTestId('payment-notice')).toHaveCount(0);
+	await expect(page.getByTestId('group-total')).toContainText(/5[\s ]?400/);
+
 	// Wallet top-up with Paystack (webhook credits the wallet).
 	await page.goto(`/app/wallet/${slug}`);
 	await page.waitForLoadState('networkidle');
@@ -202,5 +221,5 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 
 	// Owner sees the payments in Settings → Payments.
 	await page.goto('/app/settings/payments');
-	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(7);
+	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(8);
 });

@@ -65,8 +65,19 @@
 					<p class="font-medium">Payment received — {formatMoney(notice.amountMinor, notice.currency)} via {notice.provider}</p>
 					<p class="text-muted">Thank you! It’s been added to your booking.</p>
 				{:else if wait}
-					<p class="font-medium">Payment processing</p>
-					<p class="text-muted">{notice.provider} hasn’t confirmed your {formatMoney(notice.amountMinor, notice.currency)} payment yet. This usually takes a few seconds — <a href={page.url.href} class="font-medium text-primary hover:underline">refresh</a>.</p>
+					<p class="font-medium">Not confirmed yet</p>
+					<p class="text-muted">{notice.provider} hasn’t confirmed your {formatMoney(notice.amountMinor, notice.currency)} payment. If you finished paying, check again; if you didn’t, cancel it and pay below or at the dropzone.</p>
+					{#if notice.id}
+						<div class="mt-3 flex flex-wrap items-center gap-2">
+							<!-- Asks the provider whether it was paid (never trusts the browser), then lands back here. -->
+							<Button href="/pay/{notice.id}/return" variant="secondary" size="sm" data-sveltekit-reload data-testid="payment-check">Check again</Button>
+							<form method="POST" action="?/cancelPayment">
+								<input type="hidden" name="paymentId" value={notice.id} />
+								<input type="hidden" name="g" value={data.groupQuery} />
+								<Button type="submit" variant="ghost" size="sm" data-testid="payment-cancel">Cancel payment</Button>
+							</form>
+						</div>
+					{/if}
 				{:else if notice.status === 'error'}
 					<p class="font-medium">We couldn’t start the online payment</p>
 					<p class="text-muted">Your booking is confirmed. Try paying online again below, or pay at the dropzone.</p>

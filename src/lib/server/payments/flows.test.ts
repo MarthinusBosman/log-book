@@ -9,7 +9,7 @@ import { dropzones, ledgerEntries, payments, tandemPassengers } from '../db/sche
 import { savePaymentConfig } from '../domain/dropzone-admin.ts';
 import { addBookingSlots, createOnlineBooking, getPassenger } from '../domain/tandems.ts';
 import { getAccount } from '../domain/wallet.ts';
-import { getPayment } from '../domain/online-payments.ts';
+import { ABANDONED_CHECKOUT_MS, cancelPendingOnlinePayment, getPayment, pendingTandemCheckout } from '../domain/online-payments.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from '../domain/testing.ts';
 import { encryptSecret } from '../staffadmin/secrets.ts';
 import { saveProviderSettings } from './config.ts';
@@ -239,6 +239,30 @@ describe('tandem booking', () => {
 		await payOnMock(next);
 		const fresh = (await db.select().from(tandemPassengers).where(eq(tandemPassengers.id, p.id)))[0];
 		expect(fresh).toMatchObject({ paymentStatus: 'paid', amountPaidMinor: p.totalMinor, paymentMethod: 'stripe' });
+	});
+
+	test('abandoned group checkout is found for every covered passenger until paid, cancelled or expired', async () => {
+		const dz = await setup('paystack');
+		await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '09:00', capacity: 4 });
+		const res = await createOnlineBooking(db, { dropzoneId: dz.id, date: DAY, time: '09:00', jumpers: [{ name: 'Ann', email: 'a@x.co' }, { name: 'Bob', email: 'b@x.co' }] });
+		const solo = await createOnlineBooking(db, { dropzoneId: dz.id, date: DAY, time: '09:00', jumpers: [{ name: 'Cid', email: 'c@x.co' }] });
+		const [ann, bob] = res.passengers;
+		expect(await pendingTandemCheckout(db, dz.id, ann.id)).toBeUndefined();
+		const { payment } = await startTandemCheckout(db, ctx, {
+			...common(dz),
+			provider: 'paystack',
+			deposit: true,
+			allocations: res.passengers.map((p) => ({ passengerId: p.id, amountMinor: 100 })),
+			returnTo: '/x'
+		});
+		// Customer never pays: both covered passengers see it, an unrelated booking doesn't.
+		expect((await pendingTandemCheckout(db, dz.id, ann.id))?.id).toBe(payment.id);
+		expect((await pendingTandemCheckout(db, dz.id, bob.id))?.id).toBe(payment.id);
+		expect(await pendingTandemCheckout(db, dz.id, solo.passengers[0].id)).toBeUndefined();
+		// Past the housekeeping window it is no longer offered.
+		expect(await pendingTandemCheckout(db, dz.id, ann.id, Date.now() + ABANDONED_CHECKOUT_MS + 60_000)).toBeUndefined();
+		await cancelPendingOnlinePayment(db, payment.id);
+		expect(await pendingTandemCheckout(db, dz.id, ann.id)).toBeUndefined();
 	});
 
 	test("can't pay for another dropzone's passenger", async () => {

@@ -163,7 +163,7 @@ Booking: `addBookingSlots(db, {dropzoneId, date, time, capacity, repeat: none|da
 ### online-payments.ts
 Online payments through the dropzone's own provider account (docs/PAYMENTS.md): `createOnlineTopUp`, `createOnlineTandemPayment(db, {allocations[], deposit})`,
 `confirmOnlinePayment(db, {paymentId, provider, outcome, providerTxId, amountMinor, currency})` (idempotent; credits the wallet or marks passengers paid),
-`cancelPendingOnlinePayment`, `listOnlinePayments`. Provider adapters live in `src/lib/server/payments/`.
+`cancelPendingOnlinePayment`, `listOnlinePayments`, `paymentCovers(payment, passengerId)`, `pendingTandemCheckout` (newest pending online tandem checkout covering a passenger, younger than `ABANDONED_CHECKOUT_MS`). Provider adapters live in `src/lib/server/payments/`.
 
 ### payments.ts
 `unpaidSlots` / `paidSlots(db, userId, dzId)` (Jumper Account tabs), `outstandingByJumper(db, dzId, day)` (Jump Payments › Sporties),

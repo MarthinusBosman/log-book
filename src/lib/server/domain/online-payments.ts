@@ -7,7 +7,7 @@
  * Confirmation is idempotent: a payment already `succeeded`, or a provider tx id already recorded,
  * is a no-op. Money that arrives after a cancel/fail is still applied (it really was paid).
  */
-import { and, desc, eq, inArray, lt, ne } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, ne } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { payments, tandemPassengers, type Payment } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
@@ -242,6 +242,35 @@ export async function expireAbandonedCheckouts(db: Database, now = Date.now(), l
 		n += r.length;
 	}
 	return n;
+}
+
+/** True when a tandem payment paid (part of) this passenger's booking (group payments via allocations). */
+export function paymentCovers(p: Payment, passengerId: string): boolean {
+	return p.tandemPassengerId === passengerId || !!meta(p).allocations?.some((a) => a.passengerId === passengerId);
+}
+
+/**
+ * The newest online tandem checkout covering this passenger that is still `pending` and not yet
+ * old enough for housekeeping to expire. Lets the booking page show "not confirmed yet" with
+ * Check / Cancel when the customer comes back without the provider's redirect (closed the tab,
+ * went back, opened the emailed link).
+ */
+export async function pendingTandemCheckout(db: Database, dropzoneId: string, passengerId: string, now = Date.now()): Promise<Payment | undefined> {
+	const rows = await db
+		.select()
+		.from(payments)
+		.where(
+			and(
+				eq(payments.dropzoneId, dropzoneId),
+				eq(payments.status, 'pending'),
+				ne(payments.provider, 'manual'),
+				inArray(payments.purpose, ['tandem', 'tandem_deposit']),
+				gte(payments.createdAt, new Date(now - ABANDONED_CHECKOUT_MS))
+			)
+		)
+		.orderBy(desc(payments.createdAt))
+		.limit(50);
+	return rows.find((p) => paymentCovers(p, passengerId));
 }
 
 /** Online payments for a dropzone, newest first (settings page "recent payments"). */

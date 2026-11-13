@@ -31,6 +31,8 @@ customer ──► /pay/:id/return ──► (if still pending: server-side stat
             ──► back to the booking / wallet page with ?payment=:id (shows "Payment received / processing")
 customer cancels ──► /pay/:id/cancel ──► payment cancelled (a later genuine success still applies)
 customer abandons ──► jumper wallet lists it under "Pending top-ups" with Check (= /pay/:id/return) + Cancel
+                  ──► tandem booking page shows "Not confirmed yet" (also without ?payment=, via
+                      pendingTandemCheckout) with Check again (= /pay/:id/return) + Cancel payment
                   ──► still pending after 48 h: housekeeping marks it cancelled ("expired"; late success still applies)
 ```
 

@@ -10,9 +10,8 @@ import { readAnswerFields, signTandemWaiver } from '#lib/server/tandems/document
 import { failFrom, publicOrigin, str } from '#lib/server/tandems/http.ts';
 import { publicDropzone } from '#lib/server/tandems/public.ts';
 import type { Database } from '#lib/server/db/index.ts';
-import type { Payment } from '#lib/server/db/schema.ts';
 import { getPriceMap } from '#lib/server/domain/pricing.ts';
-import { getPayment, meta } from '#lib/server/domain/online-payments.ts';
+import { cancelPendingOnlinePayment, getPayment, paymentCovers, pendingTandemCheckout } from '#lib/server/domain/online-payments.ts';
 import { PROVIDERS, dropzonePayments, isOnlineProvider, providerChoices, startTandemCheckout } from '#lib/server/payments/index.ts';
 import { paymentsContext, secretsKey } from '#lib/server/payments/runtime.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -26,11 +25,6 @@ async function booking(db: Database, dzId: string, conf: string) {
 	return p;
 }
 
-/** A payment may be shown on this booking page only if it paid (part of) this booking. */
-function coversPassenger(pay: Payment, passengerId: string): boolean {
-	return pay.tandemPassengerId === passengerId || !!meta(pay).allocations?.some((a) => a.passengerId === passengerId);
-}
-
 /** Per-jumper deposit configured on the DZ's price list. */
 async function depositEach(db: Database, dropzoneId: string): Promise<number> {
 	return (await getPriceMap(db, dropzoneId)).tandem_deposit ?? 0;
@@ -41,12 +35,19 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const p = await booking(locals.db, dz.id, params.conf);
 	const sections = await listSections(locals.db, dz.id, 'tandem');
 	const pid = url.searchParams.get('payment');
-	const pay = pid ? await getPayment(locals.db, pid) : undefined;
+	// Back from the provider (?payment=), or back some other way while a checkout is still open.
+	const pay = pid ? await getPayment(locals.db, pid) : await pendingTandemCheckout(locals.db, dz.id, p.id);
 	const paymentNotice =
-		pay && coversPassenger(pay, p.id)
-			? { status: pay.status, amountMinor: pay.amountMinor, currency: pay.currency, provider: isOnlineProvider(pay.provider) ? PROVIDERS[pay.provider].label : pay.provider }
+		pay && pay.dropzoneId === dz.id && paymentCovers(pay, p.id)
+			? {
+					id: pay.id,
+					status: pay.status,
+					amountMinor: pay.amountMinor,
+					currency: pay.currency,
+					provider: isOnlineProvider(pay.provider) ? PROVIDERS[pay.provider].label : pay.provider
+				}
 			: url.searchParams.get('payerror')
-				? { status: 'error' as const, amountMinor: 0, currency: p.currency, provider: '' }
+				? { id: null, status: 'error' as const, amountMinor: 0, currency: p.currency, provider: '' }
 				: null;
 	const { usable } = await dropzonePayments(locals.db, dz, secretsKey());
 	const codes = groupCodes(url.searchParams.get('g'));
@@ -133,6 +134,20 @@ export const actions: Actions = {
 			return failFrom(e);
 		}
 		redirect(303, next, { external: [new URL(next).origin] });
+	},
+
+	/** Give up on an online checkout that never completed (the pending notice's Cancel). */
+	cancelPayment: async ({ locals, params, request }) => {
+		const dz = await publicDropzone(locals.db, params.slug);
+		const p = await booking(locals.db, dz.id, params.conf);
+		const f = await request.formData();
+		const pay = await getPayment(locals.db, str(f, 'paymentId'));
+		if (!pay || pay.dropzoneId !== dz.id || !paymentCovers(pay, p.id)) return failFrom(new DomainError('not_found', 'Payment not found'));
+		// Only flips a still-pending row; money that really arrives later is still applied.
+		await cancelPendingOnlinePayment(locals.db, pay.id);
+		const g = str(f, 'g');
+		const q = new URLSearchParams(g ? { g, payment: pay.id } : { payment: pay.id });
+		redirect(303, `/dz/${dz.slug}/book/${p.confirmationNumber}?${q}`);
 	},
 
 	sign: async ({ locals, params, request }) => {
