@@ -424,6 +424,9 @@ staff can find a reset link for a jumper.
 |---|---|---|
 | `ORIGIN` | compose: `http://localhost:3000` | The URL people use, e.g. `https://manifest.mydz.co.za` (CSRF + absolute URLs). Empty (`ORIGIN=`) = taken from each request; only behind a proxy with `PROTOCOL_HEADER`/`HOST_HEADER` (LAN with several names). |
 | `APP_ORIGIN` | `ORIGIN`, else the request | Canonical URL in emails / booking confirmations. |
+| `RESEND_API_KEY` | — | Send email through [Resend](https://resend.com) (password resets, staff invites, tandem confirmations). Unset = emails are only printed to the log (`docker compose logs app`). |
+| `EMAIL_FROM` | `Log-Book <noreply@log-book.app>` | Sender address; use a domain you verified in Resend, e.g. `Skydive Example <noreply@your-dz.co.za>`. |
+| `EMAIL_REPLY_TO` | — | Optional Reply-To address. |
 | `SECRETS_KEY` | insecure dev key | **Set this.** Encrypts stored payment-provider secrets. Keep it with your backups; changing it makes saved PayFast credentials unreadable. |
 | `PORT` | `3000` | Host port of the app (compose) / listen port (bare Bun). |
 | `APP_BIND` | `0.0.0.0` | Compose: host address port 3000 is published on. `127.0.0.1` when a front end is in use. |

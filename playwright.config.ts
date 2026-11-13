@@ -16,8 +16,10 @@ export default defineConfig({
 		{ name: 'mobile', use: { ...devices['Pixel 7'] } }
 	],
 	// Production build of the self-hosted (Bun) target against a throwaway SQLite file.
+	// RESEND_API_KEY is blanked so a key in the developer's shell can never send real email
+	// (emails go to the console instead).
 	webServer: {
-		command: `rm -f data/e2e.db* && bun run build:bun && PORT=${PORT} ORIGIN=http://localhost:${PORT} DATABASE_PATH=data/e2e.db bun build/server.js`,
+		command: `rm -f data/e2e.db* && bun run build:bun && RESEND_API_KEY= PORT=${PORT} ORIGIN=http://localhost:${PORT} DATABASE_PATH=data/e2e.db bun build/server.js`,
 		url: `http://localhost:${PORT}/api/health`,
 		timeout: 180_000,
 		reuseExistingServer: false

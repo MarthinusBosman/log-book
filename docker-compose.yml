@@ -44,6 +44,11 @@ services:
       FEDERATION_CLIENT_ID: ${FEDERATION_CLIENT_ID:-}
       FEDERATION_CLIENT_SECRET: ${FEDERATION_CLIENT_SECRET:-}
       CRON_SECRET: ${CRON_SECRET:-}
+      # Optional email through Resend (password resets, invites, booking confirmations).
+      # Unset = emails are only written to the log. EMAIL_FROM's domain must be verified in Resend.
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_FROM: ${EMAIL_FROM:-}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-}
       # Behind a reverse proxy (any front end below):
       PROTOCOL_HEADER: ${PROTOCOL_HEADER:-}
       HOST_HEADER: ${HOST_HEADER:-}

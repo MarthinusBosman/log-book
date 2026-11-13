@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { brand } from '#lib/brand.ts';
 import { publicOrigin } from '#lib/server/config.ts';
-import { getMailer } from '#lib/server/email/index.ts';
+import { getMailer, idempotencyKey } from '#lib/server/email/index.ts';
 import { createPasswordResetToken } from '#lib/server/auth/users.ts';
 import { listMembers, removeMember, setRoleColour } from '#lib/server/domain/dropzone-admin.ts';
 import { grantRole, revokeRole } from '#lib/server/domain/permissions.ts';
@@ -32,19 +32,31 @@ export const actions: Actions = {
 			const roleText = roles.map((r) => ROLE_LABELS[r]).join(', ');
 			if (res.created) {
 				const token = await createPasswordResetToken(event.locals.db, res.userId);
-				await getMailer().send({
-					to: res.email,
-					subject: `You're invited to ${dz.name} on ${brand.name}`,
-					text: `Hi ${res.name},\n\n${user.name} added you to ${dz.name} as: ${roleText}.\n\nSet your password to get started (link valid for 1 hour — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`
-				});
-				return { message: `Invite sent to ${res.email}` };
+				const sent = await getMailer()
+					.send({
+						to: res.email,
+						subject: `You're invited to ${dz.name} on ${brand.name}`,
+						text: `Hi ${res.name},\n\n${user.name} added you to ${dz.name} as: ${roleText}.\n\nSet your password to get started (link valid for 1 hour — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`,
+						// One per invite: the invite's single-use password link.
+						idempotencyKey: await idempotencyKey('invite', token)
+					})
+					.then(() => true, () => false);
+				return {
+					message: sent
+						? `Invite sent to ${res.email}`
+						: `${res.name} was added, but the invite email couldn't be sent. They can use "Forgot password" on the login page with ${res.email}.`
+				};
 			}
-			await getMailer().send({
-				to: res.email,
-				subject: `You've been added to ${dz.name}`,
-				text: `Hi ${res.name},\n\n${user.name} added you to ${dz.name} as: ${roleText}.\n\n${origin}/app\n`
-			});
-			return { message: res.granted.length ? `${res.name} added` : `${res.name} already has those roles` };
+			// Membership is saved either way; a failed notice email isn't worth failing the action.
+			const sent = await getMailer()
+				.send({
+					to: res.email,
+					subject: `You've been added to ${dz.name}`,
+					text: `Hi ${res.name},\n\n${user.name} added you to ${dz.name} as: ${roleText}.\n\n${origin}/app\n`
+				})
+				.then(() => true, () => false);
+			const msg = res.granted.length ? `${res.name} added` : `${res.name} already has those roles`;
+			return { message: sent ? msg : `${msg} (the notification email couldn't be sent)` };
 		}),
 
 	setRoles: (event) =>

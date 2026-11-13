@@ -2,3 +2,5 @@
 # `bunx wrangler secret put <NAME>` instead.
 SECRETS_KEY=dev-only-change-me-0123456789abcdef
 # CRON_SECRET=
+# Never put a real Resend key here for tests; unset = emails print to the console.
+# RESEND_API_KEY=

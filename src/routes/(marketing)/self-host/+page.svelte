@@ -34,6 +34,7 @@
 		['TUNNEL_TOKEN', 'Cloudflare Tunnel mode: the token from the Cloudflare dashboard.'],
 		['LAN_HOSTS', 'WiFi-only HTTPS mode: every name and IP people may type, comma separated.'],
 		['PROTOCOL_HEADER, HOST_HEADER', 'x-forwarded-proto and x-forwarded-host behind any of the front ends.'],
+		['RESEND_API_KEY, EMAIL_FROM', 'Optional: send password resets, invites and booking confirmations through Resend from your own verified domain. Unset = emails only appear in the log.'],
 		['FEDERATION_GLOBAL_URL', `Origin of the hosted ${brand.name} instance, for linking jumper accounts.`],
 		['FEDERATION_CLIENT_ID, FEDERATION_CLIENT_SECRET', 'Issued when you register your server (see below).']
 	];

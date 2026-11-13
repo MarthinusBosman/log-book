@@ -174,6 +174,10 @@
 				name, email and licence details. You can unlink at any time.
 			</li>
 			<li>
+				<strong>Resend</strong> delivers the service emails we send (password resets, invitations, booking
+				confirmations). It receives the recipient’s address and the message.
+			</li>
+			<li>
 				<strong>GitHub</strong> hosts the public source code. It receives no personal information from the app.
 			</li>
 			<li>Authorities, only when the law requires it, and only what is required.</li>
@@ -187,6 +191,8 @@
 			outside South Africa. Section 72 of POPIA allows this when the recipient is bound by law or a binding agreement
 			that gives protection comparable to POPIA. Cloudflare processes data under its data processing terms, which
 			include the EU Standard Contractual Clauses and commit it to security and confidentiality comparable to POPIA.
+			Resend (email delivery, United States) processes recipient addresses and message content under its data
+			processing agreement on the same basis.
 			Payment providers and the other services above process data under their own terms; the payment providers in use
 			include South African companies.
 		</p>

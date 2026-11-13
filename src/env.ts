@@ -50,6 +50,19 @@ export const variables = defineEnvVars({
 			'Where uploaded files live: "disk" (UPLOADS_DIR, bun default), "db" (inside the database, Cloudflare default — no R2 needed) or "r2" (Cloudflare R2 binding FILES).',
 		schema: optional('')
 	},
+	RESEND_API_KEY: {
+		description:
+			'Send email (password resets, invites, booking confirmations) through Resend with this API key. Unset = emails are only printed to the server log. On Cloudflare set it as a secret: wrangler secret put RESEND_API_KEY.',
+		schema: optional('')
+	},
+	EMAIL_FROM: {
+		description: 'Sender for outgoing email, e.g. "Skydive Example <noreply@your-dz.co.za>" (the domain must be verified in Resend). Default: Log-Book <noreply@log-book.app>.',
+		schema: optional('')
+	},
+	EMAIL_REPLY_TO: {
+		description: 'Optional Reply-To address for outgoing email. Unset = none.',
+		schema: optional('')
+	},
 	CRON_SECRET: {
 		description:
 			'Bearer secret for POST /api/cron (housekeeping + federation flush) when triggered from outside, e.g. host cron on a self-hosted box. Cloudflare cron triggers need no secret.',

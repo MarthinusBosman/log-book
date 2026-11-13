@@ -54,6 +54,9 @@ Plain values go in `vars` in `wrangler.jsonc`.
 | `APP_ORIGIN` | var | no | Canonical public URL for emails/OAuth links. Unset = taken from each request (fine on workers.dev). Set it when a custom domain is attached. |
 | `INSTANCE_MODE` | var | set | `global` (identity provider for self-hosted dropzones). |
 | `STORAGE_DRIVER` | var | set | `r2` (bucket via the `FILES` binding, reads legacy D1 blobs as fallback) or `db` (D1 only). |
+| `RESEND_API_KEY` | secret | no | Sends email (password resets, invites, tandem confirmations) through Resend: `bunx wrangler secret put RESEND_API_KEY`. Unset = emails only go to the Worker log. |
+| `EMAIL_FROM` | var | no | Sender, default `Log-Book <noreply@log-book.app>` (domain verified in Resend). |
+| `EMAIL_REPLY_TO` | var | no | Reply-To header; unset = none. Hosted: `hello@log-book.app`. |
 | `CRON_SECRET` | secret | no | Only to call `POST /api/cron` from outside; the cron trigger needs nothing. |
 | `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | var | no | Optional overrides; the Jump Master connector discovers them automatically (docs/IMPORT.md). |
 | `FEDERATION_*` | — | no | Dropzone-instance side only; not used by the global instance. |
@@ -76,6 +79,25 @@ The worker runs on `workers.dev` until a custom domain is attached. To serve it 
 
 Not done yet: no custom domain is attached today, and `*.log-book.app` subdomains for self-hosted
 dropzones are not offered (docs/SELF_HOSTING.md → Custom domain).
+
+## Email (Resend)
+
+Without `RESEND_API_KEY` every email (password reset, staff invite, tandem confirmation, booking
+notice to the DZ) is only written to the Worker log. To send for real:
+
+1. In Resend, add and verify the sending domain (`log-book.app`): add the DKIM/SPF (and
+   optional DMARC) records it shows to the Cloudflare DNS zone.
+2. Create an API key with *sending access* only, then `bunx wrangler secret put RESEND_API_KEY`.
+3. Optional `vars`: `EMAIL_FROM` (default `Log-Book <noreply@log-book.app>`),
+   `EMAIL_REPLY_TO` = `hello@log-book.app`.
+4. Check with *Forgot password* for your own account: the Worker log shows
+   `[email] resend accepted id=…` (the id matches the Resend dashboard) or `[email] resend failed: …`.
+
+The driver (`src/lib/server/email/resend.ts`) uses fetch only, times out each try after 5 s and
+retries network errors, 5xx and 429 (a short `retry-after` is honoured) up to 3 tries within
+~12 s, never other 4xx. Every request carries an `Idempotency-Key` (per reset token / per invite,
+else random per send) so retries can't send twice. Email copy lives in the code, not in Resend
+templates, so self-hosters get the same messages.
 
 ## Payments (hosted)
 

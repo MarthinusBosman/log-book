@@ -1,7 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { brand } from '#lib/brand.ts';
 import { publicOrigin } from '#lib/server/config.ts';
-import { getMailer } from '#lib/server/email/index.ts';
+import { getMailer, idempotencyKey } from '#lib/server/email/index.ts';
 import { createPasswordResetToken, findUserByEmail, validateEmail, normalizeEmail } from '#lib/server/auth/users.ts';
 import type { Actions } from './$types';
 
@@ -15,11 +15,17 @@ export const actions: Actions = {
 		if (user) {
 			const token = await createPasswordResetToken(locals.db, user.id);
 			const link = `${publicOrigin(url.origin)}/reset-password?token=${token}`;
-			await getMailer().send({
-				to: user.email,
-				subject: `Reset your ${brand.name} password`,
-				text: `Hi ${user.name},\n\nReset your password (valid for 1 hour):\n${link}\n\nIf you didn't ask for this, ignore this email.`
-			});
+			try {
+				await getMailer().send({
+					to: user.email,
+					subject: `Reset your ${brand.name} password`,
+					text: `Hi ${user.name},\n\nReset your password (valid for 1 hour):\n${link}\n\nIf you didn't ask for this, ignore this email.`,
+					idempotencyKey: await idempotencyKey('password-reset', token)
+				});
+			} catch (e) {
+				// Logged by the mailer; the response must not reveal whether the account exists.
+				console.error('[forgot-password] reset email not sent', e instanceof Error ? e.message : e);
+			}
 		}
 		// Same response either way — don't reveal which emails have accounts.
 		return { sent: true, email };

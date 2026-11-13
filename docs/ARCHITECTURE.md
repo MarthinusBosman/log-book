@@ -46,7 +46,9 @@ the same module backed by Miniflare, so `bun run dev:cf` uses the *local* D1 in 
   stored as `pbkdf2-sha256$<iter>$<salt>$<hash>` so the algorithm can be upgraded; verification
   reports `needsRehash` and `authenticate()` transparently upgrades old hashes.
 * Password reset: single-use hashed token, 1 h expiry, resets sign out all sessions. Email goes
-  through the `Mailer` interface (`src/lib/server/email`), console implementation for now.
+  through the `Mailer` interface (`src/lib/server/email`): Resend when `RESEND_API_KEY` is set
+  (fetch, 5 s timeout, ≤ 3 tries on network errors/5xx/429 with an `Idempotency-Key`), else the
+  console. Callers treat send failures as non-fatal (forgot-password never reveals them).
 * Account deletion (self-service, `/app/profile/delete`): personal data is deleted, dropzone records are kept and
   the `users` row becomes an anonymous tombstone; see `docs/DOMAIN.md` → account.ts.
 * Authorisation: users are global; membership is `dropzone_members (dropzone_id, user_id, status)`
@@ -56,7 +58,7 @@ the same module backed by Miniflare, so `bun run dev:cf` uses the *local* D1 in 
   dropzone is a cookie (`dz`) validated against memberships on every `/app` request.
 * CSRF: SvelteKit's built-in origin check for form posts. Behind a proxy set `ORIGIN` (adapter-node).
 * TODO before production: rate-limit login/signup/reset (Cloudflare rate-limit binding or a small
-  SQLite-backed limiter), email verification, real mail provider.
+  SQLite-backed limiter), email verification.
 
 ## Federation
 

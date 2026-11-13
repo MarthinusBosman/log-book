@@ -1,4 +1,4 @@
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 import { APP_ORIGIN } from '$app/env/private';
 import {
 	cancelPassenger,
@@ -156,7 +156,11 @@ export const actions: Actions = {
 		const { id, dz } = await ctx(event);
 		const p = (await getPassenger(event.locals.db, id))!;
 		if (!p.email) return failFrom(new DomainError('invalid', 'This passenger has no email address'));
-		await sendConfirmationEmail(dz, p, publicOrigin(event.url, APP_ORIGIN));
+		try {
+			await sendConfirmationEmail(dz, p, publicOrigin(event.url, APP_ORIGIN));
+		} catch {
+			return fail(502, { message: 'The email couldn’t be sent right now. Try again in a minute.' });
+		}
 		return { ok: true, message: `Confirmation sent to ${p.email}` };
 	},
 
