@@ -21,8 +21,17 @@
 	// set it once a custom domain is attached so emails/OAuth links use the canonical origin.
 	"vars": {
 		"INSTANCE_MODE": "global",
-		"STORAGE_DRIVER": "r2"
+		"STORAGE_DRIVER": "r2",
+		"CANONICAL_HOST": "log-book.app",
+		"APP_ORIGIN": "https://log-book.app"
 	},
+	// Hosted domains: log-book.app is canonical; www and log-book.io 301 to it (CANONICAL_HOST).
+	"routes": [
+		{ "pattern": "log-book.app", "custom_domain": true },
+		{ "pattern": "www.log-book.app", "custom_domain": true },
+		{ "pattern": "log-book.io", "custom_domain": true },
+		{ "pattern": "www.log-book.io", "custom_domain": true }
+	],
 	// Uploads (photos, logos, signatures, staged imports). Locally `wrangler dev` simulates it.
 	"r2_buckets": [
 		{
