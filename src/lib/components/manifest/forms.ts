@@ -1,5 +1,6 @@
 import type { SubmitFunction } from '$app/forms';
 import { toast } from '#lib/ui/toast.svelte.ts';
+import { confirmed } from './manifest.ts';
 
 type Opts = {
 	/** Toast title on success (omit for silent). */
@@ -9,6 +10,11 @@ type Opts = {
 	/** Reset the form after success (default false — dialogs usually close instead). */
 	reset?: boolean;
 	pending?: (busy: boolean) => void;
+	/**
+	 * Ask before submitting; "Cancel" aborts. Must go through here: an `onsubmit` handler calling
+	 * `preventDefault()` does NOT stop `use:enhance`, which had already sent the request.
+	 */
+	confirm?: string | (() => string);
 };
 
 /**
@@ -16,7 +22,8 @@ type Opts = {
  * errors, keeps the page in place and re-runs load functions after success.
  */
 export function act(opts: Opts = {}): SubmitFunction {
-	return () => {
+	return ({ cancel }) => {
+		if (!confirmed(opts.confirm)) return cancel();
 		opts.pending?.(true);
 		return async ({ result, update }) => {
 			opts.pending?.(false);

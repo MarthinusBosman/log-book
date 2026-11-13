@@ -124,10 +124,7 @@
 						method="POST"
 						action="?/removeSlot"
 						class="flex flex-wrap items-center gap-3"
-						onsubmit={(e) => {
-							if (!confirm('Are you sure you want to remove this jumper from the load?')) e.preventDefault();
-						}}
-						use:enhance={act({ success: 'Removed from load', onSuccess: close })}
+						use:enhance={act({ confirm: 'Are you sure you want to remove this jumper from the load?', success: 'Removed from load', onSuccess: close })}
 					>
 						<input type="hidden" name="slotId" value={s.id} />
 						{#if s.groupId}<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="withGroup" checked={!!s.tandemPassengerId} class="size-4 accent-[var(--dz-primary)]" /> Remove whole group</label>{/if}

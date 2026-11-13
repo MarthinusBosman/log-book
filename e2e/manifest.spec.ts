@@ -47,8 +47,20 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await page.getByRole('button', { name: 'Create jumper slot' }).click();
 	await expect(page.getByText(/Too heavy/).first()).toBeVisible();
 
-	// Lifecycle via the single "next step" button
+	// Dismissing a confirm must really cancel (an onsubmit preventDefault didn't stop use:enhance)
 	const loadCard = page.getByTestId('load-card');
+	await page.waitForLoadState('networkidle');
+	page.once('dialog', (d) => d.dismiss());
+	await loadCard.getByLabel('Load 1 actions').click();
+	await loadCard.getByRole('button', { name: 'Cancel load' }).click();
+	page.once('dialog', (d) => d.dismiss());
+	await loadCard.getByRole('button', { name: 'Mark completed' }).click();
+	await page.waitForTimeout(500);
+	await page.reload();
+	await expect(loadCard).toHaveAttribute('data-status', 'open');
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Vera Visitor"]')).toBeVisible();
+
+	// Lifecycle via the single "next step" button
 	const next = page.getByTestId('next-step');
 	for (const status of ['called', 'boarding', 'departed', 'landed']) {
 		await next.click();

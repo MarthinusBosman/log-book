@@ -60,11 +60,6 @@
 		complete: 'Load completed'
 	};
 
-	function confirmSubmit(msg: string) {
-		return (e: SubmitEvent) => {
-			if (!confirm(msg)) e.preventDefault();
-		};
-	}
 	const onDone = (d: Record<string, unknown>) => {
 		if (d.summary) oncomplete?.(d.summary as CompleteSummary);
 	};
@@ -123,7 +118,7 @@
 			</p>
 		</div>
 		{#if canManifest && !done}
-			<Menu>
+			<Menu label="Load {load.loadNumber} actions">
 				<form method="POST" action="?/setOpen" use:enhance={act({ success: () => (load.isOpen ? 'Load closed' : 'Load opened to jumpers') })}>
 					<input type="hidden" name="loadId" value={load.id} />
 					<input type="hidden" name="open" value={load.isOpen ? '0' : '1'} />
@@ -174,19 +169,19 @@
 				{/if}
 				<div class="my-1 h-px bg-border"></div>
 				{#if load.status !== 'landed'}
-					<form method="POST" action="?/complete" onsubmit={confirmSubmit(`Mark load ${load.loadNumber} as completed? Wallets are charged and logbooks written.`)} use:enhance={act({ success: 'Load completed', onSuccess: onDone })}>
+					<form method="POST" action="?/complete" use:enhance={act({ confirm: () => `Mark load ${load.loadNumber} as completed? Wallets are charged and logbooks written.`, success: 'Load completed', onSuccess: onDone })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={menuItem}><MIcon name="check" class="size-4 text-success" /> Mark completed</button>
 					</form>
 				{/if}
 				{#if editable}
-					<form method="POST" action="?/cancel" onsubmit={confirmSubmit(`Cancel load ${load.loadNumber}? Wallet holds are released.`)} use:enhance={act({ success: 'Load cancelled' })}>
+					<form method="POST" action="?/cancel" use:enhance={act({ confirm: () => `Cancel load ${load.loadNumber}? Wallet holds are released.`, success: 'Load cancelled' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={cn(menuItem, 'text-warning')}><MIcon name="x" class="size-4" /> Cancel load</button>
 					</form>
 				{/if}
 				{#if load.slots.length === 0}
-					<form method="POST" action="?/deleteLoad" onsubmit={confirmSubmit(`Delete load ${load.loadNumber}?`)} use:enhance={act({ success: 'Load has been deleted' })}>
+					<form method="POST" action="?/deleteLoad" use:enhance={act({ confirm: () => `Delete load ${load.loadNumber}?`, success: 'Load has been deleted' })}>
 						<input type="hidden" name="loadId" value={load.id} />
 						<button class={cn(menuItem, 'text-danger')}><MIcon name="trash" class="size-4" /> Delete load</button>
 					</form>

@@ -4,7 +4,23 @@ import { dropzones } from '../db/schema.ts';
 import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
-import { callPhase, formatCountdown, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, confirmed, formatCountdown, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+
+describe('confirmed (act confirm option)', () => {
+	test('no message = go ahead without asking', () => {
+		let asked = 0;
+		expect(confirmed(undefined, () => (asked++, false))).toBe(true);
+		expect(asked).toBe(0);
+	});
+	test('dismissing the prompt stops the submit; lazy messages are evaluated at submit time', () => {
+		const seen: string[] = [];
+		let n = 3;
+		expect(confirmed(() => `Cancel load ${n}?`, (m) => (seen.push(m), false))).toBe(false);
+		n = 4;
+		expect(confirmed(() => `Cancel load ${n}?`, (m) => (seen.push(m), true))).toBe(true);
+		expect(seen).toEqual(['Cancel load 3?', 'Cancel load 4?']);
+	});
+});
 
 describe('manifest time helpers', () => {
 	test('zonedTime converts DZ wall clock to an instant', () => {

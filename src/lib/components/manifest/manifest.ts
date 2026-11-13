@@ -135,3 +135,12 @@ export function slotMoney(slots: readonly { totalMinor: number; paid: boolean; h
 	}
 	return { totalMinor, heldMinor, outstandingMinor };
 }
+
+/**
+ * Ask `message` via `ask` (window.confirm in the browser); true when the user agreed or there's
+ * nothing to ask. Used by `act({ confirm })` so "Cancel" really cancels the enhanced submit.
+ */
+export function confirmed(message: string | (() => string) | undefined, ask: (m: string) => boolean = (m) => window.confirm(m)): boolean {
+	const m = typeof message === 'function' ? message() : message;
+	return !m || ask(m);
+}
