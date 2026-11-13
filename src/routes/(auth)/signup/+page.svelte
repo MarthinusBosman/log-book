@@ -56,6 +56,12 @@
 	{/if}
 
 	<Button type="submit" size="lg" loading={submitting} class="mt-2 w-full">Create account</Button>
+	<p class="text-center text-xs text-muted" data-testid="signup-legal">
+		By creating an account you agree to the
+		<a href="/terms" class="font-medium text-fg underline underline-offset-2 hover:text-primary">Terms</a>
+		and
+		<a href="/privacy" class="font-medium text-fg underline underline-offset-2 hover:text-primary">Privacy Policy</a>.
+	</p>
 </form>
 
 <p class="mt-8 text-center text-sm text-muted">

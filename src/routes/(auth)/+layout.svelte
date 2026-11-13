@@ -20,7 +20,9 @@
 		<footer class="text-center text-xs text-subtle">
 			© {new Date().getFullYear()} {brand.name}. Blue skies. ·
 			<a href={brand.sourceUrl} rel="noopener" class="underline-offset-2 hover:text-fg hover:underline">Source code</a>
-			({brand.license})
+			({brand.license}) ·
+			<a href="/privacy" class="underline-offset-2 hover:text-fg hover:underline">Privacy</a> ·
+			<a href="/terms" class="underline-offset-2 hover:text-fg hover:underline">Terms</a>
 		</footer>
 	</div>
 

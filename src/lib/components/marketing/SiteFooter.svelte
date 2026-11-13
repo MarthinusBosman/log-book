@@ -26,7 +26,9 @@
 			links: [
 				{ href: '/signup', label: 'Create account' },
 				{ href: '/login', label: 'Log in' },
-				{ href: `mailto:${brand.supportEmail}`, label: 'Contact' }
+				{ href: `mailto:${brand.supportEmail}`, label: 'Contact' },
+				{ href: '/privacy', label: 'Privacy policy' },
+				{ href: '/terms', label: 'Terms of use' }
 			]
 		}
 	];
@@ -58,6 +60,10 @@
 				<a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="noopener" class="underline underline-offset-2 hover:text-fg">{brand.license}</a>
 				licence ·
 				<a href={brand.sourceUrl} rel="noopener" class="underline underline-offset-2 hover:text-fg">Source code</a>
+				·
+				<a href="/privacy" class="underline underline-offset-2 hover:text-fg">Privacy</a>
+				·
+				<a href="/terms" class="underline underline-offset-2 hover:text-fg">Terms</a>
 			</p>
 			<p class="font-mono tracking-wide">Blue skies.</p>
 		</div>

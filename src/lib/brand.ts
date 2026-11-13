@@ -11,6 +11,14 @@ export const brand = {
 	/** Public domain of the hosted instance. log-book.io 301s here (CANONICAL_HOST, see docs/DEPLOY.md). */
 	domain: 'log-book.app',
 	supportEmail: 'hello@log-book.app',
+	/**
+	 * Who runs the hosted service at `domain` (privacy policy + terms at /privacy and /terms).
+	 * Self-hosters: the policies say they only cover the hosted service; change these if you
+	 * publish your own.
+	 */
+	operator: 'Marthinus Bosman',
+	/** Information Officer contact (POPIA) for the hosted service. */
+	privacyEmail: 'privacy@log-book.app',
 	/** Where the product is built (site footer). */
 	madeIn: 'South Africa',
 	/** Primary brand colour (also defined as a CSS token in app.css). */

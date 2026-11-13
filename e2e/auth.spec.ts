@@ -8,6 +8,25 @@ test('landing renders', async ({ page }) => {
 	await page.screenshot({ path: `test-results/landing-${test.info().project.name}.png`, fullPage: false });
 });
 
+test('privacy policy + terms: linked from footer and signup, no JS', async ({ page }) => {
+	await page.goto('/');
+	await page.locator('footer').getByRole('link', { name: 'Privacy policy' }).click();
+	await expect(page).toHaveURL(/\/privacy$/);
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy policy');
+	await expect(page.getByRole('heading', { name: 'Your rights' })).toBeVisible();
+	await expect(page.getByRole('link', { name: 'inforegulator.org.za', exact: true })).toHaveAttribute('href', 'https://inforegulator.org.za');
+	// Not log-book.app → says this text is about the hosted service.
+	await expect(page.getByTestId('selfhost-note')).toBeVisible();
+	await expect(page.locator('script[src]')).toHaveCount(0);
+	await page.goto('/terms');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Terms of use');
+	await expect(page.getByRole('heading', { name: 'Skydiving safety' })).toBeVisible();
+	await page.goto('/signup');
+	const legal = page.getByTestId('signup-legal');
+	await expect(legal.getByRole('link', { name: 'Terms' })).toHaveAttribute('href', '/terms');
+	await expect(legal.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
+});
+
 test('signup → dashboard → logout → login → dashboard', async ({ page }) => {
 	const email = `e2e-${Date.now()}-${test.info().project.name}@example.com`;
 	const password = 'blue-skies-123';

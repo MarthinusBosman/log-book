@@ -138,6 +138,10 @@
 						</a>
 					</li>
 				</ul>
+				<p class="mt-4 text-xs text-muted">
+					How we handle your data: <a href="/privacy" class="underline underline-offset-2 hover:text-fg">Privacy policy</a> ·
+					<a href="/terms" class="underline underline-offset-2 hover:text-fg">Terms of use</a>
+				</p>
 			</Card>
 		</aside>
 	</div>
