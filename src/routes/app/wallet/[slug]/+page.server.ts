@@ -2,7 +2,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import { APP_ORIGIN } from '$app/env/private';
 import { eq } from 'drizzle-orm';
 import { dropzones } from '#lib/server/db/schema.ts';
-import { getAccount, listLedger, paySlotsFromWallet } from '#lib/server/domain/wallet.ts';
+import { getAccount, listLedgerWithLoads, paySlotsFromWallet } from '#lib/server/domain/wallet.ts';
 import { cancelTopUpRequest, listTopUpRequests, paidSlots, requestTopUp, unpaidSlots } from '#lib/server/domain/payments.ts';
 import { describeJump } from '#lib/server/domain/loads.ts';
 import { domainFail, moneyMinor, requireUser, str } from '#lib/server/jumper/forms.ts';
@@ -12,6 +12,7 @@ import { paymentsContext, secretsKey } from '#lib/server/payments/runtime.ts';
 import { publicOrigin } from '#lib/server/tandems/http.ts';
 import type { Dropzone } from '#lib/server/db/schema.ts';
 import { formatMoney } from '#lib/domain/constants.ts';
+import { walletHistory } from '#lib/domain/wallet-history.ts';
 import type { Slot } from '#lib/server/db/schema.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -51,7 +52,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const account = await getAccount(locals.db, user.id, dz.id);
 	const pid = url.searchParams.get('payment');
 	const [ledger, unpaid, paid, requests, topup, notice] = await Promise.all([
-		account ? listLedger(locals.db, account.id, { limit: 200 }) : Promise.resolve([]),
+		account ? listLedgerWithLoads(locals.db, account.id, { limit: 200 }) : Promise.resolve([]),
 		unpaidSlots(locals.db, user.id, dz.id),
 		paidSlots(locals.db, user.id, dz.id),
 		listTopUpRequests(locals.db, user.id, dz.id),
@@ -63,7 +64,20 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		account: account
 			? { availableMinor: account.availableMinor, pendingMinor: account.pendingMinor, currency: account.currency, updatedAt: (account.lastActivityAt ?? account.createdAt).getTime() }
 			: null,
-		ledger: ledger.map((e) => ({ id: e.id, type: e.type, amountMinor: e.amountMinor, availableAfterMinor: e.availableAfterMinor, reason: e.reason, origin: e.origin, provider: e.provider, createdAt: e.createdAt.getTime() })),
+		history: walletHistory(
+			ledger.map((e) => ({
+				id: e.id,
+				type: e.type,
+				amountMinor: e.amountMinor,
+				availableAfterMinor: e.availableAfterMinor,
+				pendingAfterMinor: e.pendingAfterMinor,
+				relatedEntryId: e.relatedEntryId,
+				reason: e.reason,
+				loadNumber: e.loadNumber,
+				loadDay: e.loadDay,
+				createdAt: e.createdAt.getTime()
+			}))
+		),
 		unpaid: unpaid.map(slotView).filter((s) => s.totalMinor > 0),
 		paid: paid.map(slotView).reverse(),
 		requests: requests.map((p) => ({ id: p.id, amountMinor: p.amountMinor, currency: p.currency, status: p.status, provider: p.provider, providerLabel: providerLabel(p.provider), createdAt: p.createdAt.getTime() })),

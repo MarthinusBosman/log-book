@@ -1,8 +1,9 @@
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import {
 	dropzones,
 	ledgerEntries,
+	loads,
 	slots,
 	walletAccounts,
 	type LedgerEntry,
@@ -61,6 +62,17 @@ export async function listLedger(db: Database, accountId: string, opts: { limit?
 		.orderBy(desc(ledgerEntries.createdAt))
 		.limit(opts.limit ?? 100)
 		.offset(opts.offset ?? 0);
+}
+
+/** Ledger rows newest first with the load they belong to (for the jumper's wallet history). */
+export async function listLedgerWithLoads(db: Database, accountId: string, opts: { limit?: number } = {}) {
+	return db
+		.select({ ...getTableColumns(ledgerEntries), loadNumber: loads.loadNumber, loadDay: loads.day })
+		.from(ledgerEntries)
+		.leftJoin(loads, eq(loads.id, ledgerEntries.loadId))
+		.where(eq(ledgerEntries.accountId, accountId))
+		.orderBy(desc(ledgerEntries.createdAt))
+		.limit(opts.limit ?? 100);
 }
 
 // ── internal: an in-memory running balance that emits ledger rows + one account update ──

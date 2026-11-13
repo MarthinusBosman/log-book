@@ -181,3 +181,47 @@ describe('capture & payments', () => {
 		expect((await getAccount(db, jumper.id, dz.id))!.availableMinor).toBe(100000);
 	});
 });
+
+describe('jumper wallet history', () => {
+	test('one row per jump: released holds hidden, open hold neutral, balance includes held money', async () => {
+		const { walletHistory } = await import('../../domain/wallet-history.ts');
+		const { listLedgerWithLoads } = await import('./wallet.ts');
+		const { dz, owner, load, jumper } = await setup();
+		const [load2, load3] = await createLoads(db, { dropzoneId: dz.id, day: DAY, count: 2, capacity: 10, createdBy: owner.id, now: NOW });
+		await topUp(db, { userId: jumper.id, dropzoneId: dz.id, amountMinor: 100000, provider: 'cash', now: NOW });
+		await addSlot(db, load.id, { userId: jumper.id, jumpType: 'belly' }, { now: NOW + 1000 });
+		await completeLoad(db, load.id, { now: NOW + 2000 });
+		const left = await addSlot(db, load2.id, { userId: jumper.id, jumpType: 'belly' }, { now: NOW + 3000 });
+		await removeSlot(db, left.id, { now: NOW + 4000 });
+		await addSlot(db, load3.id, { userId: jumper.id, jumpType: 'belly' }, { now: NOW + 5000 });
+
+		const acc = (await getAccount(db, jumper.id, dz.id))!;
+		const raw = await listLedgerWithLoads(db, acc.id);
+		expect(raw).toHaveLength(7); // topup, hold/release/charge, hold/release, hold
+		const rows = walletHistory(raw.map((e) => ({ ...e, createdAt: e.createdAt.getTime() })));
+		expect(rows.map((r) => [r.direction, r.loadNumber, r.amountMinor, r.balanceAfterMinor])).toEqual([
+			['reserved', load3.loadNumber, P.sport_slot!, 100000 - P.sport_slot!],
+			['out', load.loadNumber, P.sport_slot!, 100000 - P.sport_slot!],
+			['in', null, 100000, 100000]
+		]);
+		expect(rows[0].title).toBe('Reserved for a jump');
+		expect(rows[1].title).toBe('Jump charged');
+		expect(rows[1].loadDay).toBe(DAY);
+		// header figures still add up: available + reserved = latest balance
+		expect(acc.availableMinor + acc.pendingMinor).toBe(rows[0].balanceAfterMinor);
+	});
+
+	test('adjustments keep their sign; reasons that repeat the label are dropped', async () => {
+		const { walletHistory } = await import('../../domain/wallet-history.ts');
+		const base = { availableAfterMinor: 0, pendingAfterMinor: 0, relatedEntryId: null, createdAt: NOW };
+		const rows = walletHistory([
+			{ ...base, id: 'a', type: 'adjustment', amountMinor: -500, reason: 'Packing fee' },
+			{ ...base, id: 'b', type: 'refund', amountMinor: 700, reason: 'Refund' },
+			{ ...base, id: 'c', type: 'hold_release', amountMinor: 900, reason: null, relatedEntryId: 'zzz' }
+		]);
+		expect(rows.map((r) => [r.id, r.direction, r.amountMinor, r.detail])).toEqual([
+			['a', 'out', 500, 'Packing fee'],
+			['b', 'in', 700, null]
+		]);
+	});
+});

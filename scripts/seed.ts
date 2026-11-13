@@ -249,7 +249,7 @@ for (let i = 0; i < 30; i++) {
 			providerTxId: `seed-${i}`,
 			reason: 'Top-up',
 			createdBy: manifest.id,
-			now: now - int(2, 20) * 86400_000
+			now: now - int(8, 20) * 86400_000
 		});
 	}
 	// manual logbook history (signed by an instructor sometimes)

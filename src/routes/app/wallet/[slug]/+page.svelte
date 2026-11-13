@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { Badge, Button, Card, EmptyState, Icon, Tabs, cn, toast } from '#lib/ui/index.ts';
-	import { LEDGER_TYPE_LABELS, formatMoney, type LedgerType } from '#lib/domain/constants.ts';
+	import { formatMoney } from '#lib/domain/constants.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -27,8 +27,6 @@
 	const low = $derived(!!data.account && data.account.availableMinor < unpaidTotal);
 	const presets = [50000, 100000, 200000, 500000];
 
-	const IN: LedgerType[] = ['topup', 'refund', 'hold_release', 'staff_pay'];
-	const sign = (t: string, amt: number) => (t === 'adjustment' ? (amt >= 0 ? 1 : -1) : IN.includes(t as LedgerType) ? 1 : -1);
 
 	const submit = (name: string) => () => {
 		busy = name;
@@ -184,27 +182,34 @@
 							{/each}
 						</ul>
 					{/if}
-				{:else if data.ledger.length === 0}
+				{:else if data.history.length === 0}
 					<p class="rounded-2xl border border-dashed border-border-strong p-8 text-center text-sm text-muted">There have been no transactions at this dropzone.</p>
 				{:else}
 					<ul class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface" data-testid="ledger">
-						{#each data.ledger as e (e.id)}
-							{@const s = sign(e.type, e.amountMinor)}
-							<li class="flex items-center gap-3 px-4 py-3 text-sm">
-								<span class={cn('grid size-9 shrink-0 place-items-center rounded-xl', s > 0 ? 'bg-success/10 text-success' : 'bg-surface-2 text-muted')}>
-									<JIcon name={s > 0 ? 'arrowDownLeft' : 'arrowUpRight'} class="size-4" />
+						{#each data.history as e (e.id)}
+							{@const into = e.direction === 'in'}
+							{@const held = e.direction === 'reserved'}
+							<li class="flex items-center gap-3 px-4 py-3 text-sm" data-direction={e.direction}>
+								<span class={cn('grid size-9 shrink-0 place-items-center rounded-xl', into ? 'bg-success/10 text-success' : held ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-muted')}>
+									<JIcon name={into ? 'arrowDownLeft' : held ? 'clock' : 'arrowUpRight'} class="size-4" />
 								</span>
 								<span class="min-w-0 flex-1">
-									<span class="block truncate font-medium">{LEDGER_TYPE_LABELS[e.type as LedgerType] ?? e.type}{e.reason && e.reason !== LEDGER_TYPE_LABELS[e.type as LedgerType] ? ` · ${e.reason}` : ''}</span>
-									<span class="text-xs text-muted">{fmtDateTime(e.createdAt)}</span>
+									<span class="block truncate font-medium">{e.title}{e.detail ? ` · ${e.detail}` : ''}</span>
+									<span class="block truncate text-xs text-muted">{#if held && e.loadNumber != null}Load {e.loadNumber}{e.loadDay ? ` on ${fmtDate(e.loadDay)}` : ''}{:else}{e.loadNumber != null ? `Load ${e.loadNumber} · ` : ''}{fmtDateTime(e.createdAt)}{/if}</span>
 								</span>
 								<span class="text-right tabular-nums">
-									<span class={cn('block font-medium', s > 0 && 'text-success')}>{s > 0 ? '+' : '−'}{money(Math.abs(e.amountMinor))}</span>
-									<span class="text-xs text-muted">{money(e.availableAfterMinor)}</span>
+									{#if held}
+										<span class="block font-medium text-muted">{money(e.amountMinor)}</span>
+										<span class="text-xs text-muted">held</span>
+									{:else}
+										<span class={cn('block font-medium', into && 'text-success')}>{into ? '+' : '−'}{money(e.amountMinor)}</span>
+										<span class="text-xs text-muted"><span class="sr-only">Balance </span>{money(e.balanceAfterMinor)}</span>
+									{/if}
 								</span>
 							</li>
 						{/each}
 					</ul>
+					<p class="mt-2 px-1 text-xs text-muted">Right-hand figures are your balance after each entry, including money held for jumps you’re manifested on.</p>
 				{/if}
 			{/snippet}
 		</Tabs>

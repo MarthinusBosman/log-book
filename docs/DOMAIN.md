@@ -99,7 +99,7 @@ Optional trailing args (`now`, `opts`) are left out below.
 - `getPriceMap`, `listPricelist` (every code with category/label/amount), `setPrices(db, dzId, {code: minor})`, `getPrice`.
 
 ### wallet.ts
-- `getAccount`, `getOrCreateAccount`, `listAccountsForUser`, `listLedger(db, accountId)`.
+- `getAccount`, `getOrCreateAccount`, `listAccountsForUser`, `listLedger(db, accountId)`, `listLedgerWithLoads` (adds `loadNumber`/`loadDay`). The jumper wallet page shows it through `walletHistory()` (`#lib/domain/wallet-history.ts`): released holds and their `hold_release` rows are hidden, an open hold is a neutral "reserved" row, and the balance column is available + pending so each row moves it by its own amount. Staff views keep the raw ledger.
 - `topUp(db, {userId, dropzoneId, amountMinor, provider, providerTxId?, currency?, reason?, createdBy?})`: idempotent on `provider+providerTxId`; throws `currency_mismatch`.
 - `adjust(db, {…, amountMinor (signed), reason, createdBy})`, `refund(…)`.
 - `placeHold(db, slotId)`, `updateHold(db, slotId)` (release + re-hold), `releaseHold(db, slotId, {origin})`. `addSlot`/`updateSlot`/`removeSlot` call these for you.
