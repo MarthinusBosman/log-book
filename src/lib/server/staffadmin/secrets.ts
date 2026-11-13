@@ -2,7 +2,8 @@
  * Symmetric encryption for stored provider secrets (AES-256-GCM via WebCrypto — works on Bun and
  * Workers). Format: `v1:<iv b64>:<ciphertext b64>`. The key is SHA-256 of the `SECRETS_KEY` env var.
  */
-const DEV_KEY = 'dev-only-insecure-secrets-key';
+/** Fallback when SECRETS_KEY is unset (dev only; also keys feedback reporter refs). */
+export const DEV_KEY = 'dev-only-insecure-secrets-key';
 const enc = new TextEncoder();
 const dec = new TextDecoder();
 

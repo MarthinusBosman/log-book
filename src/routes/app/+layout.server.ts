@@ -4,6 +4,7 @@ import { DZ_COOKIE, hasStaffRole } from '#lib/server/dropzones/index.ts';
 import { unreadCount } from '#lib/server/domain/notifications.ts';
 import { capabilitiesOf } from '#lib/server/domain/permissions.ts';
 import { brandingView } from '#lib/server/branding.ts';
+import { serverFeedbackConfig } from '#lib/server/feedback/config.ts';
 import { requestDropzone, requestMemberships } from '#lib/server/request-cache.ts';
 import type { LayoutServerLoad } from './$types';
 
@@ -30,6 +31,8 @@ export const load: LayoutServerLoad = async ({ locals, url, cookies }) => {
 		caps: capabilitiesOf(current?.roles ?? []),
 		instanceMode: instanceMode(),
 		unread,
-		branding
+		branding,
+		/** In-app Feedback (GitHub issues) is configured on this server. */
+		feedbackEnabled: serverFeedbackConfig() !== null
 	};
 };

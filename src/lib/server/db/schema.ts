@@ -1147,6 +1147,27 @@ export const providerCache = sqliteTable('provider_cache', {
 	expiresAt: ms('expires_at').notNull()
 });
 
+/**
+ * In-app feedback posted as public GitHub issues (src/lib/server/feedback). One row per accepted
+ * submission: drives the per-user rate limit and maps `reporter_ref` (the anonymous HMAC printed in
+ * the issue) back to the user. A row is inserted before the GitHub call (issue columns null) and
+ * deleted again if the call fails. Deleted with the account.
+ */
+export const feedbackSubmissions = sqliteTable(
+	'feedback_submissions',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: createdAt(),
+		githubIssueNumber: integer('github_issue_number'),
+		githubIssueUrl: text('github_issue_url'),
+		reporterRef: text('reporter_ref').notNull()
+	},
+	(t) => [index('feedback_submissions_user_idx').on(t.userId, t.createdAt), index('feedback_submissions_ref_idx').on(t.reporterRef)]
+);
+
 // ═══ Row types ══════════════════════════════════════════════════════════════
 
 export type User = typeof users.$inferSelect;
@@ -1179,3 +1200,4 @@ export type Instance = typeof instances.$inferSelect;
 export type LinkedAccount = typeof linkedAccounts.$inferSelect;
 export type ImportJob = typeof importJobs.$inferSelect;
 export type MembershipCheck = typeof membershipChecks.$inferSelect;
+export type FeedbackSubmission = typeof feedbackSubmissions.$inferSelect;

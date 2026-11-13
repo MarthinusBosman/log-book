@@ -5,6 +5,7 @@ import {
 	checkins,
 	dropzoneMemberRoles,
 	dropzoneMembers,
+	feedbackSubmissions,
 	files,
 	indemnitySignatures,
 	ledgerEntries,
@@ -97,6 +98,8 @@ describe('account deletion', () => {
 		await db.insert(sessions).values({ id: 's1', userId: u.id, expiresAt: new Date(NOW + 1e9) });
 		await db.insert(linkedAccounts).values({ id: 'l1', userId: u.id, issuer: 'instance:x', subject: u.id, linkedAt: new Date(NOW) });
 		await notify(db, { userIds: [u.id], type: 'friend_add', payload: {} });
+		await db.insert(feedbackSubmissions).values({ id: 'fb1', userId: u.id, reporterRef: 'abcdef012345', githubIssueNumber: 7, githubIssueUrl: 'https://github.com/o/r/issues/7' });
+		await db.insert(feedbackSubmissions).values({ id: 'fb2', userId: other.id, reporterRef: '0123456789ab' });
 		await notify(db, { userIds: [other.id], type: 'friend_add', actorUserId: u.id, payload: {} });
 
 		// Her own jump, signed by the instructor (signature file owned by the signer).
@@ -156,11 +159,13 @@ describe('account deletion', () => {
 			[logbookJumps, logbookJumps.userId],
 			[linkedAccounts, linkedAccounts.userId],
 			[notifications, notifications.userId],
+			[feedbackSubmissions, feedbackSubmissions.userId],
 			[dropzoneMembers, dropzoneMembers.userId]
 		] as const)
 			expect(await db.select().from(t).where(eq(col, u.id))).toHaveLength(0);
 		expect(await db.select().from(userBuddies).where(eq(userBuddies.buddyId, u.id))).toHaveLength(0);
 		expect(await db.select().from(teams).where(eq(teams.id, personalTeam.id))).toHaveLength(0);
+		expect(await db.select().from(feedbackSubmissions).where(eq(feedbackSubmissions.userId, other.id))).toHaveLength(1);
 		expect((await db.select().from(teams).where(eq(teams.id, dzTeam.id)))[0].coachUserId).toBeNull();
 		expect((await db.select().from(notifications).where(eq(notifications.userId, other.id)))[0].actorUserId).toBeNull();
 

@@ -23,6 +23,11 @@
 	const tabs = $derived(mobileTabs(data.caps));
 	/** Highlight "More" when the current page isn't one of the tabs. */
 	const onTab = $derived(tabs.some(isActive));
+	/** Feedback remembers the page it was opened from (kept when already on the feedback page). */
+	const feedbackHref = $derived.by(() => {
+		const from = page.url.pathname === '/app/feedback' ? page.url.searchParams.get('from') : page.url.pathname;
+		return from ? `/app/feedback?from=${encodeURIComponent(from)}` : '/app/feedback';
+	});
 </script>
 
 {#snippet navLink(item: NavItem)}
@@ -86,6 +91,17 @@
 			</div>
 		</nav>
 		<div class="border-t border-border p-3">
+			{#if data.feedbackEnabled}
+				<a
+					href={feedbackHref}
+					aria-current={page.url.pathname === '/app/feedback' ? 'page' : undefined}
+					class="group mb-1 flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-2 hover:text-fg aria-[current=page]:text-fg"
+					data-testid="feedback-link"
+				>
+					<Icon name="message" class="size-[18px] text-subtle group-hover:text-muted" />
+					Feedback
+				</a>
+			{/if}
 			<div class="flex items-center gap-3 rounded-xl p-2">
 				<Avatar name={data.user.name} src={data.user.avatar} />
 				<div class="min-w-0 flex-1">

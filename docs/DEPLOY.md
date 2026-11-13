@@ -57,6 +57,8 @@ Plain values go in `vars` in `wrangler.jsonc`.
 | `RESEND_API_KEY` | secret | no | Sends email (password resets, invites, tandem confirmations) through Resend: `bunx wrangler secret put RESEND_API_KEY`. Unset = emails only go to the Worker log. |
 | `EMAIL_FROM` | var | no | Sender, default `Log-Book <noreply@log-book.app>` (domain verified in Resend). |
 | `EMAIL_REPLY_TO` | var | no | Reply-To header; unset = none. Hosted: `hello@log-book.app`. |
+| `GITHUB_FEEDBACK_TOKEN` | secret | no | In-app Feedback → public GitHub issues: `bunx wrangler secret put GITHUB_FEEDBACK_TOKEN` (fine-grained PAT, *Issues: read and write* on the feedback repo only). Unset = no Feedback button. See ARCHITECTURE.md → Feedback. |
+| `FEEDBACK_REPO` | var | no | `owner/repo` for feedback issues; default `MarthinusBosman/log-book` (from `brand.sourceUrl`). |
 | `CRON_SECRET` | secret | no | Only to call `POST /api/cron` from outside; the cron trigger needs nothing. |
 | `JUMPMASTER_FIREBASE_PROJECT_ID`, `JUMPMASTER_FIREBASE_API_KEY` | var | no | Optional overrides; the Jump Master connector discovers them automatically (docs/IMPORT.md). |
 | `FEDERATION_*` | — | no | Dropzone-instance side only; not used by the global instance. |

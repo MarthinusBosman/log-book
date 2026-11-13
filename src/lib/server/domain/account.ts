@@ -16,6 +16,7 @@ import {
 	dropzoneMembers,
 	dropzones,
 	federationOutbox,
+	feedbackSubmissions,
 	files,
 	gearServiceEvents,
 	importJobs,
@@ -204,6 +205,8 @@ export async function deleteAccount(db: Database, storage: Storage, userId: stri
 		db.delete(notifications).where(eq(notifications.userId, userId)),
 		db.update(notifications).set({ actorUserId: null }).where(eq(notifications.actorUserId, userId)),
 		db.delete(importJobs).where(eq(importJobs.userId, userId)),
+		// Feedback issues stay on GitHub (no name/email there); the link back to this account goes.
+		db.delete(feedbackSubmissions).where(eq(feedbackSubmissions.userId, userId)),
 		db.delete(logbookJumps).where(eq(logbookJumps.userId, userId)),
 		// Sign-offs this user gave stay in the other jumper's logbook (signer name/licence snapshot).
 		db.update(logbookJumps).set({ signerUserId: null }).where(eq(logbookJumps.signerUserId, userId)),

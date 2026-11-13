@@ -63,6 +63,19 @@ export const variables = defineEnvVars({
 		description: 'Optional Reply-To address for outgoing email. Unset = none.',
 		schema: optional('')
 	},
+	GITHUB_FEEDBACK_TOKEN: {
+		description:
+			'In-app Feedback: a GitHub fine-grained token with Issues read/write on FEEDBACK_REPO. Feedback is posted there as PUBLIC issues. Unset = no Feedback button. On Cloudflare set it as a secret: wrangler secret put GITHUB_FEEDBACK_TOKEN.',
+		schema: optional('')
+	},
+	FEEDBACK_REPO: {
+		description: 'In-app Feedback: "owner/repo" that receives the issues. Default: the repo of brand.sourceUrl (MarthinusBosman/log-book).',
+		schema: optional('')
+	},
+	FEEDBACK_API_BASE: {
+		description: 'In-app Feedback: GitHub API origin. LOCAL TESTING ONLY (bun scripts/mock-github.ts); default https://api.github.com.',
+		schema: optional('')
+	},
 	CRON_SECRET: {
 		description:
 			'Bearer secret for POST /api/cron (housekeeping + federation flush) when triggered from outside, e.g. host cron on a self-hosted box. Cloudflare cron triggers need no secret.',

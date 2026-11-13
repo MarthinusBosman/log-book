@@ -97,6 +97,14 @@
 			nationality, height, weight, address, emergency contact details, guardian details for minors, the booking,
 			extras, payments and the signed indemnity. The dropzone is the responsible party for this information.
 		</p>
+		<h3 id="feedback">Feedback you send</h3>
+		<p>
+			If you use <em>Feedback</em> in the app, what you write is published as a public issue on GitHub (see below),
+			with the page you were on (unless you untick it), the app version, your browser’s user agent, your role at the
+			current dropzone and an anonymous reference code. Your name and email address are not included, and we remove
+			email addresses and phone numbers we find in the text. We keep a record of which account sent which issue (to
+			limit abuse and to follow up) until you delete your account.
+		</p>
 		<h3>Uploads</h3>
 		<p>Profile photos, dropzone photos and logos, signature images, and files you upload to import (deleted within a day).</p>
 		<h3>Technical information</h3>
@@ -178,7 +186,9 @@
 				confirmations). It receives the recipient’s address and the message.
 			</li>
 			<li>
-				<strong>GitHub</strong> hosts the public source code. It receives no personal information from the app.
+				<strong>GitHub</strong> hosts the public source code. It receives only feedback you choose to send from the
+				app, which is posted <strong>publicly</strong> as an issue, without your name or email address (see
+				<a href="#feedback">Feedback you send</a>). Anything you write there can be read by anyone.
 			</li>
 			<li>Authorities, only when the law requires it, and only what is required.</li>
 		</ul>
@@ -193,6 +203,7 @@
 			include the EU Standard Contractual Clauses and commit it to security and confidentiality comparable to POPIA.
 			Resend (email delivery; a United States company, sending our email from its EU region in Ireland) processes recipient addresses and message content under its data
 			processing agreement on the same basis.
+			Feedback you send goes to GitHub (a United States company) and is public.
 			Payment providers and the other services above process data under their own terms; the payment providers in use
 			include South African companies.
 		</p>
@@ -221,6 +232,10 @@
 			<li>Your account, logbook and gear: for as long as you have an account.</li>
 			<li>Sessions: until they expire (30 days without use) or you sign out. Password-reset links: a day after use or expiry.</li>
 			<li>Import uploads: deleted within a day.</li>
+			<li>
+				Feedback issues stay public on GitHub after you delete your account (they carry no name or email; the link to
+				your account is deleted). Ask us at <a href={mail}>{brand.privacyEmail}</a> to remove one.
+			</li>
 			<li>
 				Dropzone records (waivers, manifest and load records, check-ins, wallet ledgers, payments, tandem bookings): as
 				long as the dropzone needs them for its legal, insurance and financial duties. The dropzone decides; we keep them

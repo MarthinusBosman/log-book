@@ -427,6 +427,8 @@ staff can find a reset link for a jumper.
 | `RESEND_API_KEY` | — | Send email through [Resend](https://resend.com) (password resets, staff invites, tandem confirmations). Unset = emails are only printed to the log (`docker compose logs app`). |
 | `EMAIL_FROM` | `Log-Book <noreply@log-book.app>` | Sender address; use a domain you verified in Resend, e.g. `Skydive Example <noreply@your-dz.co.za>`. |
 | `EMAIL_REPLY_TO` | — | Optional Reply-To address. |
+| `GITHUB_FEEDBACK_TOKEN` | — | Optional in-app *Feedback* button: posts what users send as **public** issues on `FEEDBACK_REPO` (fine-grained GitHub token with *Issues: read and write* on that repo). Unset = no button. Point it at your own repo. |
+| `FEEDBACK_REPO` | `MarthinusBosman/log-book` | `owner/repo` that receives feedback issues. Self-hosters: use your own repo. |
 | `SECRETS_KEY` | insecure dev key | **Set this.** Encrypts stored payment-provider secrets. Keep it with your backups; changing it makes saved PayFast credentials unreadable. |
 | `PORT` | `3000` | Host port of the app (compose) / listen port (bare Bun). |
 | `APP_BIND` | `0.0.0.0` | Compose: host address port 3000 is published on. `127.0.0.1` when a front end is in use. |
