@@ -176,7 +176,7 @@ export const init: ServerInit = () => {
 		try {
 			const { runScheduled } = await import('#lib/server/housekeeping.ts');
 			const result = await runScheduled(await getDb());
-			if (result.sessions || result.resetTokens || result.orphanBlobs || result.files?.orphanObjects || result.files?.staleImports || result.files?.legacyPdfs) console.info('[housekeeping]', JSON.stringify(result));
+			if (result.sessions || result.resetTokens || result.orphanBlobs || result.files?.orphanObjects || result.files?.staleImports || result.files?.legacyPdfs || result.files?.orphanSignatures) console.info('[housekeeping]', JSON.stringify(result));
 		} catch (e) {
 			console.warn('[housekeeping] failed', e);
 		}

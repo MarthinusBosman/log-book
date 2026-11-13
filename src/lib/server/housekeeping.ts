@@ -1,6 +1,6 @@
-import { and, eq, inArray, isNotNull, lt, notInArray, or } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, lt, notInArray, or, sql } from 'drizzle-orm';
 import type { Database } from './db/index.ts';
-import { fileBlobs, files, indemnitySignatures, passwordResetTokens, sessions, tandemPassengers } from './db/schema.ts';
+import { fileBlobs, files, indemnitySignatures, logbookJumps, passwordResetTokens, sessions, tandemPassengers } from './db/schema.ts';
 import type { Storage } from './storage/types.ts';
 import { deleteFile } from './domain/files.ts';
 
@@ -9,7 +9,7 @@ export type HousekeepingResult = {
 	resetTokens: number;
 	orphanBlobs: number;
 	/** Storage sweep (only when a storage driver is passed). */
-	files?: { staleImports: number; legacyPdfs: number; orphanObjects: number };
+	files?: { staleImports: number; legacyPdfs: number; orphanSignatures: number; orphanObjects: number };
 	federation?: { sent: number; failed: number; dropped: number } | { skipped: string } | { error: string };
 	memberships?: import('./memberships/service.ts').RecheckSummary | { error: string };
 };
@@ -43,16 +43,19 @@ export async function runHousekeeping(db: Database, now = Date.now()): Promise<H
 
 /** Max objects examined per run by the orphan sweep (keeps a cron invocation short). */
 const SWEEP_PAGES = 4;
+/** Max unreferenced signature images deleted per run. */
+const ORPHAN_SIGNATURES_PER_RUN = 100;
 
 /**
  * Storage cleanup (bytes are metered on R2):
  *  - staged import uploads older than a day (a confirmed/discarded import deletes its own),
  *  - legacy stored waiver/tandem PDFs (now rendered on demand): seal the signature's record hash
  *    first, then drop the file (≤ 50 per run),
+ *  - signature images older than a day that no logbook jump or waiver signature references,
  *  - objects in the bucket/disk that no `files` row references, older than an hour.
  */
 export async function sweepFiles(db: Database, storage: Storage, now = Date.now()) {
-	const out = { staleImports: 0, legacyPdfs: 0, orphanObjects: 0 };
+	const out = { staleImports: 0, legacyPdfs: 0, orphanSignatures: 0, orphanObjects: 0 };
 	const stale = await db
 		.select({ id: files.id })
 		.from(files)
@@ -77,6 +80,26 @@ export async function sweepFiles(db: Database, storage: Storage, now = Date.now(
 			await deleteFile(db, storage, f.id);
 			out.legacyPdfs++;
 		}
+	}
+
+	// Signature images nobody points at any more: a logbook sign-off cleared by a fact edit, a
+	// deleted jump, or a waiver submit that failed after its images were saved. Waiver section
+	// signatures are only referenced inside the snapshot JSON, hence the instr() check.
+	const orphanSigs = await db
+		.select({ id: files.id })
+		.from(files)
+		.where(
+			and(
+				eq(files.purpose, 'signature'),
+				lt(files.createdAt, new Date(now - 24 * HOUR)),
+				sql`not exists (select 1 from ${logbookJumps} where ${logbookJumps.signatureFileId} = ${files.id})`,
+				sql`not exists (select 1 from ${indemnitySignatures} where ${indemnitySignatures.signatureFileId} = ${files.id} or ${indemnitySignatures.guardianSignatureFileId} = ${files.id} or instr(${indemnitySignatures.snapshot}, ${files.id}) > 0)`
+			)
+		)
+		.limit(ORPHAN_SIGNATURES_PER_RUN);
+	for (const f of orphanSigs) {
+		await deleteFile(db, storage, f.id);
+		out.orphanSignatures++;
 	}
 
 	if (storage.list) {

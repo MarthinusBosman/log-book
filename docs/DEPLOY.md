@@ -96,7 +96,8 @@ token on `globalThis` and calls the app's own fetch handler with `POST /api/cron
 * deletion of expired sessions and old password-reset tokens,
 * deletion of orphaned `file_blobs` (bytes stored but metadata insert failed) older than 1 h,
 * storage sweep: staged import uploads older than a day, legacy stored waiver/tandem PDFs (record
-  hash sealed first) and R2 objects no `files` row references (older than 1 h, ≤ 2000 per run),
+  hash sealed first), signature images older than a day that no logbook jump or waiver references
+  (≤ 100 per run) and R2 objects no `files` row references (older than 1 h, ≤ 2000 per run),
 * a federation outbox flush on dropzone instances (no-op on the global instance).
 
 Test locally: `wrangler dev --test-scheduled`, then `curl -X POST "localhost:8788/__scheduled?cron=17+*+*+*+*"`.

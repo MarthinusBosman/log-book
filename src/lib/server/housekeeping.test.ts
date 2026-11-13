@@ -1,14 +1,16 @@
 import { describe, expect, test } from 'bun:test';
-import { sql } from 'drizzle-orm';
-import { freshDb, makeUser } from './domain/testing.ts';
-import { fileBlobs, files, passwordResetTokens, sessions } from './db/schema.ts';
+import { inArray, sql } from 'drizzle-orm';
+import { freshDb, makeDropzone, makeUser } from './domain/testing.ts';
+import { fileBlobs, files, indemnitySignatures, passwordResetTokens, sessions } from './db/schema.ts';
 import { runHousekeeping, sweepFiles } from './housekeeping.ts';
 import { MemoryStorage } from './storage/memory.ts';
 import { saveFile } from './domain/files.ts';
+import { addJump, deleteJump, signJump, updateJump } from './domain/logbook.ts';
 import { eq } from 'drizzle-orm';
 
 const NOW = Date.parse('2026-11-14T08:00:00Z');
 const H = 3_600_000;
+const DAY_H = 24 * H;
 
 describe('runHousekeeping', () => {
 	test('removes expired sessions, stale reset tokens and orphaned blob chunks only', async () => {
@@ -61,12 +63,68 @@ describe('sweepFiles', () => {
 		for (const k of [keep.key, imp.key, fresh.key, pdf.key]) storage.uploaded.set(k, new Date(NOW - 2 * H));
 
 		const r = await sweepFiles(db, storage, NOW);
-		expect(r).toEqual({ staleImports: 1, legacyPdfs: 1, orphanObjects: 1 });
+		expect(r).toEqual({ staleImports: 1, legacyPdfs: 1, orphanSignatures: 0, orphanObjects: 1 });
 		expect(await storage.exists(keep.key)).toBe(true);
 		expect(await storage.exists(fresh.key)).toBe(true);
 		expect(await storage.exists(imp.key)).toBe(false);
 		expect(await storage.exists(pdf.key)).toBe(false);
 		expect(await storage.exists('avatar/orphan.webp')).toBe(false);
-		expect(await sweepFiles(db, storage, NOW)).toEqual({ staleImports: 0, legacyPdfs: 0, orphanObjects: 0 });
+		expect(await sweepFiles(db, storage, NOW)).toEqual({ staleImports: 0, legacyPdfs: 0, orphanSignatures: 0, orphanObjects: 0 });
+	});
+
+	test('drops signature images no jump or waiver references (cleared sign-off, deleted jump); keeps referenced and fresh ones', async () => {
+		const db = freshDb();
+		const storage = new MemoryStorage();
+		const { dz } = await makeDropzone(db);
+		const jumper = await makeUser(db);
+		const signer = await makeUser(db, { licence: 'D-1' });
+		const png = (n: number) => new Uint8Array([0x89, 0x50, 0x4e, 0x47, n]);
+		const sig = (n: number) => saveFile(db, storage, { data: png(n), mime: 'image/png', purpose: 'signature', ownerUserId: signer.id });
+
+		// Signed jump (kept), sign-off cleared by a fact edit (orphan), jump deleted (orphan).
+		const kept = await sig(1);
+		const j1 = await addJump(db, jumper.id, { jumpDate: '2026-11-01' });
+		await signJump(db, { jumpId: j1.id, signerUserId: signer.id, signatureFileId: kept.id, now: NOW - 3 * DAY_H });
+		const cleared = await sig(2);
+		const j2 = await addJump(db, jumper.id, { jumpDate: '2026-11-02' });
+		await signJump(db, { jumpId: j2.id, signerUserId: signer.id, signatureFileId: cleared.id, now: NOW - 3 * DAY_H });
+		await updateJump(db, jumper.id, j2.id, { altitudeFt: 4000 });
+		const gone = await sig(3);
+		const j3 = await addJump(db, jumper.id, { jumpDate: '2026-11-03' });
+		await signJump(db, { jumpId: j3.id, signerUserId: signer.id, signatureFileId: gone.id, now: NOW - 3 * DAY_H });
+		await deleteJump(db, jumper.id, j3.id);
+
+		// Waiver: main + guardian columns, and a section signature only referenced in the snapshot JSON.
+		const main = await sig(4);
+		const guardian = await sig(5);
+		const section = await sig(6);
+		await db.insert(indemnitySignatures).values({
+			id: 'w1',
+			dropzoneId: dz.id,
+			audience: 'sport',
+			userId: jumper.id,
+			signerName: 'J',
+			signatureFileId: main.id,
+			guardianSignatureFileId: guardian.id,
+			snapshot: { dropzoneName: dz.name, audience: 'sport', sections: [{ title: 'Witness', content: '', type: 'signature' }], answers: [{ signatureFileId: section.id }] },
+			signedAt: new Date(NOW - 3 * DAY_H)
+		});
+		// Same bytes as a referenced one (content-addressed key): the row goes, the object stays.
+		const dupe = await sig(1);
+		// Unreferenced but fresh (an in-flight submit): kept.
+		const fresh = await sig(7);
+
+		const old = [kept, cleared, gone, main, guardian, section, dupe].map((f) => f.id);
+		await db.update(files).set({ createdAt: new Date(NOW - 2 * DAY_H) }).where(inArray(files.id, old));
+		await db.update(files).set({ createdAt: new Date(NOW - H) }).where(eq(files.id, fresh.id));
+
+		const r = await sweepFiles(db, storage, NOW);
+		expect(r.orphanSignatures).toBe(3);
+		const left = (await db.select({ id: files.id }).from(files)).map((f) => f.id).sort();
+		expect(left).toEqual([kept.id, main.id, guardian.id, section.id, fresh.id].sort());
+		expect(await storage.exists(kept.key)).toBe(true);
+		expect(await storage.exists(cleared.key)).toBe(false);
+		expect(await storage.exists(gone.key)).toBe(false);
+		expect((await sweepFiles(db, storage, NOW)).orphanSignatures).toBe(0);
 	});
 });
