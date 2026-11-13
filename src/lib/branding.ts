@@ -140,6 +140,20 @@ export function ensureContrast(
 	return { color: target, ratio: minContrast(target, against, tint), adjusted: true };
 }
 
+/**
+ * Text colours for a chip tinted with a user-chosen colour (tandem instructor colours on slots),
+ * one per theme, each reaching 4.5:1 on that theme's surfaces with the chip's own tint behind it.
+ * Unparseable colours fall back to `null` (callers keep their default tone).
+ */
+export function chipTextColors(color: string | null | undefined): { light: string; dark: string } | null {
+	const base = normalizeHex(color);
+	if (!base) return null;
+	return {
+		light: ensureContrast(base, SURFACES.light, MIN_CONTRAST, TEXT_TINT).color,
+		dark: ensureContrast(base, SURFACES.dark, MIN_CONTRAST, TEXT_TINT).color
+	};
+}
+
 export type ModeColors = {
 	/** Fill + text colour for this theme (contrast-adjusted). */
 	primary: string;

@@ -81,10 +81,13 @@
 	}
 	.legal :global(a) {
 		color: var(--color-primary);
+		/* always underlined: colour alone doesn't set links apart from the muted body text */
+		text-decoration: underline;
+		text-decoration-thickness: 1px;
 		text-underline-offset: 2px;
 	}
 	.legal :global(a:hover) {
-		text-decoration: underline;
+		text-decoration-thickness: 2px;
 	}
 	.legal :global(table) {
 		width: 100%;

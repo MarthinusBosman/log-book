@@ -15,6 +15,8 @@ test('privacy policy + terms: linked from footer and signup, no JS', async ({ pa
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Privacy policy');
 	await expect(page.getByRole('heading', { name: 'Your rights' })).toBeVisible();
 	await expect(page.getByRole('link', { name: 'inforegulator.org.za', exact: true })).toHaveAttribute('href', 'https://inforegulator.org.za');
+	// links in the body text are underlined, not told apart by colour alone
+	await expect(page.getByRole('link', { name: 'inforegulator.org.za', exact: true })).toHaveCSS('text-decoration-line', 'underline');
 	// Not log-book.app → says this text is about the hosted service.
 	await expect(page.getByTestId('selfhost-note')).toBeVisible();
 	await expect(page.locator('script[src]')).toHaveCount(0);

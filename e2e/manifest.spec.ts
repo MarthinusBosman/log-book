@@ -74,6 +74,8 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	// Hangar display and the staff dashboard part
 	await page.goto('/app/display');
 	await expect(page.getByTestId('hangar-board')).toBeVisible();
+	// the dropzone name is the board's page heading (screen readers)
+	await expect(page.getByTestId('hangar-board').getByRole('heading', { level: 1 })).toBeVisible();
 	await page.goto('/app');
 	await expect(page.getByTestId('staff-today')).toContainText('Loads flown');
 	await expect(page.getByTestId('staff-today')).toContainText('of 1 manifested');
@@ -166,4 +168,6 @@ test('manifest without JS: actions on another day stay on that day', async ({ pa
 test('public display needs a valid token', async ({ page }) => {
 	const res = await page.goto('/dz/no-such-dz/display?token=nope-nope-nope-nope');
 	expect(res?.status()).toBe(404);
+	// the error page keeps its content in a main landmark
+	await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText('Off the landing area');
 });

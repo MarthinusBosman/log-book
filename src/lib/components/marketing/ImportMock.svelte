@@ -23,7 +23,7 @@
 			<li class="flex items-center gap-2 {s.current ? 'font-medium text-fg' : 'text-muted'}">
 				<span
 					class="grid size-5 place-items-center rounded-full text-[10px] font-semibold {s.done
-						? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300'
+						? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
 						: 'bg-primary text-primary-fg'}"
 				>
 					{#if s.done}

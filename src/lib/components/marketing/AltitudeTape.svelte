@@ -7,8 +7,8 @@
 	const top = (kft: number) => `${((14 - kft) / 14) * 100}%`;
 	const marks = [
 		{ kft: 13.5, label: 'Exit', tone: 'text-primary', dot: 'bg-primary' },
-		{ kft: 5.5, label: 'Break-off', tone: 'text-amber-600 dark:text-amber-300', dot: 'bg-amber-500 dark:bg-amber-300' },
-		{ kft: 3, label: 'Pull', tone: 'text-emerald-600 dark:text-emerald-300', dot: 'bg-emerald-500 dark:bg-emerald-300' }
+		{ kft: 5.5, label: 'Break-off', tone: 'text-amber-700 dark:text-amber-300', dot: 'bg-amber-500 dark:bg-amber-300' },
+		{ kft: 3, label: 'Pull', tone: 'text-emerald-700 dark:text-emerald-300', dot: 'bg-emerald-500 dark:bg-emerald-300' }
 	];
 </script>
 

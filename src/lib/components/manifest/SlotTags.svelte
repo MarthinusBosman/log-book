@@ -17,6 +17,7 @@
 	import MIcon from './MIcon.svelte';
 	import { SLOT_EXTRA_LABELS, SLOT_STAFF_ROLE_LABELS, type SlotStaffRole } from '#lib/domain/constants.ts';
 	import { cn } from '#lib/ui/cn.ts';
+	import { chipTextColors } from '#lib/branding.ts';
 
 	type Props = {
 		staffRole: SlotStaffRole | null;
@@ -38,6 +39,8 @@
 		aff_instructor: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
 		jumpmaster: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
 	};
+	// The instructor's own colour tints the chip; its text is lightened/darkened per theme to stay readable.
+	const tiText = $derived(staffRole === 'tandem_instructor' ? chipTextColors(colour) : null);
 	const short: Record<SlotStaffRole, string> = { ...SLOT_STAFF_ROLE_LABELS, jumpmaster: 'JM' };
 	const chip = $derived(
 		cn('inline-flex items-center rounded-md border font-semibold tracking-wide uppercase', size === 'lg' ? 'px-2 py-0.5 text-sm' : 'px-1.5 text-[10px] leading-4')
@@ -47,8 +50,8 @@
 <span class={cn('inline-flex flex-wrap items-center gap-1', className)}>
 	{#if staffRole}
 		<span
-			class={cn(chip, roleTone[staffRole])}
-			style={colour && staffRole === 'tandem_instructor' ? `border-color: ${colour}; color: ${colour}; background: color-mix(in srgb, ${colour} 14%, transparent)` : undefined}
+			class={cn(chip, tiText ? 'text-(--chip-fg-light) dark:text-(--chip-fg-dark)' : roleTone[staffRole])}
+			style={tiText ? `border-color: ${colour}; background: color-mix(in srgb, ${colour} 14%, transparent); --chip-fg-light: ${tiText.light}; --chip-fg-dark: ${tiText.dark}` : undefined}
 			title={SLOT_STAFF_ROLE_LABELS[staffRole]}>{short[staffRole]}</span
 		>
 	{/if}

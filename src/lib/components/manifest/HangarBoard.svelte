@@ -57,7 +57,7 @@
 	<header class="relative z-30 flex items-center gap-[1.5vw] border-b border-border px-[max(1rem,2vw)] py-[1.2vh]">
 		{#if logoUrl}<img src={logoUrl} alt="" class="h-[clamp(2.25rem,4.5vw,5.5rem)] max-w-[18vw] shrink-0 object-contain" data-testid="display-logo" />{/if}
 		<div class="min-w-0 flex-1">
-			<p class="truncate text-[clamp(1.25rem,2.2vw,3rem)] leading-tight font-bold tracking-tight">{dzName}</p>
+			<h1 class="truncate text-[clamp(1.25rem,2.2vw,3rem)] leading-tight font-bold tracking-tight">{dzName}</h1>
 			<p class="text-[clamp(0.85rem,1vw,1.4rem)] text-muted">
 				Loads · {prettyDay(day, today)}{#if day === today}<span class="ml-3 inline-flex items-center gap-1.5 text-success"><span class="size-2 animate-pulse rounded-full bg-success"></span>Live</span>{/if}
 			</p>

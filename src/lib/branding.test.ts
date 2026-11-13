@@ -7,6 +7,7 @@ import {
 	brandCss,
 	brandPalette,
 	brandTheme,
+	chipTextColors,
 	contrast,
 	ensureContrast,
 	fromHsl,
@@ -221,5 +222,26 @@ describe('tinted surfaces', () => {
 			expect(minContrast(t.light.primary, SURFACES.light, TEXT_TINT)).toBeGreaterThanOrEqual(4.5);
 			expect(minContrast(t.dark.primary, SURFACES.dark, TEXT_TINT)).toBeGreaterThanOrEqual(4.5);
 		}
+	});
+});
+
+describe('chipTextColors', () => {
+	test('instructor colours get readable chip text in both themes', () => {
+		// the staff colour palette's purple failed in both themes as raw text (3.1–4.0:1)
+		for (const c of ['#a855f7', '#3b82f6', '#22c55e', '#eab308', '#ef4444', '#111111', '#fafafa', '#f0f']) {
+			const t = chipTextColors(c)!;
+			expect(minContrast(t.light, SURFACES.light, TEXT_TINT)).toBeGreaterThanOrEqual(4.5);
+			expect(minContrast(t.dark, SURFACES.dark, TEXT_TINT)).toBeGreaterThanOrEqual(4.5);
+		}
+	});
+	test('keeps a colour that already passes and the hue of one that does not', () => {
+		expect(chipTextColors('#1d4ed8')!.light).toBe('#1d4ed8');
+		const purple = chipTextColors('#a855f7')!;
+		expect(Math.abs(toHsl(purple.dark).h - toHsl('#a855f7').h)).toBeLessThan(2);
+		expect(Math.abs(toHsl(purple.light).h - toHsl('#a855f7').h)).toBeLessThan(2);
+	});
+	test('unparseable colours fall back to null', () => {
+		expect(chipTextColors(null)).toBeNull();
+		expect(chipTextColors('hsl(10 50% 50%)')).toBeNull();
 	});
 });

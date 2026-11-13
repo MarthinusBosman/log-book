@@ -22,7 +22,7 @@
 	];
 
 	const ledger = [
-		{ what: 'Top-up · card', amt: '+R2 000', tone: 'text-emerald-600 dark:text-emerald-300' },
+		{ what: 'Top-up · card', amt: '+R2 000', tone: 'text-emerald-700 dark:text-emerald-300' },
 		{ what: 'Load 3 · 13 500 ft', amt: '−R380', tone: '' },
 		{ what: 'Load 7 · 13 500 ft', amt: '−R380', tone: '' },
 		{ what: 'Packing ×2', amt: '−R160', tone: '' }
@@ -379,7 +379,7 @@
 				aria-hidden="true"
 			>
 				<div class="flex items-center gap-2.5">
-					<span class="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">
+					<span class="grid size-8 shrink-0 place-items-center rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
 						<svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
 					</span>
 					<div class="min-w-0 text-[12px]">

@@ -130,7 +130,7 @@
 
 <div class="min-h-dvh lg:pl-64">
 	<!-- Desktop sidebar -->
-	<aside class="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-surface/70 backdrop-blur-xl lg:block">
+	<aside aria-label="App menu" class="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-surface/70 backdrop-blur-xl lg:block">
 		{@render sidebar()}
 	</aside>
 

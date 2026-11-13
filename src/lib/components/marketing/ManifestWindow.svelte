@@ -46,7 +46,7 @@
 				9 kt SW
 			</span>
 			<span class="hidden font-mono md:inline">Jump run 240°</span>
-			<span class="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-300">
+			<span class="flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-300">
 				<span class="live-dot size-1.5 rounded-full bg-current"></span> Live
 			</span>
 		</div>
