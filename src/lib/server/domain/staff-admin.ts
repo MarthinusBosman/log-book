@@ -3,7 +3,7 @@
  * reports). Pure TS on top of the schema; safe on D1 and bun:sqlite. Import directly:
  * `import * as staffAdmin from '#lib/server/domain/staff-admin.ts'`.
  */
-import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, ne } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lte, ne, or } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import {
 	checkins,
@@ -19,6 +19,7 @@ import {
 	userRatings,
 	users,
 	walletAccounts,
+	type Dropzone,
 	type Load,
 	type Rig,
 	type Slot
@@ -489,6 +490,53 @@ export async function memberGearDue(db: Database, dropzoneId: string, today: str
 			return { ...r, repack, aad, urgency: Math.min(rank(repack), rank(aad)) };
 		})
 		.sort((a, b) => a.urgency - b.urgency);
+}
+
+export type GearAttention = {
+	/** DZ rigs that are grounded or have a repack / AAD due soon (the gear page's "Needs attention"). */
+	dzRigs: number;
+	/** DZ rigs that can't be jumped: grounded by staff, repack or AAD overdue. */
+	grounded: number;
+	/** Members' personal rigs with a repack or AAD due soon or overdue. */
+	memberRigs: number;
+};
+
+/**
+ * Dashboard summary for riggers / gear managers: same rules as `gearRegister` + `memberGearDue`
+ * (and the gear page's attention filters) in ONE statement, using the dropzone row the caller
+ * already has.
+ */
+export async function gearAttention(
+	db: Database,
+	dz: Pick<Dropzone, 'id' | 'repackIntervalDays' | 'country' | 'settings'>,
+	today: string
+): Promise<GearAttention> {
+	const warnDays = dz.settings.gearWarnDays ?? DEFAULT_WARN_DAYS;
+	const intervalDays = repackIntervalDays({ dropzoneDays: dz.repackIntervalDays, country: dz.country });
+	const members = db.select({ id: dropzoneMembers.userId }).from(dropzoneMembers).where(eq(dropzoneMembers.dropzoneId, dz.id));
+	const rows = await db
+		.select({
+			dropzoneId: rigs.dropzoneId,
+			active: rigs.active,
+			reserveRepackedOn: rigs.reserveRepackedOn,
+			repackIntervalDays: rigs.repackIntervalDays,
+			aadServiceDueOn: rigs.aadServiceDueOn,
+			aadExpiresOn: rigs.aadExpiresOn
+		})
+		.from(rigs)
+		.where(or(eq(rigs.dropzoneId, dz.id), and(eq(rigs.active, true), inArray(rigs.userId, members))));
+	const out: GearAttention = { dzRigs: 0, grounded: 0, memberRigs: 0 };
+	const due = (s: DueStatus) => s === 'due_soon' || s === 'overdue';
+	for (const r of rows) {
+		const repack = repackStatus(r, { today, intervalDays, warnDays }).status;
+		const aad = aadStatus(r, { today, warnDays }).status;
+		if (r.dropzoneId === dz.id) {
+			const grounded = !r.active || repack === 'overdue' || aad === 'overdue';
+			if (grounded) out.grounded++;
+			if (grounded || due(repack) || due(aad)) out.dzRigs++;
+		} else if (due(repack) || due(aad)) out.memberRigs++;
+	}
+	return out;
 }
 
 // ── reports ─────────────────────────────────────────────────────────────────

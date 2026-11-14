@@ -31,6 +31,8 @@ test('owner runs the back office', async ({ page }) => {
 	await page.getByLabel('Dropzone name').fill(`Staff Admin DZ ${stamp}`);
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
+	// A new dropzone has no rigs: no "Gear due" card.
+	await expect(page.getByTestId('gear-attention')).toHaveCount(0);
 
 	// Features: enable the jumper wallet.
 	await go(page, '/app/settings/features');
@@ -68,6 +70,17 @@ test('owner runs the back office', async ({ page }) => {
 	expect(service.x + service.width).toBeLessThanOrEqual(390);
 	await expect(page.getByRole('cell', { name: /Repack due/ }).first()).toBeVisible();
 	await page.setViewportSize({ width: 1280, height: 900 });
+
+	// Dashboard: the overdue student rig shows up in the "Gear due" card and deep-links the filter.
+	await go(page, '/app');
+	const gearCard = page.getByTestId('gear-attention');
+	await expect(gearCard.getByRole('heading', { name: 'Gear due' })).toBeVisible();
+	await expect(gearCard.getByText('1 grounded')).toBeVisible();
+	await expect(gearCard.getByText(/jumpers’ rigs? due/)).toHaveCount(0);
+	await gearCard.getByRole('link', { name: /1 DZ rig needs attention/ }).click();
+	await expect(page).toHaveURL(/\/app\/gear\?show=attention$/);
+	await expect(page.getByLabel('Filter rigs')).toHaveValue('attention');
+	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
 
 	// Members: invite someone new with the packer (staff) role.
 	await go(page, '/app/settings/members');

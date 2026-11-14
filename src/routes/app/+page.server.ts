@@ -3,6 +3,8 @@ import { staffToday } from '#lib/server/manifest/board.ts';
 import { loadJumperDashboard } from '#lib/server/jumper/dashboard.ts';
 import { setupChecklist, setupPending } from '#lib/server/staffadmin/setup.ts';
 import { requestDropzone } from '#lib/server/request-cache.ts';
+import { gearAttention } from '#lib/server/domain/staff-admin.ts';
+import { localDate } from '#lib/server/domain/time.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Cookie set by "Not now" on the dashboard's add-a-photo card. */
@@ -15,10 +17,11 @@ export const load: PageServerLoad = async (event) => {
 	const now = Date.now();
 	const ctx = await activeDropzone(event);
 	const staffView = ctx && ctx.caps.includes('loads.view') ? ctx : null;
-	const [today, jumper, setup] = await Promise.all([
+	const [today, jumper, setup, gear] = await Promise.all([
 		staffView ? staffToday(event.locals.db, staffView.dz, now) : Promise.resolve(null),
 		loadJumperDashboard(event.locals.db, user.id, current?.dropzone.id ?? null, now, (id) => requestDropzone(event.locals, id)),
-		ctx && ctx.caps.includes('dz.settings') ? setupChecklist(event.locals.db, ctx.dz) : Promise.resolve(null)
+		ctx && ctx.caps.includes('dz.settings') ? setupChecklist(event.locals.db, ctx.dz) : Promise.resolve(null),
+		ctx && ctx.caps.includes('gear.manage') ? gearAttention(event.locals.db, ctx.dz, localDate(now, ctx.dz.timezone)) : Promise.resolve(null)
 	]);
 	return {
 		staffToday: today,
@@ -27,6 +30,8 @@ export const load: PageServerLoad = async (event) => {
 		jumper,
 		/** Owner/admin onboarding steps; null when not allowed or everything is done. */
 		setup: setup && setupPending(setup) ? setup : null,
+		/** Riggers / gear managers: rigs needing attention (null when not allowed or nothing is due). */
+		gear: gear && (gear.dzRigs || gear.memberRigs) ? gear : null,
 		/** Small onboarding card: jumpers without a profile picture (dismissible, remembered for a year). */
 		photoPrompt: !user.avatar && event.cookies.get(PHOTO_PROMPT_COOKIE) !== 'dismissed',
 		hours: ctx ? { openDays: ctx.dz.openDays, openTime: ctx.dz.openTime, closeTime: ctx.dz.closeTime, timezone: ctx.dz.timezone } : null

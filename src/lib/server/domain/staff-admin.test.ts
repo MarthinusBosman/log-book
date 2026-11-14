@@ -11,6 +11,7 @@ import { setRatings } from './profile.ts';
 import { signIndemnity } from './indemnity.ts';
 import { checkIn } from './checkins.ts';
 import {
+	gearAttention,
 	gearRegister,
 	inviteMember,
 	jumperDetail,
@@ -160,6 +161,38 @@ describe('gear', () => {
 		const due = await memberGearDue(db, dz.id, DAY);
 		expect(due.map((d) => d.owner.id)).toEqual([j2.id, j1.id]);
 		expect(due[0].repack.status).toBe('overdue');
+	});
+
+	test('gearAttention counts like the gear page in one statement', async () => {
+		const { dz } = await makeDropzone(db);
+		await createRig(db, { dropzoneId: dz.id }, { name: 'OK', reserveRepackedOn: addDays(DAY, -10) });
+		await createRig(db, { dropzoneId: dz.id }, { name: 'Soon', reserveRepackedOn: addDays(DAY, -170) });
+		await createRig(db, { dropzoneId: dz.id }, { name: 'Overdue', reserveRepackedOn: addDays(DAY, -200) });
+		await createRig(db, { dropzoneId: dz.id }, { name: 'Off', reserveRepackedOn: addDays(DAY, -10), active: false });
+		await createRig(db, { dropzoneId: dz.id }, { name: 'AAD', reserveRepackedOn: addDays(DAY, -10), aadExpiresOn: addDays(DAY, 3) });
+		const j1 = await makeMember(db, dz.id, ['jumper']);
+		const j2 = await makeMember(db, dz.id, ['jumper']);
+		const outsider = await makeUser(db);
+		await createRig(db, { userId: j1.id }, { reserveRepackedOn: addDays(DAY, -20) });
+		await createRig(db, { userId: j1.id }, { reserveRepackedOn: addDays(DAY, -190) });
+		await createRig(db, { userId: j2.id }, { reserveRepackedOn: addDays(DAY, -10), aadServiceDueOn: addDays(DAY, -1) });
+		await createRig(db, { userId: j2.id }, { reserveRepackedOn: addDays(DAY, -190), active: false });
+		await createRig(db, { userId: outsider.id }, { reserveRepackedOn: addDays(DAY, -190) });
+		const other = (await makeDropzone(db)).dz;
+		await createRig(db, { dropzoneId: other.id }, { name: 'Elsewhere', reserveRepackedOn: addDays(DAY, -200) });
+
+		const row = (await db.select().from(dropzones).where(eq(dropzones.id, dz.id)))[0];
+		let statements = 0;
+		const counting = new Proxy(db, { get: (t, p, r) => (p === 'select' ? (statements++, Reflect.get(t, p, r)) : Reflect.get(t, p, r)) });
+		const got = await gearAttention(counting as Database, row, DAY);
+		expect(got).toEqual({ dzRigs: 4, grounded: 2, memberRigs: 2 });
+		// Same numbers as the gear page's register + jumpers' tab.
+		const reg = await gearRegister(db, dz.id, DAY);
+		expect(reg.filter((r) => r.availability === 'grounded')).toHaveLength(2);
+		const mem = await memberGearDue(db, dz.id, DAY);
+		expect(mem.filter((m) => [m.repack.status, m.aad.status].some((s) => s === 'due_soon' || s === 'overdue'))).toHaveLength(2);
+		expect(statements).toBe(2); // the members subquery builder + the main select = one round trip
+		expect(await gearAttention(db, (await db.select().from(dropzones).where(eq(dropzones.id, other.id)))[0], DAY)).toEqual({ dzRigs: 1, grounded: 1, memberRigs: 0 });
 	});
 });
 

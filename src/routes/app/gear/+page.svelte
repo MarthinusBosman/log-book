@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input, Select, Stat, Tabs } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
 	import DueBadge from '#lib/components/staffadmin/DueBadge.svelte';
@@ -12,9 +13,15 @@
 	type Row = (typeof data.register)[number];
 	type Rig = Row['rig'];
 
-	let tab = $state('dz');
+	type Only = '' | 'attention' | 'available' | 'in_use' | 'grounded';
+	// Deep links from the dashboard's "Gear due" card: ?tab=members, ?show=attention.
+	let tab = $state(page.url.searchParams.get('tab') === 'members' ? 'members' : 'dz');
 	let q = $state('');
-	let only = $state<'' | 'attention' | 'available' | 'in_use' | 'grounded'>('');
+	let only = $state<Only>(initOnly());
+	function initOnly(): Only {
+		const v = page.url.searchParams.get('show');
+		return v === 'attention' || v === 'available' || v === 'in_use' || v === 'grounded' ? v : '';
+	}
 	let editing = $state<Rig | 'new' | null>(null);
 	let servicing = $state<Rig | null>(null);
 	let deleting = $state<Rig | null>(null);

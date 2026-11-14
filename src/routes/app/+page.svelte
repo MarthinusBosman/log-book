@@ -78,6 +78,41 @@
 	<StaffToday class="mt-8" today={data.staffToday} timezone={data.staffTz} serverNow={data.serverNow} />
 {/if}
 
+{#if data.gear}
+	{@const g = data.gear}
+	<section class="mt-6 rounded-2xl border border-border bg-surface" data-testid="gear-attention" aria-labelledby="gear-attention-title">
+		<header class="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+			<h2 id="gear-attention-title" class="flex items-center gap-2 font-semibold tracking-tight">
+				<Icon name="parachute" class="size-4 text-muted" /> Gear due
+			</h2>
+			<Button href="/app/gear" size="sm" variant="secondary">Open gear</Button>
+		</header>
+		<ul class="divide-y divide-border">
+			{#if g.dzRigs}
+				<li>
+					<a href="/app/gear?show=attention" class="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-surface-2/60 sm:px-5">
+						<span>
+							<span class="font-medium">{g.dzRigs} DZ {g.dzRigs === 1 ? 'rig needs' : 'rigs need'} attention</span>
+							<span class="block text-xs text-muted">Repack or AAD due soon, or grounded</span>
+						</span>
+						{#if g.grounded}<Badge tone="danger">{g.grounded} grounded</Badge>{/if}
+					</a>
+				</li>
+			{/if}
+			{#if g.memberRigs}
+				<li>
+					<a href="/app/gear?tab=members" class="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-surface-2/60 sm:px-5">
+						<span>
+							<span class="font-medium">{g.memberRigs} {g.memberRigs === 1 ? 'jumper’s rig' : 'jumpers’ rigs'} due</span>
+							<span class="block text-xs text-muted">Members’ own rigs with a repack or AAD due soon or overdue</span>
+						</span>
+					</a>
+				</li>
+			{/if}
+		</ul>
+	</section>
+{/if}
+
 <div class="mt-6 lg:mt-8">
 	{#if data.isStaff}<h2 class="mb-4 text-lg font-semibold tracking-tight">My jumping</h2>{/if}
 	<JumperDashboard data={data.jumper} member={!!data.current} />
