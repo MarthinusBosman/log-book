@@ -1,5 +1,7 @@
-import { describe, expect, test } from 'bun:test';
-import { moneyToMinor } from './http.ts';
+import { afterEach, describe, expect, test } from 'bun:test';
+import { confirmationUrl, moneyToMinor, sendConfirmationEmail } from './http.ts';
+import { setMailer, type EmailMessage } from '../email/index.ts';
+import type { Dropzone, TandemPassenger } from '../db/schema.ts';
 
 describe('moneyToMinor (staff tandem deposit / payment amounts)', () => {
 	test('comma decimals are not read as thousands', () => {
@@ -13,5 +15,57 @@ describe('moneyToMinor (staff tandem deposit / payment amounts)', () => {
 		expect(moneyToMinor('  ')).toBeNull();
 		expect(moneyToMinor('-50')).toBeNaN();
 		expect(moneyToMinor('abc')).toBeNaN();
+	});
+});
+
+describe('booking confirmation email for a group', () => {
+	const origin = 'https://dz.example';
+	const dz = { slug: 'demo', name: 'Demo DZ', address: null, contactPhone: null } as unknown as Dropzone;
+	const passenger = (name: string, confirmationNumber: string, email: string | null): TandemPassenger =>
+		({
+			name,
+			email,
+			confirmationNumber,
+			jumpDate: '2026-11-21',
+			bookingTime: '11:00',
+			extras: [],
+			totalMinor: 340000,
+			amountPaidMinor: 0,
+			currency: 'ZAR',
+			indemnitySignedAt: null
+		}) as unknown as TandemPassenger;
+	const lead = passenger('Nadia Customer', 'AAAA-1111', 'nadia@example.com');
+	const sam = passenger('Sam Customer', 'BBBB-2222', 'sam@example.com');
+	const kim = passenger('Kim Customer', 'CCCC-3333', null);
+	let sent: EmailMessage[] = [];
+	afterEach(() => {
+		setMailer(null);
+		sent = [];
+	});
+	const capture = () => setMailer({ send: async (m) => void sent.push(m) });
+
+	test('confirmationUrl adds ?g= only for a group', () => {
+		expect(confirmationUrl(origin, dz, lead)).toBe('https://dz.example/dz/demo/book/AAAA-1111');
+		expect(confirmationUrl(origin, dz, lead, [sam, kim])).toBe('https://dz.example/dz/demo/book/AAAA-1111?g=BBBB-2222,CCCC-3333');
+	});
+
+	test("the lead's email opens the group view and lists each jumper's sign link", async () => {
+		capture();
+		expect(await sendConfirmationEmail(dz, lead, origin, [sam, kim])).toBe(true);
+		const text = sent[0].text ?? '';
+		expect(text).toContain('download the confirmation PDF: https://dz.example/dz/demo/book/AAAA-1111?g=BBBB-2222,CCCC-3333\n');
+		expect(text).toContain('indemnity before the jump: https://dz.example/dz/demo/book/AAAA-1111?g=BBBB-2222,CCCC-3333#indemnity');
+		expect(text).toContain('- Sam Customer: https://dz.example/dz/demo/book/BBBB-2222#indemnity');
+		// A jumper without an email still gets a link the lead can forward.
+		expect(text).toContain('- Kim Customer: https://dz.example/dz/demo/book/CCCC-3333#indemnity');
+	});
+
+	test('a single booking (or a fellow jumper) gets the plain link and no group section', async () => {
+		capture();
+		await sendConfirmationEmail(dz, sam, origin);
+		const text = sent[0].text ?? '';
+		expect(text).toContain('https://dz.example/dz/demo/book/BBBB-2222\n');
+		expect(text).not.toContain('?g=');
+		expect(text).not.toContain('Your group');
 	});
 });

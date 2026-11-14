@@ -72,14 +72,22 @@ export function publicOrigin(url: URL, configured?: string): string {
 	return (configured || url.origin).replace(/\/$/, '');
 }
 
-export function confirmationUrl(origin: string, dz: Pick<Dropzone, 'slug'>, p: Pick<TandemPassenger, 'confirmationNumber'>) {
-	return `${origin}/dz/${dz.slug}/book/${p.confirmationNumber}`;
+type GroupMember = Pick<TandemPassenger, 'name' | 'confirmationNumber'>;
+
+/** Public booking page; with `group` (the lead's fellow jumpers) the page lists them via `?g=`. */
+export function confirmationUrl(origin: string, dz: Pick<Dropzone, 'slug'>, p: Pick<TandemPassenger, 'confirmationNumber'>, group: GroupMember[] = []) {
+	const g = group.length ? `?g=${group.map((m) => m.confirmationNumber).join(',')}` : '';
+	return `${origin}/dz/${dz.slug}/book/${p.confirmationNumber}${g}`;
 }
 
-/** Booking confirmation email (Mailer interface; console in dev). */
-export async function sendConfirmationEmail(dz: Dropzone, p: TandemPassenger, origin: string): Promise<boolean> {
+/**
+ * Booking confirmation email (Mailer interface; console in dev). For a group booking the lead's
+ * email gets `group` (the other jumpers): its link opens the page with the group listed (pay for
+ * everyone, share sign links) and it lists each jumper's own indemnity link to forward.
+ */
+export async function sendConfirmationEmail(dz: Dropzone, p: TandemPassenger, origin: string, group: GroupMember[] = []): Promise<boolean> {
 	if (!p.email) return false;
-	const link = confirmationUrl(origin, dz, p);
+	const link = confirmationUrl(origin, dz, p, group);
 	const extras = p.extras.map((e) => SLOT_EXTRA_LABELS[e]).join(', ');
 	const lines = [
 		`Hi ${p.name.split(' ')[0]},`,
@@ -93,6 +101,9 @@ export async function sendConfirmationEmail(dz: Dropzone, p: TandemPassenger, or
 		'',
 		`View your booking and download the confirmation PDF: ${link}`,
 		p.indemnitySignedAt ? null : `Please sign your indemnity before the jump: ${link}#indemnity`,
+		...(group.length
+			? ['', 'Your group — every jumper signs their own indemnity. Forward each one their link:', ...group.map((m) => `- ${m.name}: ${confirmationUrl(origin, dz, m)}#indemnity`)]
+			: []),
 		'',
 		dz.address ? `Where: ${dz.address}` : null,
 		dz.contactPhone ? `Questions? Call ${dz.contactPhone}` : null,

@@ -95,7 +95,8 @@ export const actions: Actions = {
 
 			const res = await createOnlineBooking(locals.db, { dropzoneId: dz.id, date, time, jumpers, depositPaid: false });
 			const confs = res.passengers.map((p) => p.confirmationNumber);
-			for (const p of res.passengers) await sendConfirmationEmail(dz, p, origin).catch(() => {});
+			// The lead's email links to the page with the group listed; the others get their own page.
+			for (const [i, p] of res.passengers.entries()) await sendConfirmationEmail(dz, p, origin, i === 0 ? res.passengers.slice(1) : []).catch(() => {});
 			for (const p of res.passengers) await sendAdminBookingEmail(dz, p, origin).catch(() => {});
 			const [first, ...rest] = confs;
 			landing = `/dz/${dz.slug}/book/${first}?${new URLSearchParams({ new: '1', ...(rest.length ? { g: rest.join(',') } : {}) })}`;
