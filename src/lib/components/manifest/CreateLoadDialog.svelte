@@ -92,6 +92,7 @@
 		</div>
 		<div class="grid grid-cols-2 gap-3">
 			<Input label="Number of loads" name="count" type="number" min="1" max="20" value="1" />
+			<Input label="Minutes apart" name="spacing" type="number" min="0" max="600" placeholder="0" hint="Spaces out the times" />
 		</div>
 		<div class="flex flex-col gap-1.5">
 			<label for="req" class="text-sm font-medium">Load requirements <span class="font-normal text-subtle">(optional)</span></label>

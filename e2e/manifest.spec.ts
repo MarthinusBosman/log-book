@@ -201,9 +201,13 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await dialog.getByLabel('Airplane name / number').fill('ZS-TWO');
 	await dialog.getByLabel('Slots (pax)').fill('8');
 	await dialog.getByLabel('Number of loads').fill('2');
+	await dialog.getByLabel('Time').fill('08:30');
+	await dialog.getByLabel('Minutes apart').fill('40');
 	await dialog.getByRole('button', { name: 'Create load' }).click();
 	const load1 = page.locator('[data-testid=load-card][data-load-number="1"]');
 	await expect(page.locator('[data-testid=load-card][data-load-number="2"]')).toBeVisible();
+	await expect(load1).toContainText('08:30');
+	await expect(page.locator('[data-testid=load-card][data-load-number="2"]')).toContainText('09:10');
 
 	// put the owner on load 1 from the Members tab
 	await load1.getByRole('link', { name: 'Add slots' }).click();

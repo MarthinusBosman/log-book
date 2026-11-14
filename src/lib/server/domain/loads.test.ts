@@ -83,6 +83,22 @@ describe('creating loads', () => {
 		await expect(createLoads(db, { dropzoneId: dz.id, day: 'nope', capacity: 4 })).rejects.toThrow(/date/);
 		await expect(createLoads(db, { dropzoneId: dz.id, day: DAY })).rejects.toThrow(/capacity/);
 	});
+
+	test('several loads can be spaced out from the first time; same time without a gap; never past midnight', async () => {
+		const { dz } = await makeDropzone(db);
+		const at = Date.parse('2026-11-14T08:30:00Z');
+		const spaced = await createLoads(db, { dropzoneId: dz.id, day: DAY, count: 3, capacity: 4, scheduledAt: at, spacingMinutes: 40 });
+		expect(spaced.map((l) => l.scheduledAt?.toISOString())).toEqual(['2026-11-14T08:30:00.000Z', '2026-11-14T09:10:00.000Z', '2026-11-14T09:50:00.000Z']);
+		const same = await createLoads(db, { dropzoneId: dz.id, day: DAY, count: 2, capacity: 4, scheduledAt: at });
+		expect(same.map((l) => l.scheduledAt?.getTime())).toEqual([at, at]);
+		const untimed = await createLoads(db, { dropzoneId: dz.id, day: DAY, count: 2, capacity: 4, spacingMinutes: 30 });
+		expect(untimed.map((l) => l.scheduledAt)).toEqual([null, null]);
+		const late = Date.parse('2026-11-14T20:00:00Z'); // 22:00 in Johannesburg; load 4 would be 00:15
+		await expect(createLoads(db, { dropzoneId: dz.id, day: DAY, count: 4, capacity: 4, scheduledAt: late, spacingMinutes: 45 })).rejects.toThrow(/midnight/);
+		await expect(createLoads(db, { dropzoneId: dz.id, day: DAY, count: 2, capacity: 4, scheduledAt: at, spacingMinutes: -5 })).rejects.toThrow(/Minutes between loads/);
+		await expect(createLoads(db, { dropzoneId: dz.id, day: DAY, count: 2, capacity: 4, scheduledAt: at, spacingMinutes: 7.5 })).rejects.toThrow(/Minutes between loads/);
+		expect(await listLoadsForDay(db, dz.id, DAY)).toHaveLength(7);
+	});
 });
 
 describe('manifest rules', () => {

@@ -173,15 +173,23 @@ export type CreateLoadsInput = {
 	/** "Automatically open load/s for jumpers?" */
 	open?: boolean;
 	scheduledAt?: number | null;
+	/** With `scheduledAt` and several loads: minutes between consecutive loads (0 = all at the same time). */
+	spacingMinutes?: number | null;
 	createdBy?: string | null;
 	now?: number;
 };
+
+/** Upper bound for the gap between batch-created loads (10 h covers a whole day's spread). */
+export const MAX_LOAD_SPACING_MINUTES = 600;
 
 /** Batch-create loads; numbers continue from the day's existing loads. Notifies DZ followers. */
 export async function createLoads(db: Database, input: CreateLoadsInput): Promise<Load[]> {
 	if (!isIsoDate(input.day)) throw new DomainError('invalid', 'Please select a date for the load/s');
 	const count = input.count ?? 1;
 	if (!Number.isInteger(count) || count < 1 || count > 50) throw new DomainError('invalid', 'Number of loads must be 1–50');
+	const spacing = input.spacingMinutes ?? 0;
+	if (!Number.isInteger(spacing) || spacing < 0 || spacing > MAX_LOAD_SPACING_MINUTES)
+		throw new DomainError('invalid', `Minutes between loads must be 0–${MAX_LOAD_SPACING_MINUTES}`);
 	const now = input.now ?? Date.now();
 	const dz = await dzRow(db, input.dropzoneId);
 	const plane = input.aircraftId
@@ -201,6 +209,11 @@ export async function createLoads(db: Database, input: CreateLoadsInput): Promis
 		pilotWeightKg ??= p?.w ?? null;
 	}
 	const first = await nextLoadNumber(db, dz.id, input.day);
+	if (input.scheduledAt != null && count > 1 && spacing > 0) {
+		const last = input.scheduledAt + (count - 1) * spacing * MINUTE;
+		if (localDate(last, dz.timezone) !== localDate(input.scheduledAt, dz.timezone))
+			throw new DomainError('invalid', `${count} loads ${spacing} minutes apart run past midnight: use fewer loads or a shorter gap`);
+	}
 	const rows = Array.from({ length: count }, (_, i) => ({
 		id: newId(),
 		dropzoneId: dz.id,
@@ -216,7 +229,7 @@ export async function createLoads(db: Database, input: CreateLoadsInput): Promis
 		pilotName,
 		pilotWeightKg,
 		requirements: input.requirements ?? null,
-		scheduledAt: input.scheduledAt != null ? new Date(input.scheduledAt) : null,
+		scheduledAt: input.scheduledAt != null ? new Date(input.scheduledAt + i * spacing * MINUTE) : null,
 		createdBy: input.createdBy ?? null,
 		createdAt: new Date(now),
 		updatedAt: new Date(now)

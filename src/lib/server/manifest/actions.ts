@@ -110,6 +110,7 @@ export const loadActions = {
 					requirements: optStr(form, 'requirements'),
 					open: bool(form, 'open'),
 					scheduledAt,
+					spacingMinutes: scheduledAt != null ? optNum(form, 'spacing') : null,
 					createdBy: ctx.userId
 				});
 				return { ok: true, action: 'createLoad', created: created.map((l) => l.loadNumber) };
