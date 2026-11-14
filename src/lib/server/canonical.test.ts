@@ -1,5 +1,23 @@
 import { describe, expect, test } from 'bun:test';
-import { canonicalRedirect } from './canonical.ts';
+import { canonicalRedirect, pathAliasRedirect } from './canonical.ts';
+
+describe('pathAliasRedirect', () => {
+	const a = (u: string, method = 'GET') => pathAliasRedirect(new URL(u, 'https://log-book.app'), method);
+	test('common auth URL guesses go to the real pages, query kept', () => {
+		expect(a('/register')).toBe('/signup');
+		expect(a('/sign-up?next=/app/wallet')).toBe('/signup?next=/app/wallet');
+		expect(a('/signin')).toBe('/login');
+		expect(a('/Sign-In/')).toBe('/login');
+		expect(a('/log-in', 'HEAD')).toBe('/login');
+	});
+	test('real pages, other paths and non-GET are untouched', () => {
+		expect(a('/signup')).toBeNull();
+		expect(a('/login')).toBeNull();
+		expect(a('/register/extra')).toBeNull();
+		expect(a('/dz/register')).toBeNull();
+		expect(a('/register', 'POST')).toBeNull();
+	});
+});
 
 const r = (u: string, method = 'GET', host: string | undefined = 'log-book.app') => canonicalRedirect(new URL(u), method, host);
 const unset = (u: string) => canonicalRedirect(new URL(u), 'GET', undefined);

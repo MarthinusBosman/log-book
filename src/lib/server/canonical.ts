@@ -1,4 +1,24 @@
 /**
+ * Common guesses for the auth pages (typed URLs, links from other sites, password managers).
+ * Only these exact paths: any other unknown URL stays a 404.
+ */
+const PATH_ALIASES: Record<string, string> = {
+	'/register': '/signup',
+	'/sign-up': '/signup',
+	'/signin': '/login',
+	'/sign-in': '/login',
+	'/log-in': '/login'
+};
+
+/** `/register?next=x` → `/signup?next=x` (GET/HEAD only; trailing slash and case ignored). */
+export function pathAliasRedirect(url: URL, method: string): string | null {
+	if (method !== 'GET' && method !== 'HEAD') return null;
+	const key = url.pathname.toLowerCase().replace(/\/+$/, '');
+	const to = PATH_ALIASES[key];
+	return to ? `${to}${url.search}` : null;
+}
+
+/**
  * Canonical-host redirect (env CANONICAL_HOST, e.g. `log-book.app`).
  *
  * Alias hosts of the same name — another TLD (`log-book.io`) or a `www.` prefix — are sent to

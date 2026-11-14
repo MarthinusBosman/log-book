@@ -139,8 +139,8 @@ describe('holds', () => {
 describe('capture & payments', () => {
 	test('completing the load captures holds: pending cleared, charged, slot paid', async () => {
 		const { dz, load, jumper } = await setup();
-		await topUp(db, { userId: jumper.id, dropzoneId: dz.id, amountMinor: 100000, provider: 'cash' });
-		const slot = await addSlot(db, load.id, { userId: jumper.id, jumpType: 'belly', extras: ['gear_rental'] });
+		await topUp(db, { userId: jumper.id, dropzoneId: dz.id, amountMinor: 100000, provider: 'cash', now: NOW });
+		const slot = await addSlot(db, load.id, { userId: jumper.id, jumpType: 'belly', extras: ['gear_rental'] }, { now: NOW + 1000 });
 		const res = await completeLoad(db, load.id, { now: NOW + 3600_000 });
 		expect(res.chargedSlotIds).toEqual([slot.id]);
 		const acc = (await getAccount(db, jumper.id, dz.id))!;

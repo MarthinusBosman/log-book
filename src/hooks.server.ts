@@ -8,7 +8,7 @@ import { readBranding } from '#lib/branding.ts';
 import { afterMutation } from '#lib/server/import/federation/web.ts';
 import { DZ_COOKIE, findDropzoneBySlug } from '#lib/server/dropzones/index.ts';
 import { closeStaleCheckins } from '#lib/server/domain/checkins.ts';
-import { canonicalRedirect } from '#lib/server/canonical.ts';
+import { canonicalRedirect, pathAliasRedirect } from '#lib/server/canonical.ts';
 import { CANONICAL_HOST } from '$app/env/private';
 import { isCsrfForbidden } from '#lib/server/csrf.ts';
 import { cacheableMethod } from '#lib/server/request-cache.ts';
@@ -36,6 +36,8 @@ const csrf: Handle = async ({ event, resolve }) => {
 const canonicalHost: Handle = async ({ event, resolve }) => {
 	const to = canonicalRedirect(event.url, event.request.method, CANONICAL_HOST);
 	if (to) return new Response(null, { status: to.status, headers: { location: to.location } });
+	const alias = pathAliasRedirect(event.url, event.request.method);
+	if (alias) return new Response(null, { status: 301, headers: { location: alias } });
 	return resolve(event);
 };
 

@@ -29,6 +29,16 @@ test('privacy policy + terms: linked from footer and signup, no JS', async ({ pa
 	await expect(legal.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
 });
 
+test('common auth URL guesses redirect to the real pages', async ({ page }) => {
+	await page.goto('/register?redirectTo=%2Fapp%2Fwallet');
+	await expect(page).toHaveURL(/\/signup\?redirectTo=%2Fapp%2Fwallet$/);
+	await page.goto('/sign-in');
+	await expect(page).toHaveURL(/\/login$/);
+	const res = await page.request.get('/signin', { maxRedirects: 0 });
+	expect(res.status()).toBe(301);
+	expect((await page.request.get('/registerx')).status()).toBe(404);
+});
+
 test('signup → dashboard → logout → login → dashboard', async ({ page }) => {
 	const email = `e2e-${Date.now()}-${test.info().project.name}@example.com`;
 	const password = 'blue-skies-123';
