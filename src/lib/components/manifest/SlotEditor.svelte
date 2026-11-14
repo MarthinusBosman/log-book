@@ -61,7 +61,7 @@
 				{#if canPay && !s.paid && s.totalMinor > 0}
 					<form method="POST" action={formAction(page.url, 'markPaid')} class="mt-2 flex gap-2" use:enhance={act({ success: 'Slot marked as paid', onSuccess: close })}>
 						<input type="hidden" name="slotId" value={s.id} />
-						<Select name="provider" value="cash" class="flex-1" options={[{ value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'eft', label: 'EFT' }, { value: 'manual', label: 'Other' }]} />
+						<Select name="provider" value="cash" aria-label="Payment method" class="flex-1" options={[{ value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'eft', label: 'EFT' }, { value: 'manual', label: 'Other' }]} />
 						<Button type="submit" variant="secondary" class="h-11">Mark paid</Button>
 					</form>
 				{/if}

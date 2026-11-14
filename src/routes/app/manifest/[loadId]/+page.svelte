@@ -76,7 +76,7 @@
 				</div>
 				{#if data.canPay && unpaid.length}
 					<form method="POST" action="?/markPaid" id="bulk-pay" class="flex items-center gap-2" use:enhance={act({ success: (d) => `${d.paid} slot${d.paid === 1 ? '' : 's'} marked paid`, onSuccess: () => (selected = []) })}>
-						<Select name="provider" value="cash" class="w-28 [&_select]:h-9 [&_select]:text-sm" options={[{ value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'eft', label: 'EFT' }, { value: 'manual', label: 'Other' }]} />
+						<Select name="provider" value="cash" aria-label="Payment method" class="w-28 [&_select]:h-9 [&_select]:text-sm" options={[{ value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'eft', label: 'EFT' }, { value: 'manual', label: 'Other' }]} />
 						<Button type="submit" size="sm" variant="secondary" disabled={selected.length === 0}>
 							Mark paid{selected.length ? ` · ${formatMoney(selectedOwed, data.dz.currency)}` : ''}
 						</Button>

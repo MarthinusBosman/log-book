@@ -135,6 +135,10 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await expect(row).toContainText('Indemnity signed');
 	await row.click();
 	await expect(page.getByTestId('confirmation-number')).toHaveText(conf);
+	// Detail lists hold only terms/definitions; their titles are headings outside the <dl>.
+	const drawer = page.locator('dialog[open]');
+	await expect(drawer.getByRole('heading', { name: 'Emergency contact' })).toBeVisible();
+	await expect(drawer.locator('dl > :not(dt, dd, div)')).toHaveCount(0);
 
 	// Signed waiver is listed with a PDF.
 	await page.goto('/app/waivers?tab=signed');

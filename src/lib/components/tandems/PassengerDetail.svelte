@@ -245,8 +245,9 @@
 				</div>
 			{/if}
 		{/snippet}
-		<dl class="grid gap-2 rounded-2xl border border-border p-4">
-			<p class="text-xs font-semibold tracking-wider text-muted uppercase">Passenger</p>
+		<div class="grid content-start gap-2 rounded-2xl border border-border p-4">
+			<h4 class="text-xs font-semibold tracking-wider text-muted uppercase">Passenger</h4>
+			<dl class="grid gap-2">
 			{@render item('Email', p.email)}
 			{@render item('Phone', p.phone)}
 			{@render item('ID / Passport', p.idNumber)}
@@ -256,19 +257,24 @@
 			{@render item('Address', [p.addressLine1, p.city, p.country].filter(Boolean).join(', '))}
 			{@render item('Heard about us', p.heardFrom)}
 			{@render item('Note', p.note)}
-		</dl>
-		<dl class="grid content-start gap-2 rounded-2xl border border-border p-4">
-			<p class="text-xs font-semibold tracking-wider text-muted uppercase">Emergency contact</p>
+			</dl>
+		</div>
+		<div class="grid content-start gap-2 rounded-2xl border border-border p-4">
+			<h4 class="text-xs font-semibold tracking-wider text-muted uppercase">Emergency contact</h4>
+			<dl class="grid gap-2">
 			{@render item('Name', p.emergencyName ?? '—')}
 			{@render item('Phone', p.emergencyPhone)}
 			{@render item('Email', p.emergencyEmail)}
+			</dl>
 			{#if minor || p.guardianName}
-				<p class="mt-2 text-xs font-semibold tracking-wider text-warning uppercase">Guardian</p>
+				<h4 class="mt-2 text-xs font-semibold tracking-wider text-warning uppercase">Guardian</h4>
+				<dl class="grid gap-2">
 				{@render item('Name', p.guardianName ?? 'Missing')}
 				{@render item('Email', p.guardianEmail)}
 				{@render item('ID / Passport', p.guardianIdNumber)}
+				</dl>
 			{/if}
-		</dl>
+		</div>
 	</section>
 
 	<!-- edit -->
