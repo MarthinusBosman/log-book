@@ -1,5 +1,24 @@
 import { describe, expect, test } from 'bun:test';
-import { fmtFreefall, loggedScope } from './format.ts';
+import { fmtFreefall, loggedScope, walletShortfall } from './format.ts';
+
+describe('walletShortfall', () => {
+	const w = { availableMinor: 10_000, currency: 'ZAR' };
+	test('enough money or no wallet: nothing to say', () => {
+		expect(walletShortfall(w, 10_000)).toEqual({ short: false, overdraw: false });
+		expect(walletShortfall(null, 99_999)).toEqual({ short: false, overdraw: false });
+		expect(walletShortfall(w, -5_000)).toEqual({ short: false, overdraw: false });
+	});
+
+	test('short when the slot costs more than is available', () => {
+		expect(walletShortfall(w, 10_001)).toEqual({ short: true, overdraw: false });
+		expect(walletShortfall({ ...w, availableMinor: 0 }, 45_000)).toEqual({ short: true, overdraw: false });
+	});
+
+	test('a DZ that allows a negative balance is never short, only overdrawn', () => {
+		expect(walletShortfall({ ...w, allowNegative: true }, 45_000)).toEqual({ short: false, overdraw: true });
+		expect(walletShortfall({ ...w, allowNegative: true }, 5_000)).toEqual({ short: false, overdraw: false });
+	});
+});
 
 describe('loggedScope', () => {
 	test('nothing to say when every jump is logged', () => {

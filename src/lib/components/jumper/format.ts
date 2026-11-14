@@ -93,3 +93,23 @@ export function countdown(target: number, now: number): string | null {
 	if (h) return `${h}h ${String(m).padStart(2, '0')}m`;
 	return `${m}:${String(s % 60).padStart(2, '0')}`;
 }
+
+/** Jumper's wallet as the self-manifest join form sees it. */
+export type JoinWallet = {
+	availableMinor: number;
+	currency: string;
+	/** The DZ lets the balance go below zero (the server then accepts the slot anyway). */
+	allowNegative?: boolean;
+	/** Where to top up (the DZ wallet page). */
+	topUpHref?: string;
+};
+
+/**
+ * Does this slot cost more than the wallet holds? `cost` is the extra amount the slot needs
+ * (new total minus the current hold when changing a slot). Never "short" at a DZ that allows a
+ * negative balance: the server accepts the slot there, so the form must not say "not enough".
+ */
+export function walletShortfall(wallet: JoinWallet | null | undefined, cost: number): { short: boolean; overdraw: boolean } {
+	if (!wallet || cost <= wallet.availableMinor) return { short: false, overdraw: false };
+	return wallet.allowNegative ? { short: false, overdraw: true } : { short: true, overdraw: false };
+}

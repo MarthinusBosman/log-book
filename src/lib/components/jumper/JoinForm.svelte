@@ -5,6 +5,7 @@
 	import type { PriceTable } from '#lib/server/jumper/manifest.ts';
 	import Chip from './Chip.svelte';
 	import FormAlert from './FormAlert.svelte';
+	import { walletShortfall, type JoinWallet } from './format.ts';
 
 	type Team = { id: string; name: string; members: { id: string; name: string }[]; coach: boolean; video: boolean };
 	type Props = {
@@ -18,7 +19,7 @@
 		initialType?: string;
 		initialExtras?: string[];
 		teams?: Team[];
-		wallet?: { availableMinor: number; currency: string } | null;
+		wallet?: JoinWallet | null;
 		/** Current slot total when changing (to show the difference). */
 		currentTotal?: number;
 		error?: string | null;
@@ -59,7 +60,8 @@
 	const each = $derived(base + extrasTotal);
 	const people = $derived(mode === 'team' ? memberIds.length : 1);
 	const total = $derived(each * people);
-	const short = $derived(mode === 'solo' && wallet && wallet.availableMinor < total - (currentTotal ?? 0));
+	const funds = $derived(walletShortfall(mode === 'team' ? null : wallet, total - (currentTotal ?? 0)));
+	const short = $derived(funds.short);
 
 	function toggleExtra(e: string, on: boolean) {
 		chosen = on ? [...new Set([...chosen, e])] : chosen.filter((x) => x !== e);
@@ -149,8 +151,15 @@
 			</p>
 			<p class="text-xl font-semibold tracking-tight tabular-nums" data-testid="live-price">{formatMoney(total, currency)}</p>
 			{#if wallet && mode !== 'team'}
-				<p class={cn('text-xs', short ? 'text-danger' : 'text-muted')}>
-					Wallet: {formatMoney(wallet.availableMinor, wallet.currency)} available{short ? ' — not enough' : ''}
+				<p class={cn('text-xs', short ? 'text-danger' : 'text-muted')} data-testid="wallet-note">
+					Wallet: {formatMoney(wallet.availableMinor, wallet.currency)} available{short
+						? ' — not enough'
+						: funds.overdraw
+							? ' — your balance will go below zero'
+							: ''}
+					{#if short && wallet.topUpHref}
+						· <a href={wallet.topUpHref} class="font-medium text-primary hover:underline">Top up</a>
+					{/if}
 				</p>
 			{/if}
 		</div>

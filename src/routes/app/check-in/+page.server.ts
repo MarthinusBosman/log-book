@@ -68,7 +68,7 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	return {
 		checkin: {
 			id: open.checkin.id,
-			dropzone: { id: dz.id, slug: dz.slug, name: dz.name, currency: dz.currency, walletEnabled: dz.walletEnabled },
+			dropzone: { id: dz.id, slug: dz.slug, name: dz.name, currency: dz.currency, walletEnabled: dz.walletEnabled, walletAllowNegative: dz.walletAllowNegative },
 			checkedInAt: open.checkin.checkedInAt.getTime(),
 			weightKg: open.checkin.weightKg,
 			gearRental: open.checkin.gearRental,

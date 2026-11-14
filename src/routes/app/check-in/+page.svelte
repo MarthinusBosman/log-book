@@ -213,7 +213,14 @@
 					changeTypes={data.changeTypes}
 					extras={data.extras}
 					teams={data.teams}
-					wallet={c.dropzone.walletEnabled ? data.wallet ?? { availableMinor: 0, currency: c.dropzone.currency } : null}
+					wallet={c.dropzone.walletEnabled
+						? {
+								availableMinor: data.wallet?.availableMinor ?? 0,
+								currency: data.wallet?.currency ?? c.dropzone.currency,
+								allowNegative: c.dropzone.walletAllowNegative,
+								topUpHref: `/app/wallet/${c.dropzone.slug}`
+							}
+						: null}
 					defaultExtras={c.gearRental ? ['gear_rental'] : []}
 					error={errFor(load.id)}
 					blocked={!!data.waiver}

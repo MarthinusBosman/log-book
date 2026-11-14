@@ -274,3 +274,56 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.getByTestId('topup-submit').click();
 	await expect(page.getByTestId('pending-topups')).toContainText(/R\s?150,50/);
 });
+
+test('join form with an empty wallet: "not enough" + Top up link, but not at a DZ that allows a negative balance', async ({ page }) => {
+	await signup(page, 'Penny Short');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Short DZ ${test.info().project.name} ${Date.now()}`);
+	await page.locator('select[name=country]').selectOption('ZA');
+	await page.locator('select[name=currency]').selectOption('ZAR');
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/pricelist');
+	await page.waitForLoadState('networkidle');
+	await page.locator('input[name=sport_slot]').first().fill('350');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: 'Price list updated' }).first()).toBeVisible();
+	await page.goto('/app/settings/features');
+	await page.waitForLoadState('networkidle');
+	await page.locator('label:has(input[name=walletEnabled])').click();
+	await page.getByRole('button', { name: 'Save features' }).click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: /saved/i }).first()).toBeVisible();
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-SHT');
+	await dialog.getByLabel('Slots (pax)').fill('6');
+	await dialog.getByLabel('Weight limit (kg)').fill('600');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.locator('[data-testid=load-card][data-load-number="1"]')).toBeVisible();
+
+	await page.goto('/app/check-in');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toBeVisible();
+	const load = page.locator('[data-testid=load-card][data-load="1"]');
+	const join = (await load.getByTestId('join-solo').getAttribute('href'))!;
+	await page.goto(`/app/check-in${join}`); // ?join= opens the form server-side
+	const note = load.getByTestId('wallet-note');
+	await expect(note).toContainText('not enough');
+	await expect(note.getByRole('link', { name: 'Top up' })).toHaveAttribute('href', /^\/app\/wallet\/[a-z0-9-]+$/);
+
+	await page.goto('/app/settings/features');
+	await page.waitForLoadState('networkidle');
+	await page.locator('label:has(input[name=walletAllowNegative])').click();
+	await page.getByRole('button', { name: 'Save features' }).click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: /saved/i }).first()).toBeVisible();
+	await page.goto(`/app/check-in${join}`);
+	await expect(note).toContainText('your balance will go below zero');
+	await expect(note).not.toContainText('not enough');
+	await expect(note.getByRole('link', { name: 'Top up' })).toHaveCount(0);
+	await page.waitForLoadState('networkidle');
+	await load.getByRole('button', { name: 'Join this load' }).click();
+	await expect(load.getByText('You’re on this load')).toBeVisible();
+});

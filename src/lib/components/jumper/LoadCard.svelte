@@ -7,7 +7,7 @@
 	import type { LoadCard, PriceTable } from '#lib/server/jumper/manifest.ts';
 	import JIcon from './JIcon.svelte';
 	import JoinForm from './JoinForm.svelte';
-	import { countdown, fmtTime } from './format.ts';
+	import { countdown, fmtTime, type JoinWallet } from './format.ts';
 
 	type Team = { id: string; name: string; members: { id: string; name: string }[]; coach: boolean; video: boolean };
 	type Props = {
@@ -19,7 +19,7 @@
 		changeTypes: readonly string[];
 		extras: readonly string[];
 		teams: Team[];
-		wallet: { availableMinor: number; currency: string } | null;
+		wallet: JoinWallet | null;
 		defaultExtras: string[];
 		error?: { action?: string; message?: string } | null;
 		blocked?: boolean;
