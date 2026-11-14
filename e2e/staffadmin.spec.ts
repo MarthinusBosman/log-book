@@ -81,6 +81,19 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page).toHaveURL(/\/app\/gear\?show=attention$/);
 	await expect(page.getByLabel('Filter rigs')).toHaveValue('attention');
 	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	// Tab and filter changes stay in the URL, so a reload returns to the same view.
+	await page.getByRole('tab', { name: /Jumpers.? gear/ }).click();
+	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members$/);
+	await page.reload();
+	await expect(page.getByRole('tab', { name: /Jumpers.? gear/ })).toHaveAttribute('aria-selected', 'true');
+	await page.getByRole('tab', { name: /DZ rigs/ }).click();
+	await page.getByLabel('Filter rigs').selectOption('');
+	await expect(page).toHaveURL(/\/app\/gear$/);
+	// ?new=1 opens the Add rig form; closing it drops the param.
+	await go(page, '/app/gear?new=1');
+	await expect(dialog(page).getByLabel('Name / number')).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(page).toHaveURL(/\/app\/gear$/);
 
 	// Members: invite someone new with the packer (staff) role.
 	await go(page, '/app/settings/members');

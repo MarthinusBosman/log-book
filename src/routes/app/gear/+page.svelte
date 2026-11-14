@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
+	import { replaceState } from '$app/navigation';
+	import { untrack } from 'svelte';
+	import { gearViewHref, readGearView, type GearOnly } from '#lib/components/staffadmin/gear-view.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input, Select, Stat, Tabs } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
 	import DueBadge from '#lib/components/staffadmin/DueBadge.svelte';
@@ -13,16 +16,20 @@
 	type Row = (typeof data.register)[number];
 	type Rig = Row['rig'];
 
-	type Only = '' | 'attention' | 'available' | 'in_use' | 'grounded';
-	// Deep links from the dashboard's "Gear due" card: ?tab=members, ?show=attention.
-	let tab = $state(page.url.searchParams.get('tab') === 'members' ? 'members' : 'dz');
+	// Tab, filter and the Add rig dialog follow the URL (?tab=members, ?show=attention, ?new=1):
+	// dashboard deep links land on them, and reload/back/shared links keep the view.
+	const initial = () => readGearView(page.url.searchParams);
+	let tab = $state<string>(initial().tab);
 	let q = $state('');
-	let only = $state<Only>(initOnly());
-	function initOnly(): Only {
-		const v = page.url.searchParams.get('show');
-		return v === 'attention' || v === 'available' || v === 'in_use' || v === 'grounded' ? v : '';
-	}
-	let editing = $state<Rig | 'new' | null>(null);
+	let only = $state<GearOnly>(initial().only);
+	let editing = $state<Rig | 'new' | null>(initial().adding ? 'new' : null);
+	$effect(() => {
+		const view = { tab: tab === 'members' ? 'members' : 'dz', only, adding: editing === 'new' } as const;
+		untrack(() => {
+			const href = gearViewHref(location.href, view);
+			if (href !== location.href) replaceState(href, page.state);
+		});
+	});
 	let servicing = $state<Rig | null>(null);
 	let deleting = $state<Rig | null>(null);
 	let pending = $state(false);
