@@ -7,6 +7,8 @@
 		weightKg?: number | null;
 		warn?: string | null;
 		onLoad?: boolean;
+		/** other loads that day this person is already on (load numbers) */
+		alsoOn?: number[];
 		colour?: string | null;
 	};
 </script>
@@ -15,6 +17,7 @@
 	import { Avatar } from '#lib/ui/index.ts';
 	import { cn } from '#lib/ui/cn.ts';
 	import MIcon from './MIcon.svelte';
+	import { alsoOnLabel } from './manifest.ts';
 
 	type Props = {
 		people: Person[];
@@ -77,6 +80,11 @@
 						{#if p.sub || p.onLoad}<span class="block truncate text-xs text-muted">{p.onLoad ? 'Already on this load' : p.sub}</span>{/if}
 					</span>
 					{#if p.warn}<span class="shrink-0 rounded-md bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger uppercase">{p.warn}</span>{/if}
+					{#if !p.onLoad && p.alsoOn?.length}
+						<span class="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-muted" data-also-on title="Already manifested on another load today">
+							{alsoOnLabel(p.alsoOn, true)}
+						</span>
+					{/if}
 					{#if p.weightKg}<span class="shrink-0 text-xs text-subtle tabular-nums">{Math.round(p.weightKg)} kg</span>{/if}
 				</label>
 			</li>

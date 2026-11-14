@@ -7,7 +7,7 @@ import { listUsersWithRole } from '../domain/permissions.ts';
 import { listCheckedIn } from '../domain/checkins.ts';
 import { localDate } from '../domain/time.ts';
 import { flagMembershipWarnings, slotPeople, type SlotPerson } from '../memberships/service.ts';
-import type { JumpType } from '../../domain/constants.ts';
+import { EDITABLE_LOAD_STATUSES, type JumpType } from '../../domain/constants.ts';
 import type { DisplayLoadVM, LoadVM, SlotVM, StaffTodayVM } from '../../components/manifest/types.ts';
 import { ACTIVE_STATUSES } from '../../components/manifest/manifest.ts';
 
@@ -84,6 +84,24 @@ export async function boardLoads(db: Database, dz: Dropzone, day: string, opts: 
 export function avatarsOf(people: Map<string, SlotPerson>): Record<string, string> {
 	const out: Record<string, string> = {};
 	for (const [id, p] of people) if (p.avatar) out[id] = p.avatar;
+	return out;
+}
+
+/**
+ * user id → numbers of the OTHER loads that day they are still manifested on
+ * (planned → boarding, ascending), so the add-to-load picker can say "On load 3".
+ * Departed/completed/cancelled loads don't count: those jumpers are free again.
+ */
+export function otherLoadsByUser(dayLoads: LoadWithSlots[], exceptLoadId: string): Record<string, number[]> {
+	const out: Record<string, number[]> = {};
+	for (const l of [...dayLoads].sort((a, b) => a.loadNumber - b.loadNumber)) {
+		if (l.id === exceptLoadId || !EDITABLE_LOAD_STATUSES.includes(l.status)) continue;
+		for (const s of l.slots) {
+			if (!s.userId) continue;
+			const list = (out[s.userId] ??= []);
+			if (!list.includes(l.loadNumber)) list.push(l.loadNumber);
+		}
+	}
 	return out;
 }
 

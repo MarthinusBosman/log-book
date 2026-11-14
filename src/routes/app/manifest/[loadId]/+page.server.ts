@@ -7,7 +7,7 @@ import { listPassengers } from '#lib/server/domain/tandems.ts';
 import { isDomainError } from '#lib/server/domain/errors.ts';
 import { localDate } from '#lib/server/domain/time.ts';
 import { listUsersWithRole } from '#lib/server/domain/permissions.ts';
-import { avatarsOf, tiColours, toLoadVM } from '#lib/server/manifest/board.ts';
+import { avatarsOf, otherLoadsByUser, tiColours, toLoadVM } from '#lib/server/manifest/board.ts';
 import { requireDropzone } from '#lib/server/manifest/context.ts';
 import { flagMembershipWarnings, slotPeople } from '#lib/server/memberships/service.ts';
 import { loadActions, slotActions } from '#lib/server/manifest/actions.ts';
@@ -42,6 +42,7 @@ export const load: PageServerLoad = async (event) => {
 		canManifest ? listUsersWithRole(db, ctx.dz.id, 'pilot') : []
 	]);
 	const onLoad = new Set(l.slots.map((s) => s.userId).filter(Boolean));
+	const others = otherLoadsByUser(dayLoads, l.id);
 	const staffRoles = new Set(['tandem_instructor', 'videographer', 'coach', 'aff_instructor', 'instructor', 'staff', 'owner', 'admin', 'manifest']);
 	const today = localDate(now, ctx.dz.timezone);
 
@@ -65,14 +66,15 @@ export const load: PageServerLoad = async (event) => {
 			expiry: c.user.associationExpiry,
 			expired: !!c.user.associationExpiry && c.user.associationExpiry < l.day,
 			gearRental: c.checkin.gearRental,
-			onLoad: onLoad.has(c.user.id)
+			onLoad: onLoad.has(c.user.id),
+			otherLoads: others[c.user.id] ?? []
 		})),
 		members: members
 			.filter((m) => m.status === 'active')
-			.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, licence: m.licence, roles: m.roles.map((r) => r.role), onLoad: onLoad.has(m.userId) })),
+			.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, licence: m.licence, roles: m.roles.map((r) => r.role), onLoad: onLoad.has(m.userId), otherLoads: others[m.userId] ?? [] })),
 		staff: members
 			.filter((m) => m.status === 'active' && m.roles.some((r) => staffRoles.has(r.role)))
-			.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, roles: m.roles.map((r) => r.role), colour: colours[m.userId] ?? null, onLoad: onLoad.has(m.userId) })),
+			.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, roles: m.roles.map((r) => r.role), colour: colours[m.userId] ?? null, onLoad: onLoad.has(m.userId), otherLoads: others[m.userId] ?? [] })),
 		teams: teams.map((t) => ({ id: t.id, name: t.name, discipline: t.discipline, colour: t.colour })),
 		passengers: passengers
 			.filter((p) => !p.manifested && (p.status === 'registered' || p.status === 'booked'))

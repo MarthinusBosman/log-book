@@ -173,3 +173,7 @@ export const cancelConfirm = (n: number) => `Cancel load ${n}? Wallet holds are 
 export const deleteConfirm = (n: number) => `Delete load ${n}?`;
 export const removeSlotConfirm = (name: string, withGroup = false) =>
 	withGroup ? `Remove ${name} and their whole group from the load?` : `Remove ${name} from the load?`;
+
+/** "on load 3" / "on loads 3, 5": other loads that day a person is already manifested on. */
+export const alsoOnLabel = (loads: readonly number[], capital = false) =>
+	`${capital ? 'On' : 'on'} ${loads.length === 1 ? `load ${loads[0]}` : `loads ${loads.join(', ')}`}`;

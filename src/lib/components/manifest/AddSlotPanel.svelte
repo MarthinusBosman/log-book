@@ -5,13 +5,13 @@
 	import { cn } from '#lib/ui/cn.ts';
 	import { page } from '$app/state';
 	import { act } from './forms.ts';
-	import { formAction } from './manifest.ts';
+	import { alsoOnLabel, formAction } from './manifest.ts';
 	import JumpFields from './JumpFields.svelte';
 	import PeoplePicker, { type Person } from './PeoplePicker.svelte';
 
-	type Checked = { id: string; name: string; avatar?: string | null; licence: string | null; weightKg: number | null; expired: boolean; onLoad: boolean; gearRental: boolean };
-	type Member = { id: string; name: string; avatar?: string | null; licence: string | null; roles: DropzoneRole[]; onLoad: boolean };
-	type Staff = { id: string; name: string; avatar?: string | null; roles: DropzoneRole[]; colour: string | null; onLoad: boolean };
+	type Checked = { id: string; name: string; avatar?: string | null; licence: string | null; weightKg: number | null; expired: boolean; onLoad: boolean; otherLoads?: number[]; gearRental: boolean };
+	type Member = { id: string; name: string; avatar?: string | null; licence: string | null; roles: DropzoneRole[]; onLoad: boolean; otherLoads?: number[] };
+	type Staff = { id: string; name: string; avatar?: string | null; roles: DropzoneRole[]; colour: string | null; onLoad: boolean; otherLoads?: number[] };
 	type Passenger = { id: string; name: string; weightKg: number | null; extras: SlotExtra[]; totalMinor: number; depositMinor: number; bookingTime: string | null };
 	type Team = { id: string; name: string; discipline: string | null; colour: string | null };
 
@@ -58,11 +58,12 @@
 			sub: [c.licence ?? 'Student', c.gearRental ? 'rental gear' : null].filter(Boolean).join(' · '),
 			weightKg: c.weightKg,
 			warn: c.expired ? 'Expired' : null,
-			onLoad: c.onLoad
+			onLoad: c.onLoad,
+			alsoOn: c.otherLoads
 		}))
 	);
 	const memberPeople = $derived<Person[]>(
-		members.map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, sub: m.licence ?? m.roles.map((r) => ROLE_LABELS[r]).join(', '), onLoad: m.onLoad }))
+		members.map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, sub: m.licence ?? m.roles.map((r) => ROLE_LABELS[r]).join(', '), onLoad: m.onLoad, alsoOn: m.otherLoads }))
 	);
 	const staffPeople = $derived<Person[]>(
 		staff.map((s) => ({
@@ -71,7 +72,8 @@
 			avatar: s.avatar,
 			sub: s.roles.filter((r) => r !== 'jumper').map((r) => ROLE_LABELS[r]).join(', '),
 			colour: s.colour,
-			onLoad: s.onLoad
+			onLoad: s.onLoad,
+			alsoOn: s.otherLoads
 		}))
 	);
 	const tis = $derived(staff.filter((s) => s.roles.includes('tandem_instructor') && !s.onLoad));
@@ -203,13 +205,13 @@
 							name="instructorUserId"
 							bind:value={tiId}
 							placeholder="Choose TI…"
-							options={tis.map((t) => ({ value: t.id, label: t.name }))}
+							options={tis.map((t) => ({ value: t.id, label: t.otherLoads?.length ? `${t.name} · ${alsoOnLabel(t.otherLoads)}` : t.name }))}
 						/>
 						<Select
 							label="3. Outside video (optional)"
 							name="videographerUserId"
 							bind:value={videoId}
-							options={[{ value: '', label: 'No outside video' }, ...videos.filter((v) => v.id !== tiId).map((v) => ({ value: v.id, label: v.name }))]}
+							options={[{ value: '', label: 'No outside video' }, ...videos.filter((v) => v.id !== tiId).map((v) => ({ value: v.id, label: v.otherLoads?.length ? `${v.name} · ${alsoOnLabel(v.otherLoads)}` : v.name }))]}
 						/>
 						{#if passenger}
 							<div class="rounded-xl border border-border bg-surface-2/50 p-3 text-sm">

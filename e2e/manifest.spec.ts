@@ -180,3 +180,48 @@ test('public display needs a valid token', async ({ page }) => {
 	// the error page keeps its content in a main landmark
 	await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText('Off the landing area');
 });
+
+test('add-to-load picker says who is already on another load that day', async ({ page }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Olga Onload');
+	await page.getByLabel('Email').fill(`onload-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Onload E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// two loads at once
+	await page.goto('/app/manifest');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-TWO');
+	await dialog.getByLabel('Slots (pax)').fill('8');
+	await dialog.getByLabel('Number of loads').fill('2');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	const load1 = page.locator('[data-testid=load-card][data-load-number="1"]');
+	await expect(page.locator('[data-testid=load-card][data-load-number="2"]')).toBeVisible();
+
+	// put the owner on load 1 from the Members tab
+	await load1.getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('tab', { name: 'Members' }).click();
+	await page.getByRole('tabpanel').getByRole('checkbox', { name: /Olga Onload/ }).check();
+	await page.getByRole('button', { name: 'Add jumper', exact: true }).click();
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Olga Onload"]')).toBeVisible();
+	// on its own load the row is disabled, without the other-load hint
+	await expect(page.getByRole('tabpanel').getByRole('checkbox', { name: /Olga Onload/ })).toBeDisabled();
+	await expect(page.locator('[data-also-on]')).toHaveCount(0);
+
+	// load 2's picker flags her as already on load 1, but still lets you add her
+	await page.goto('/app/manifest');
+	await page.locator('[data-testid=load-card][data-load-number="2"]').getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('tab', { name: 'Members' }).click();
+	const row = page.getByRole('tabpanel').locator('label', { has: page.getByRole('checkbox', { name: /Olga Onload/ }) });
+	await expect(row.locator('[data-also-on]')).toHaveText('On load 1');
+	await expect(row.getByRole('checkbox')).toBeEnabled();
+});
