@@ -3,7 +3,8 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { notifications, users } from '../db/schema.ts';
 import { listMemberships } from '../dropzones/index.ts';
-import { can, capabilitiesOf, getRoles, grantRole, requireCan, revokeRole, rolesCan } from './permissions.ts';
+import { actorCan, can, canAny, capabilitiesOf, getRoles, grantRole, requireCan, revokeRole, rolesCan } from './permissions.ts';
+import { createSession, generateSessionToken, validateSessionToken } from '../auth/session.ts';
 import { freshDb, makeDropzone, makeMember, makeUser } from './testing.ts';
 
 let db: Database;
@@ -54,6 +55,32 @@ describe('db', () => {
 		expect(await can(db, staff.id, dz.id, 'manifest')).toBe(false);
 		await db.update(users).set({ isSuperAdmin: true }).where(eq(users.id, stranger.id));
 		expect(await can(db, stranger.id, dz.id, 'dz.settings')).toBe(true);
+	});
+
+	test('actorCan / canAny: session flag answers super-admin without a users read', async () => {
+		const { dz } = await makeDropzone(db);
+		const staff = await makeMember(db, dz.id, ['manifest']);
+		const roles = await getRoles(db, staff.id, dz.id);
+		expect(actorCan({ id: staff.id, isSuperAdmin: false }, roles, ['indemnity.manage', 'manifest'])).toBe(true);
+		expect(actorCan({ id: staff.id, isSuperAdmin: false }, roles, 'dz.settings')).toBe(false);
+		expect(actorCan({ id: 'x', isSuperAdmin: true }, [], 'dz.settings')).toBe(true);
+		expect(await canAny(db, { id: staff.id, isSuperAdmin: false }, dz.id, ['pricing.manage', 'manifest'])).toBe(true);
+		expect(await canAny(db, { id: staff.id, isSuperAdmin: false }, dz.id, ['pricing.manage'])).toBe(false);
+		// The flag from the session is trusted; an actor without it falls back to reading users.
+		const admin = await makeUser(db);
+		await db.update(users).set({ isSuperAdmin: true }).where(eq(users.id, admin.id));
+		expect(await canAny(db, { id: admin.id }, dz.id, ['dz.settings'])).toBe(true);
+		expect(await canAny(db, { id: admin.id, isSuperAdmin: false }, dz.id, ['dz.settings'])).toBe(false);
+		expect(await canAny(db, { id: 'nobody', isSuperAdmin: true }, dz.id, ['dz.settings'])).toBe(true);
+	});
+
+	test('session user carries isSuperAdmin', async () => {
+		const u = await makeUser(db);
+		await db.update(users).set({ isSuperAdmin: true }).where(eq(users.id, u.id));
+		const token = generateSessionToken();
+		await createSession(db, token, u.id);
+		const res = await validateSessionToken(db, token);
+		expect(res.user?.isSuperAdmin).toBe(true);
 	});
 
 	test('grant is idempotent and notifies once; last owner cannot be revoked', async () => {

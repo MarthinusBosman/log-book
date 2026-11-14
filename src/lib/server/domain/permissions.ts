@@ -52,6 +52,28 @@ export async function can(db: Database, userId: string, dropzoneId: string, capa
 	return isSuperAdmin(db, userId);
 }
 
+/** Who is asking: the session user carries the super-admin flag, so no second query is needed. */
+export type Actor = { id: string; isSuperAdmin?: boolean | null };
+
+/**
+ * Pure: does the actor hold any of `caps` given their roles at the dropzone (or are they a super admin)?
+ * Use with the roles from `currentMembership` — the request-scoped read routes already did.
+ */
+export function actorCan(actor: Actor, roles: readonly DropzoneRole[], caps: Capability | readonly Capability[]): boolean {
+	if (actor.isSuperAdmin) return true;
+	return (Array.isArray(caps) ? caps : [caps]).some((c) => rolesCan(roles, c as Capability));
+}
+
+/**
+ * Any of `caps` at a dropzone other than the active one: one roles read, and no users read when the
+ * actor came from the session (`isSuperAdmin` known). Same result as `can()` for each cap OR-ed.
+ */
+export async function canAny(db: Database, actor: Actor, dropzoneId: string, caps: readonly Capability[]): Promise<boolean> {
+	if (actor.isSuperAdmin) return true;
+	if (actorCan(actor, await getRoles(db, actor.id, dropzoneId), caps)) return true;
+	return actor.isSuperAdmin === undefined ? isSuperAdmin(db, actor.id) : false;
+}
+
 /** Throws DomainError('forbidden') unless `can`. */
 export async function requireCan(db: Database, userId: string, dropzoneId: string, capability: Capability): Promise<void> {
 	if (!(await can(db, userId, dropzoneId, capability))) {

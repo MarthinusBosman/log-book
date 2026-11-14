@@ -4,7 +4,7 @@ import { currentMembership, requestDropzone } from '../request-cache.ts';
 import type { Dropzone, TandemPassenger } from '../db/schema.ts';
 import type { Capability } from '../../domain/constants.ts';
 import { SLOT_EXTRA_LABELS, formatMoney } from '../../domain/constants.ts';
-import { can, capabilitiesOf } from '../domain/permissions.ts';
+import { actorCan } from '../domain/permissions.ts';
 import { getDropzone } from '../domain/dropzone-admin.ts';
 import { isDomainError, type DomainErrorCode } from '../domain/errors.ts';
 import { tandemOutstanding } from '../domain/tandems.ts';
@@ -48,9 +48,8 @@ export async function staffContext(event: RequestEvent, capability: Capability |
 	const current = await currentMembership(event, user.id);
 	if (!current) error(403, 'Join or create a dropzone first.');
 	const caps = Array.isArray(capability) ? capability : [capability];
-	// The role list already answers most checks; `can` adds the super-admin fallback.
-	let ok = caps.some((c) => capabilitiesOf(current.roles).includes(c));
-	if (!ok) for (const c of caps) if (await can(event.locals.db, user.id, current.dropzone.id, c)) ok = true;
+	// The role list already answers most checks; the session user carries the super-admin flag.
+	const ok = actorCan(user, current.roles, caps);
 	if (!ok) error(403, 'You need a staff role with access to this page at the selected dropzone.');
 	return { userId: user.id, dz: (await requestDropzone(event.locals, current.dropzone.id)) ?? (await getDropzone(event.locals.db, current.dropzone.id)) };
 }

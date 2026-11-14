@@ -1,8 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { SECRETS_KEY } from '$app/env/private';
 import { FEEDBACK_TYPES, type FeedbackType } from '#lib/feedback.ts';
-import { eq } from 'drizzle-orm';
-import { users } from '#lib/server/db/schema.ts';
 import { findSubmission, lookupReporter, pagePath, submitFeedback } from '#lib/server/feedback/index.ts';
 import { serverFeedbackConfig } from '#lib/server/feedback/config.ts';
 import { currentMembership } from '#lib/server/request-cache.ts';
@@ -16,7 +14,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const issue = Number.isInteger(sent) && sent > 0 ? await findSubmission(locals.db, user.id, sent) : undefined;
 	const type = url.searchParams.get('type');
 	// Super admins can map an issue's anonymous reporter reference back to the account.
-	const superAdmin = !!(await locals.db.select({ su: users.isSuperAdmin }).from(users).where(eq(users.id, user.id)).limit(1))[0]?.su;
+	const superAdmin = !!user.isSuperAdmin;
 	const ref = superAdmin ? (url.searchParams.get('ref') ?? '').trim() : '';
 	return {
 		admin: superAdmin ? { ref, match: ref ? await lookupReporter(locals.db, ref) : null } : null,

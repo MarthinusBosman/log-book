@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../../db/index.ts';
 import { dropzoneMemberRoles, users } from '../../db/schema.ts';
 import { instanceMode } from '../../config.ts';
-import { rolesCan } from '../../domain/permissions.ts';
+import { rolesCan, type Actor } from '../../domain/permissions.ts';
 import { hasDueOutbox } from '../../domain/federation.ts';
 import { flushOutbox, resolveConfig, type FedConfig } from './client.ts';
 import { safeEqual } from './crypto.ts';
@@ -19,10 +19,13 @@ export function requireMode(mode: 'global' | 'dropzone') {
 }
 
 /** Owners/admins of any dropzone here (or super admins) manage federation settings. */
-export async function canManageFederation(db: Database, userId: string): Promise<boolean> {
-	const u = (await db.select({ su: users.isSuperAdmin }).from(users).where(eq(users.id, userId)).limit(1))[0];
-	if (u?.su) return true;
-	const rows = await db.select({ role: dropzoneMemberRoles.role }).from(dropzoneMemberRoles).where(eq(dropzoneMemberRoles.userId, userId));
+export async function canManageFederation(db: Database, actor: Actor): Promise<boolean> {
+	if (actor.isSuperAdmin) return true;
+	if (actor.isSuperAdmin === undefined) {
+		const u = (await db.select({ su: users.isSuperAdmin }).from(users).where(eq(users.id, actor.id)).limit(1))[0];
+		if (u?.su) return true;
+	}
+	const rows = await db.select({ role: dropzoneMemberRoles.role }).from(dropzoneMemberRoles).where(eq(dropzoneMemberRoles.userId, actor.id));
 	return rolesCan(
 		rows.map((r) => r.role),
 		'dz.settings'

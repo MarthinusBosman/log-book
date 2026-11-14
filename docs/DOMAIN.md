@@ -88,6 +88,7 @@ Optional trailing args (`now`, `opts`) are left out below.
 ### permissions.ts
 - `rolesCan(roles, cap)` / `capabilitiesOf(roles)`: pure.
 - `getRoles(db, userId, dzId)`, `can(db, userId, dzId, cap)` (super-admins pass), `requireCan(…)` throws `forbidden`.
+- Routes: the session user (`locals.user`) carries `isSuperAdmin`, so prefer `actorCan(user, roles, caps)` (pure, roles from `currentMembership`) for the active dropzone and `canAny(db, user, dzId, caps)` (one roles read) for another dropzone over looping `can()` (2 statements per denied cap).
 - `grantRole(db, {dropzoneId, userId, role, colour?, by?, dropzoneName?})`: idempotent, creates the membership, notifies `added_staff`.
 - `revokeRole(db, dzId, userId, role)` refuses to remove the last owner. `ensureMember`, `listUsersWithRole(db, dzId, role)` (pickers: pilots, TIs…).
 - `src/lib/server/dropzones/index.ts`: `listMemberships(db, userId)` returns `{dropzone, roles[], role /*primary*/}`. Also `createDropzone` (seeds a zeroed price list), `hasStaffRole(roles)`.

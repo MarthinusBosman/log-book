@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { getSignature } from '#lib/server/domain/indemnity.ts';
-import { can } from '#lib/server/domain/permissions.ts';
+import { canAny } from '#lib/server/domain/permissions.ts';
 import { getStorage } from '#lib/server/storage/index.ts';
 import { sportWaiverPdf, tandemPdf } from '#lib/server/tandems/documents.ts';
 import { pdfResponse } from '#lib/server/tandems/http.ts';
@@ -12,10 +12,7 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
 	if (!user) redirect(303, `/login?redirectTo=${encodeURIComponent(url.pathname)}`);
 	const sig = await getSignature(locals.db, params.id);
 	if (!sig) error(404, 'Signed waiver not found');
-	let allowed = sig.userId === user.id;
-	for (const c of ['indemnity.manage', 'tandems.manage', 'checkin.manage'] as const) {
-		if (!allowed && (await can(locals.db, user.id, sig.dropzoneId, c))) allowed = true;
-	}
+	const allowed = sig.userId === user.id || (await canAny(locals.db, user, sig.dropzoneId, ['indemnity.manage', 'tandems.manage', 'checkin.manage']));
 	if (!allowed) error(404, 'Signed waiver not found');
 	const storage = await getStorage();
 	const bytes = sig.tandemPassengerId ? await tandemPdf(locals.db, storage, sig.tandemPassengerId) : await sportWaiverPdf(locals.db, storage, sig.id);

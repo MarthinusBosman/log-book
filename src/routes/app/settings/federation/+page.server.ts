@@ -1,6 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { count, eq, like, not } from 'drizzle-orm';
-import { instances, linkedAccounts, users } from '#lib/server/db/schema.ts';
+import { instances, linkedAccounts } from '#lib/server/db/schema.ts';
 import { instanceMode, publicOrigin } from '#lib/server/config.ts';
 import { GRANT_ISSUER_PREFIX, outboxStats } from '#lib/server/domain/federation.ts';
 import { DZ_COOKIE, listMemberships } from '#lib/server/dropzones/index.ts';
@@ -13,13 +13,12 @@ import type { Actions, PageServerLoad, RequestEvent } from './$types';
 async function guard(event: Pick<RequestEvent, 'locals'>) {
 	const user = event.locals.user;
 	if (!user) redirect(303, '/login');
-	if (!(await canManageFederation(event.locals.db, user.id))) error(403, 'Only dropzone owners and admins can manage federation.');
+	if (!(await canManageFederation(event.locals.db, user))) error(403, 'Only dropzone owners and admins can manage federation.');
 	return user;
 }
 
 async function isSuper(event: Pick<RequestEvent, 'locals'>) {
-	const u = (await event.locals.db.select({ su: users.isSuperAdmin }).from(users).where(eq(users.id, event.locals.user!.id)).limit(1))[0];
-	return !!u?.su;
+	return !!event.locals.user?.isSuperAdmin;
 }
 
 async function ownInstance(event: Pick<RequestEvent, 'locals'>, id: string) {

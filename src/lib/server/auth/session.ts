@@ -13,7 +13,8 @@ export const SESSION_LIFETIME_MS = 30 * DAY;
 export const SESSION_RENEW_THRESHOLD_MS = 15 * DAY;
 export const SESSION_COOKIE = 'session';
 
-export type SessionUser = Pick<User, 'id' | 'email' | 'name' | 'avatar' | 'globalId'>;
+/** `isSuperAdmin` rides along with the session read so permission checks need no extra query. */
+export type SessionUser = Pick<User, 'id' | 'email' | 'name' | 'avatar' | 'globalId' | 'isSuperAdmin'>;
 
 export type SessionValidationResult =
 	| { session: Session; user: SessionUser }
@@ -56,7 +57,8 @@ export async function validateSessionToken(
 				email: users.email,
 				name: users.name,
 				avatar: users.avatar,
-				globalId: users.globalId
+				globalId: users.globalId,
+				isSuperAdmin: users.isSuperAdmin
 			}
 		})
 		.from(sessions)

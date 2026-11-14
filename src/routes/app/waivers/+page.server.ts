@@ -14,9 +14,8 @@ import {
 	updateSection
 } from '#lib/server/domain/indemnity.ts';
 import { listMembers } from '#lib/server/domain/dropzone-admin.ts';
-import { can } from '#lib/server/domain/permissions.ts';
+import { actorCan } from '#lib/server/domain/permissions.ts';
 import { DomainError } from '#lib/server/domain/errors.ts';
-import { capabilitiesOf } from '#lib/server/domain/permissions.ts';
 import { currentMembership } from '#lib/server/request-cache.ts';
 import { failFrom, staffContext, str } from '#lib/server/tandems/http.ts';
 import type { RequestEvent } from '@sveltejs/kit';
@@ -32,14 +31,12 @@ export const load: PageServerLoad = async (event) => {
 	// Jumpers without a staff capability go straight to signing their own waiver.
 	const current = await currentMembership(event, locals.user.id);
 	if (!current) error(403, 'Join or create a dropzone first.');
-	const roleCaps = capabilitiesOf(current.roles);
-	let staff = VIEW_CAPS.some((c) => roleCaps.includes(c));
-	if (!staff) for (const c of VIEW_CAPS) if (await can(locals.db, locals.user.id, current.dropzone.id, c)) staff = true;
+	let staff = actorCan(locals.user, current.roles, VIEW_CAPS);
 	if (!staff) redirect(303, `/app/waivers/sign/${current.dropzone.id}`);
 
 	const { dz, userId } = await staffContext(event, [...VIEW_CAPS]);
 	const db = locals.db;
-	const canEdit = roleCaps.includes('indemnity.manage') || (await can(db, userId, dz.id, 'indemnity.manage'));
+	const canEdit = actorCan(locals.user, current.roles, 'indemnity.manage');
 	const qTab = url.searchParams.get('tab') as Tab | null;
 	const tab: Tab = qTab && TABS.includes(qTab) ? qTab : canEdit ? 'tandem' : 'signed';
 	const q = url.searchParams.get('q')?.trim() ?? '';

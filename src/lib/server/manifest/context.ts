@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { currentMembership, requestDropzone } from '../request-cache.ts';
 import { loads, type Dropzone, type Load } from '../db/schema.ts';
 import { isDomainError } from '../domain/errors.ts';
-import { capabilitiesOf, can } from '../domain/permissions.ts';
+import { canAny, capabilitiesOf } from '../domain/permissions.ts';
 import type { Capability, DropzoneRole } from '../../domain/constants.ts';
 import { friendlyError } from '../../components/manifest/manifest.ts';
 import { parseMoney } from '../../components/staffadmin/money.ts';
@@ -29,7 +29,7 @@ export async function activeDropzone(event: Pick<RequestEvent, 'locals' | 'cooki
 export async function requireDropzone(event: Pick<RequestEvent, 'locals' | 'cookies' | 'url'>, cap: Capability): Promise<DzContext> {
 	const ctx = await activeDropzone(event);
 	if (!ctx) error(404, 'Join or create a dropzone first');
-	if (!ctx.caps.includes(cap) && !(await can(event.locals.db, ctx.userId, ctx.dz.id, cap))) {
+	if (!ctx.caps.includes(cap) && !event.locals.user?.isSuperAdmin) {
 		error(403, 'You need a manifest role at this dropzone');
 	}
 	return ctx;
@@ -41,7 +41,7 @@ export async function loadWithCap(event: Pick<RequestEvent, 'locals'>, loadId: s
 	if (!locals.user) redirect(303, '/login');
 	const load = (await locals.db.select().from(loads).where(eq(loads.id, loadId)).limit(1))[0];
 	if (!load) throw new ActionFail('not_found', 'That load no longer exists');
-	if (!(await can(locals.db, locals.user.id, load.dropzoneId, cap))) throw new ActionFail('forbidden', 'You do not have permission to do that');
+	if (!(await canAny(locals.db, locals.user, load.dropzoneId, [cap]))) throw new ActionFail('forbidden', 'You do not have permission to do that');
 	return load;
 }
 
