@@ -65,6 +65,8 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	await page.goto('/app/logbook');
 	await expect(page.getByTestId('jump-card')).toHaveCount(1);
 	await expect(page.getByTestId('jump-card')).toContainText('12 000 ft');
+	await expect(page.getByTestId('logbook-breakdown')).toBeVisible();
+	await expect(page.getByTestId('breakdown-scope')).toHaveCount(0);
 	const csv = await page.request.get('/app/logbook/export.csv');
 	expect(csv.headers()['content-type']).toContain('text/csv');
 	const body = await csv.text();
@@ -187,11 +189,17 @@ async function addLicence(page: Page, licence: string) {
 test('sign-off: a licensed jumper signs with a drawn signature; a second signer cannot replace it', async ({ page, browser }) => {
 	await signup(page, 'Sam Student');
 	await page.goto('/app/logbook/new');
+	await page.getByLabel('Jump #').fill('120');
 	await page.getByLabel('Location').fill('Skydive Test Field');
 	await page.getByLabel('Aircraft').fill('Cessna 182');
 	await page.getByTestId('save-jump').click();
 	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]+$/);
 	const jumpUrl = page.url();
+	// Jump #120 with one logged jump: the stats say they only cover the logged one
+	await page.goto('/app/logbook');
+	await expect(page.getByTestId('breakdown-scope')).toHaveText('Covers the 1 jump logged here, not all 120.');
+	await expect(page.getByText('1 logged jump', { exact: true })).toBeVisible();
+	await page.goto(jumpUrl);
 	await page.getByTestId('create-sign-link').click();
 	const link = await page.getByLabel('Sign-off link').inputValue();
 

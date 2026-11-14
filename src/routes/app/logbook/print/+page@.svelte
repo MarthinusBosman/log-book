@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Button } from '#lib/ui/index.ts';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
-	import { fmtDate, fmtFreefall, fmtNumber } from '#lib/components/jumper/format.ts';
+	import { fmtDate, fmtFreefall, fmtNumber, loggedScope } from '#lib/components/jumper/format.ts';
 	import { JUMP_TYPE_LABELS, type JumpType } from '#lib/domain/constants.ts';
 	import { brand } from '#lib/brand.ts';
 	import type { PageProps } from './$types';
@@ -31,7 +31,7 @@
 		</div>
 		<dl class="flex gap-6 text-right text-sm">
 			<div><dt class="text-muted print:text-neutral-600">Total jumps</dt><dd class="text-lg font-semibold tabular-nums">{fmtNumber(data.totals.totalJumps)}</dd></div>
-			<div><dt class="text-muted print:text-neutral-600">Freefall</dt><dd class="text-lg font-semibold tabular-nums">{fmtFreefall(data.totals.totalFreefallSeconds)}</dd></div>
+			<div><dt class="text-muted print:text-neutral-600">Freefall{#if loggedScope(data.totals)} ({loggedScope(data.totals)?.short}){/if}</dt><dd class="text-lg font-semibold tabular-nums">{fmtFreefall(data.totals.totalFreefallSeconds)}</dd></div>
 			<div><dt class="text-muted print:text-neutral-600">Signed</dt><dd class="text-lg font-semibold tabular-nums">{data.totals.signed}</dd></div>
 		</dl>
 	</header>

@@ -6,11 +6,12 @@
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
 	import BarList from '#lib/components/jumper/BarList.svelte';
 	import JumpCard from '#lib/components/jumper/JumpCard.svelte';
-	import { fmtDate, fmtFreefall, fmtNumber } from '#lib/components/jumper/format.ts';
+	import { fmtDate, fmtFreefall, fmtNumber, loggedScope } from '#lib/components/jumper/format.ts';
 	import { JUMP_TYPES, JUMP_TYPE_LABELS } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const scope = $derived(loggedScope(data.totals));
 	let tab = $state<'type' | 'dz' | 'year'>('type');
 	const rows = $derived(tab === 'type' ? data.breakdown.byType : tab === 'dz' ? data.breakdown.byDropzone : data.breakdown.byYear);
 	const qs = $derived(pageState.url.searchParams.toString());
@@ -40,22 +41,23 @@
 
 <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
 	<StatTile label="Total jumps" value={fmtNumber(data.totals.totalJumps)} hint={data.totals.logged !== data.totals.totalJumps ? `${data.totals.logged} logged here` : undefined} />
-	<StatTile label="Freefall" value={fmtFreefall(data.totals.totalFreefallSeconds)} hint="total time" />
+	<StatTile label="Freefall" value={fmtFreefall(data.totals.totalFreefallSeconds)} hint={scope?.short ?? 'total time'} />
 	<StatTile label="Last 30 days" value={data.totals.last30Days} hint="{data.totals.last12Months} in 12 months" />
 	<StatTile label="Signed / verified" value="{data.totals.signed} / {data.totals.verified}" hint={data.totals.lastJumpDate ? `Last jump ${fmtDate(data.totals.lastJumpDate)}` : 'No jumps yet'} />
 </div>
 
 {#if data.totals.logged > 0}
 	<div class="mt-6 grid gap-6 lg:grid-cols-3">
-		<section class="rounded-2xl border border-border bg-surface p-4 sm:p-5 lg:order-2 lg:self-start">
+		<section class="rounded-2xl border border-border bg-surface p-4 sm:p-5 lg:order-2 lg:self-start" data-testid="logbook-breakdown">
 			<div class="flex items-center justify-between gap-2">
 				<h2 class="font-semibold tracking-tight">Breakdown</h2>
 				<div class="inline-flex rounded-lg border border-border bg-surface-2/60 p-0.5 text-xs">
 					{#each [['type', 'Type'], ['dz', 'Dropzone'], ['year', 'Year']] as [id, label] (id)}
-						<button type="button" class={cn('rounded-md px-2.5 py-1 font-medium', tab === id ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg')} onclick={() => (tab = id as typeof tab)}>{label}</button>
+						<button type="button" aria-pressed={tab === id} class={cn('rounded-md px-2.5 py-1 font-medium', tab === id ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg')} onclick={() => (tab = id as typeof tab)}>{label}</button>
 					{/each}
 				</div>
 			</div>
+			{#if scope}<p class="mt-1 text-xs text-muted" data-testid="breakdown-scope">{scope.long}</p>{/if}
 			<BarList class="mt-4" rows={rows.slice(0, 8)} href={linkFor} />
 		</section>
 

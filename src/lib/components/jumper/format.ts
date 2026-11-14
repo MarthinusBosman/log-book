@@ -55,6 +55,18 @@ export function fmtNumber(n: number | null | undefined): string {
 	return n === null || n === undefined ? '—' : new Intl.NumberFormat('en-ZA').format(n);
 }
 
+/**
+ * When a jumper's total (highest jump number / declared count) is above the jumps
+ * actually logged here, freefall and the breakdown only cover the logged ones: say so.
+ * Returns undefined when every jump is logged.
+ */
+export function loggedScope(t: { logged: number; totalJumps: number }): { short: string; long: string } | undefined {
+	if (t.logged >= t.totalJumps) return undefined;
+	const n = fmtNumber(t.logged);
+	const noun = t.logged === 1 ? 'jump' : 'jumps';
+	return { short: `${n} logged ${noun}`, long: `Covers the ${n} ${noun} logged here, not all ${fmtNumber(t.totalJumps)}.` };
+}
+
 export const DUE_TONES: Record<DueStatus, BadgeTone> = { ok: 'success', due_soon: 'warning', overdue: 'danger', unknown: 'neutral' };
 
 /** 'Due in 12 days' / 'Overdue by 3 days' / 'Valid · 120 days'. */
