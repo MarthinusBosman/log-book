@@ -105,7 +105,7 @@
 		{/if}
 		<p class="text-xs text-subtle sm:col-span-2">
 			Signed by <span class="font-medium text-muted">{signerName || (preview ? 'John Doe' : 'you')}</span> on {today}. Your signature, the text
-			above and a timestamp are stored as a PDF.
+			above and a timestamp are sealed together and kept on record; you can download the signed copy as a PDF.
 		</p>
 	</div>
 </div>

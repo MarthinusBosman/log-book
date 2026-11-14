@@ -112,7 +112,7 @@
 		},
 		{
 			q: 'Do tandem customers need an account?',
-			a: 'No. They book, pay the deposit and sign the waiver from your booking link. The signed waiver is kept as a PDF with the booking.'
+			a: 'No. They book, pay the deposit and sign the waiver from your booking link. The signed waiver is kept with the booking, ready to download as a PDF.'
 		},
 		{
 			q: 'Can we show the loads on the hangar TV?',

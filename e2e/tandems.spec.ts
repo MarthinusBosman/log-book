@@ -128,6 +128,13 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await expect(page.getByTestId('group-due')).toContainText(/3[\s ,.]?200[.,]00 due/);
 	await expect(page.getByTestId('group-total')).toContainText('Group total due · 2 jumpers');
 	await expect(page.getByTestId('group-total')).toContainText(/6[\s ,.]?400/);
+	// On a phone the fellow jumper's confirmation number wraps under the amount instead of being cut off.
+	const desktop = page.viewportSize();
+	await page.setViewportSize({ width: 390, height: 844 });
+	const code = page.getByTestId('group-code');
+	await expect(code).toHaveText(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+	expect(await code.evaluate((el) => el.getBoundingClientRect().right <= el.parentElement!.parentElement!.getBoundingClientRect().right + 0.5)).toBe(true);
+	if (desktop) await page.setViewportSize(desktop);
 
 	// Staff sees the booking in the day list and drawer.
 	await page.goto(`/app/tandems?day=${tomorrow}`);

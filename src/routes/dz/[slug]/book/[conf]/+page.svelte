@@ -208,9 +208,10 @@
 					<li class="flex items-center gap-3 py-2 text-sm">
 						<span class="min-w-0 flex-1">
 							<span class="block truncate">{g.name}</span>
-							<span class="block truncate text-xs text-muted">
-								{#if !g.cancelled && g.priced}<span class="tabular-nums" data-testid="group-due">{g.outstandingMinor > 0 ? `${money(g.outstandingMinor)} due` : 'Paid'}</span> · {/if}
-								<span class="font-mono">{g.confirmationNumber}</span>
+							<!-- wraps instead of truncating: the confirmation number is what the jumper quotes at the DZ -->
+							<span class="flex flex-wrap gap-x-1 text-xs text-muted">
+								{#if !g.cancelled && g.priced}<span class="whitespace-nowrap tabular-nums" data-testid="group-due">{g.outstandingMinor > 0 ? `${money(g.outstandingMinor)} due` : 'Paid'}</span><span aria-hidden="true">·</span>{/if}
+								<span class="whitespace-nowrap font-mono" data-testid="group-code">{g.confirmationNumber}</span>
 							</span>
 						</span>
 						{#if g.cancelled}<Badge tone="danger">Cancelled</Badge>{:else if g.signed}<Badge tone="success">Signed</Badge>{:else if data.waiver}
