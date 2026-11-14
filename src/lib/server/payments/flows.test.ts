@@ -12,6 +12,7 @@ import { getAccount } from '../domain/wallet.ts';
 import { ABANDONED_CHECKOUT_MS, cancelPendingOnlinePayment, getPayment, pendingTandemCheckout } from '../domain/online-payments.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from '../domain/testing.ts';
 import { encryptSecret } from '../staffadmin/secrets.ts';
+import { passengerDetail } from '../tandems/detail.ts';
 import { saveProviderSettings } from './config.ts';
 import { dropzonePayments, getOnlineProvider, handleProviderWebhook, startTandemCheckout, startTopUpCheckout, verifyOnReturn } from './index.ts';
 import { createMockProviders, MOCK_PAYFAST, MOCK_STRIPE_WEBHOOK_SECRET } from './mock.ts';
@@ -259,10 +260,15 @@ describe('tandem booking', () => {
 		expect((await pendingTandemCheckout(db, dz.id, ann.id))?.id).toBe(payment.id);
 		expect((await pendingTandemCheckout(db, dz.id, bob.id))?.id).toBe(payment.id);
 		expect(await pendingTandemCheckout(db, dz.id, solo.passengers[0].id)).toBeUndefined();
+		// Staff see it on the passenger (their share of the group payment) and not on others.
+		const staff = await passengerDetail(db, dz, bob.id);
+		expect(staff.pendingCheckout).toMatchObject({ id: payment.id, provider: 'Paystack', amountMinor: 100, totalMinor: 200, people: 2, deposit: true });
+		expect((await passengerDetail(db, dz, solo.passengers[0].id)).pendingCheckout).toBeNull();
 		// Past the housekeeping window it is no longer offered.
 		expect(await pendingTandemCheckout(db, dz.id, ann.id, Date.now() + ABANDONED_CHECKOUT_MS + 60_000)).toBeUndefined();
 		await cancelPendingOnlinePayment(db, payment.id);
 		expect(await pendingTandemCheckout(db, dz.id, ann.id)).toBeUndefined();
+		expect((await passengerDetail(db, dz, ann.id)).pendingCheckout).toBeNull();
 	});
 
 	test("can't pay for another dropzone's passenger", async () => {

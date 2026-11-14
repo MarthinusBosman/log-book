@@ -3,7 +3,9 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { Badge, Button, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
-	import { SLOT_EXTRA_LABELS, formatMoney, type SlotExtra } from '#lib/domain/constants.ts';
+	import { SLOT_EXTRA_LABELS, formatMoney, paymentMethodLabel, type SlotExtra } from '#lib/domain/constants.ts';
+	import { relativeTime } from '#lib/components/jumper/format.ts';
+	import JIcon from '#lib/components/jumper/JIcon.svelte';
 	import type { PassengerDetail } from '#lib/server/tandems/detail.ts';
 	import PassengerFields from './PassengerFields.svelte';
 	import { toastEnhance } from './enhance.ts';
@@ -175,12 +177,26 @@
 			<dt class="text-muted">Deposit paid</dt>
 			<dd class="text-right tabular-nums">{money(p.depositMinor)}</dd>
 			<dt class="text-muted">Amount paid</dt>
-			<dd class="text-right tabular-nums">{money(p.amountPaidMinor)}{p.paymentMethod ? ` · ${p.paymentMethod}` : ''}</dd>
+			<dd class="text-right tabular-nums">{money(p.amountPaidMinor)}{p.paymentMethod ? ` · ${paymentMethodLabel(p.paymentMethod)}` : ''}</dd>
 			<dt class="font-semibold">Outstanding</dt>
 			<dd class={cn('text-right font-semibold tabular-nums', detail.outstandingMinor > 0 ? 'text-warning' : 'text-success')}>
 				{money(detail.outstandingMinor)}
 			</dd>
 		</dl>
+		{#if detail.pendingCheckout}
+			{@const c = detail.pendingCheckout}
+			<div role="status" data-testid="pending-checkout" class="mt-3 flex gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
+				<JIcon name="alert" class="mt-0.5 size-4 shrink-0 text-warning" />
+				<div class="min-w-0">
+					<p class="font-medium">Online payment not confirmed yet</p>
+					<p class="mt-0.5 text-muted">
+						{c.deposit ? 'Deposit' : 'Payment'} of {money(c.amountMinor)}{c.people > 1 ? ` (part of ${money(c.totalMinor)} for ${c.people} people)` : ''} started on
+						{c.provider}
+						{relativeTime(c.startedAt)}. If the customer pays here instead, ask them to close that checkout first.
+					</p>
+				</div>
+			</div>
+		{/if}
 		{#if p.status !== 'cancelled'}
 			<form method="POST" action={action('pay')} use:enhance={tracked('pay', { reset: true })} class="mt-4 grid grid-cols-2 gap-3">
 				<Input

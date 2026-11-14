@@ -33,6 +33,8 @@ customer cancels ──► /pay/:id/cancel ──► payment cancelled (a later 
 customer abandons ──► jumper wallet lists it under "Pending top-ups" with Check (= /pay/:id/return) + Cancel
                   ──► tandem booking page shows "Not confirmed yet" (also without ?payment=, via
                       pendingTandemCheckout) with Check again (= /pay/:id/return) + Cancel payment
+                  ──► staff tandem detail (drawer + full page) shows "Online payment not confirmed yet"
+                      with the passenger's share, so the counter doesn't take the money twice unknowingly
                   ──► still pending after 48 h: housekeeping marks it cancelled ("expired"; late success still applies)
 ```
 

@@ -172,6 +172,13 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await page.goto(bookingUrl.href);
 	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'pending');
 	await expect(page.getByTestId('payment-notice')).toContainText('Not confirmed yet');
+	// Staff see the open checkout on the passenger so they don't take the money twice.
+	const staff = await page.context().newPage();
+	await staff.goto('/app/tandems?q=Max%20Mate');
+	await staff.getByTestId('tandem-row').filter({ hasText: 'Max Mate' }).first().click();
+	await expect(staff.getByTestId('pending-checkout')).toContainText('Online payment not confirmed yet');
+	await expect(staff.getByTestId('pending-checkout')).toContainText('Paystack');
+	await staff.close();
 	await page.getByTestId('payment-check').click();
 	await expect(page).toHaveURL(/[?&]payment=/);
 	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'pending');
