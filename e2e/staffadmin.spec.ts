@@ -43,11 +43,45 @@ test('owner runs the back office', async ({ page }) => {
 
 	// Aircraft
 	await go(page, '/app/aircraft');
-	await page.getByRole('button', { name: 'Add plane' }).first().click();
+	await page.getByRole('link', { name: 'Add plane' }).first().click();
+	await expect(page).toHaveURL(/\/app\/aircraft\?new=1$/);
 	await dialog(page).getByLabel('Plane name').fill('Caravan');
 	await dialog(page).getByLabel('Pax (jumper slots)').fill('14');
 	await dialog(page).getByRole('button', { name: 'Add to fleet' }).click();
 	await expect(page.getByText('Caravan added to the fleet')).toBeVisible();
+	await expect(page).toHaveURL(/\/app\/aircraft$/);
+	// Without JS (or before hydration) Add plane is a link that opens the form, and it posts.
+	{
+		const noJs = await page.context().browser()!.newContext({
+			javaScriptEnabled: false,
+			baseURL: new URL(page.url()).origin,
+			storageState: await page.context().storageState()
+		});
+		const plain = await noJs.newPage();
+		await plain.goto('/app/aircraft');
+		await plain.getByRole('link', { name: 'Add plane' }).first().click();
+		await expect(plain).toHaveURL(/\/app\/aircraft\?new=1$/);
+		await dialog(plain).getByLabel('Plane name').fill('Cessna 182');
+		await dialog(plain).getByLabel('Pax (jumper slots)').fill('4');
+		await dialog(plain).getByRole('button', { name: 'Add to fleet' }).click();
+		await expect(plain.getByText('Cessna 182', { exact: true })).toBeVisible();
+		// Tandems: New tandem is a link too, and keeps the board's day.
+		await plain.goto('/app/tandems?day=2026-12-01');
+		await plain.getByRole('link', { name: 'New tandem' }).first().click();
+		await expect(plain).toHaveURL(/\/app\/tandems\?day=2026-12-01&new=1$/);
+		await expect(dialog(plain).getByRole('heading', { name: 'Create tandem passenger' })).toBeVisible();
+		// Members: Invite opens the form.
+		await plain.goto('/app/settings/members');
+		await plain.getByRole('link', { name: 'Invite' }).click();
+		await expect(dialog(plain).getByLabel('Email')).toBeVisible();
+		await noJs.close();
+	}
+	// With JS the New tandem dialog follows the URL: Escape drops ?new.
+	await go(page, '/app/tandems?day=2026-12-01');
+	await page.getByTestId('new-tandem').click();
+	await expect(page).toHaveURL(/\/app\/tandems\?day=2026-12-01&new=1$/);
+	await page.keyboard.press('Escape');
+	await expect(page).toHaveURL(/\/app\/tandems\?day=2026-12-01$/);
 
 	// Price list
 	await go(page, '/app/pricelist');
@@ -126,7 +160,8 @@ test('owner runs the back office', async ({ page }) => {
 
 	// Members: invite someone new with the packer (staff) role.
 	await go(page, '/app/settings/members');
-	await page.getByRole('button', { name: 'Invite' }).click();
+	await page.getByRole('link', { name: 'Invite' }).click();
+	await expect(page).toHaveURL(/\/app\/settings\/members\?new=1$/);
 	await dialog(page).getByLabel('Email').fill(memberEmail);
 	await dialog(page).getByLabel('Name').fill('Mia Member');
 	await dialog(page).getByRole('button', { name: 'Send invite' }).click();

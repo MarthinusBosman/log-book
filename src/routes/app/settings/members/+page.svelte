@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { readChoice, readQuery } from '#lib/components/staffadmin/list-view.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
+	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input } from '#lib/ui/index.ts';
 	import RoleChips from '#lib/components/staffadmin/RoleChips.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
@@ -29,8 +30,9 @@
 	// Search text and role filter follow the URL (?q=, ?role=): reload and shared links keep them.
 	let q = $state(readQuery(page.url.searchParams));
 	let roleFilter = $state<'' | DropzoneRole>(readChoice(page.url.searchParams, 'role', DROPZONE_ROLES));
-	syncViewToUrl(() => ({ q: q.trim(), role: roleFilter }));
-	let inviteOpen = $state(false);
+	let inviteOpen = $state(wantsNewDialog(page.url.searchParams));
+	syncViewToUrl(() => ({ q: q.trim(), role: roleFilter, new: inviteOpen ? '1' : null }));
+	const openInvite = openInPlace(() => (inviteOpen = true));
 	let editing = $state<(typeof data.members)[number] | null>(null);
 	let removing = $state<(typeof data.members)[number] | null>(null);
 	let pending = $state(false);
@@ -90,7 +92,7 @@
 		<option value="">All roles</option>
 		{#each DROPZONE_ROLES as r (r)}<option value={r}>{ROLE_LABELS[r]}</option>{/each}
 	</select>
-	<Button onclick={() => (inviteOpen = true)}><Icon name="plus" class="size-4" /> Invite</Button>
+	<Button href={newDialogHref(page.url)} onclick={openInvite}><Icon name="plus" class="size-4" /> Invite</Button>
 </div>
 
 <p class="mt-4 text-sm text-muted">{data.members.length} {data.members.length === 1 ? 'member' : 'members'} · {staffCount} with staff roles</p>

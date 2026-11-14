@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Avatar, Badge, Button, Card, Dialog, EmptyState, Icon, Input, Select } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
 	import Switch from '#lib/components/staffadmin/Switch.svelte';
@@ -9,7 +12,10 @@
 	let { data }: PageProps = $props();
 	type Plane = (typeof data.fleet)[number];
 
-	let editing = $state<Plane | 'new' | null>(null);
+	// "Add plane" is a link to ?new=1 (works before hydration / without JS); the URL follows the dialog.
+	let editing = $state<Plane | 'new' | null>(wantsNewDialog(page.url.searchParams) ? 'new' : null);
+	syncViewToUrl(() => ({ new: editing === 'new' ? '1' : null }));
+	const addPlane = openInPlace(() => (editing = 'new'));
 	let deleting = $state<Plane | null>(null);
 	let pending = $state(false);
 	const plane = $derived(editing && editing !== 'new' ? editing : null);
@@ -21,7 +27,7 @@
 
 <PageHeader icon="plane" title="Aircraft" description="Fleet, capacity, weight limits and pilots.">
 	{#snippet actions()}
-		<Button onclick={() => (editing = 'new')}><Icon name="plus" class="size-4" /> Add plane</Button>
+		<Button href={newDialogHref(page.url)} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>
 	{/snippet}
 </PageHeader>
 
@@ -30,7 +36,7 @@
 	{#if data.fleet.length === 0}
 		<EmptyState class="mt-3" title="No planes yet" description="Add your aircraft so loads get the right capacity and weight limit.">
 			{#snippet icon()}<Icon name="plane" class="size-6" />{/snippet}
-			{#snippet action()}<Button onclick={() => (editing = 'new')}><Icon name="plus" class="size-4" /> Add plane</Button>{/snippet}
+			{#snippet action()}<Button href={newDialogHref(page.url)} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>{/snippet}
 		</EmptyState>
 	{:else}
 		<div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

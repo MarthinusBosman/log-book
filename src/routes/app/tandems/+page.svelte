@@ -8,6 +8,8 @@
 	import PassengerDetail from '#lib/components/tandems/PassengerDetail.svelte';
 	import PassengerFields from '#lib/components/tandems/PassengerFields.svelte';
 	import { toastEnhance } from '#lib/components/tandems/enhance.ts';
+	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import {
 		PAYMENT_LABELS,
 		PAYMENT_TONES,
@@ -22,7 +24,10 @@
 
 	let { data }: PageProps = $props();
 
-	let creating = $state(false);
+	// "New tandem" is a link to ?new=1 (works before hydration / without JS); the URL follows the dialog.
+	let creating = $state(wantsNewDialog(page.url.searchParams));
+	syncViewToUrl(() => ({ new: creating ? '1' : null }));
+	const openCreate = openInPlace(() => (creating = true));
 	let createBusy = $state(false);
 	let drawer = $state(false);
 	$effect(() => {
@@ -35,7 +40,7 @@
 		u.searchParams.delete('created');
 		untrack(() => {
 			toast.success('Tandem jumper has been created');
-			goto(u, { replace: true, shallow: true });
+			goto(u, { replace: true, reset: false }); // not shallow: a shallow URL is lost on back
 		});
 	});
 
@@ -76,7 +81,7 @@
 	</div>
 	<div class="flex gap-2">
 		<Button variant="secondary" href="/app/tandems/slots"><Icon name="calendar" class="size-4" /><span class="sm:hidden">Slots</span><span class="hidden sm:inline">Booking slots</span></Button>
-		<Button onclick={() => (creating = true)} data-testid="new-tandem"><Icon name="plus" class="size-4" /> New tandem</Button>
+		<Button href={newDialogHref(page.url, ['p', 'created'])} onclick={openCreate} data-testid="new-tandem"><Icon name="plus" class="size-4" /> New tandem</Button>
 	</div>
 </div>
 
@@ -223,7 +228,7 @@
 			{#snippet icon()}<Icon name="tandem" class="size-6" />{/snippet}
 			{#snippet action()}
 				<div class="flex flex-wrap justify-center gap-2">
-					<Button onclick={() => (creating = true)}><Icon name="plus" class="size-4" /> New tandem</Button>
+					<Button href={newDialogHref(page.url, ['p', 'created'])} onclick={openCreate}><Icon name="plus" class="size-4" /> New tandem</Button>
 					<Button variant="secondary" href="/dz/{data.dz.slug}/book" target="_blank">Open booking page</Button>
 				</div>
 			{/snippet}

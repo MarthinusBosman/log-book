@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { gearViewParams, readGearView, type GearOnly } from '#lib/components/staffadmin/gear-view.ts';
 	import { readQuery } from '#lib/components/staffadmin/list-view.ts';
+	import { newDialogHref, openInPlace } from '#lib/components/staffadmin/open-dialog.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input, Select, Stat, Tabs } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
@@ -31,11 +32,7 @@
 	const rig = $derived(editing && editing !== 'new' ? editing : null);
 	// A link to ?new=1, so it works before hydration (the server renders the form open);
 	// once hydrated it just opens the dialog.
-	function addRig(e: MouseEvent) {
-		if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return; // new tab/window: follow the link
-		e.preventDefault();
-		editing = 'new';
-	}
+	const addRig = openInPlace(() => (editing = 'new'));
 
 	const needsAttention = (r: Row) =>
 		r.availability === 'grounded' || r.repack.status === 'due_soon' || r.aad.status === 'due_soon' || r.aad.status === 'overdue';
@@ -78,7 +75,7 @@
 
 <PageHeader icon="parachute" title="Gear" description="Rental and student rigs, reserve repacks and AAD service.">
 	{#snippet actions()}
-		<Button href="?new=1" onclick={addRig}><Icon name="plus" class="size-4" /> Add rig</Button>
+		<Button href={newDialogHref(page.url)} onclick={addRig}><Icon name="plus" class="size-4" /> Add rig</Button>
 	{/snippet}
 </PageHeader>
 
@@ -113,7 +110,7 @@
 	{#if data.register.length === 0}
 		<EmptyState class="mt-4" title="No DZ rigs yet" description="Add your rental, student and tandem rigs to track repacks and AAD service.">
 			{#snippet icon()}<Icon name="parachute" class="size-6" />{/snippet}
-			{#snippet action()}<Button href="?new=1" onclick={addRig}><Icon name="plus" class="size-4" /> Add rig</Button>{/snippet}
+			{#snippet action()}<Button href={newDialogHref(page.url)} onclick={addRig}><Icon name="plus" class="size-4" /> Add rig</Button>{/snippet}
 		</EmptyState>
 	{:else}
 		<div class="relative mt-3 overflow-x-auto rounded-2xl border border-border bg-surface">
