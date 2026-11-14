@@ -154,9 +154,8 @@ const checkinRollover: Handle = async ({ event, resolve }) => {
 	if (user && event.request.method === 'GET' && event.url.pathname.startsWith('/app')) {
 		try {
 			const slug = event.cookies.get(DZ_COOKIE);
-			const dz = slug ? await findDropzoneBySlug(event.locals.db, slug) : null;
-			await closeStaleCheckins(event.locals.db, { userId: user.id });
-			if (dz) await closeStaleCheckins(event.locals.db, { dropzoneId: dz.id });
+			// one read covers the user's own check-ins and the selected dropzone's
+			await closeStaleCheckins(event.locals.db, { userId: user.id, dropzoneSlug: slug || undefined });
 		} catch (e) {
 			console.error('check-in rollover failed', e);
 		}

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lt, or } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { checkins, dropzones, users, type Checkin } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
@@ -7,24 +7,34 @@ import { notify, notifyStatements } from './notifications.ts';
 import { runAtomic } from './atomic.ts';
 import { localDate } from './time.ts';
 
+/** The timezone furthest ahead of UTC: no dropzone's "today" is later than its date. */
+const LATEST_TZ = 'Pacific/Kiritimati';
+
 /**
  * Close check-ins left open from a previous day (in each DZ's timezone): nobody is "on site" from
  * yesterday. Called from the app's request path (not from the other services), so callers that pass
  * a fixed clock aren't affected. Returns how many were closed.
+ *
+ * The scope matches check-ins belonging to ANY of the given user / dropzone (id or slug), so the
+ * request hook covers "mine" and "the selected dropzone's" in one read. Only rows whose day is
+ * before today in the furthest-ahead timezone (UTC+14) are fetched; the per-DZ check happens here.
  */
-export async function closeStaleCheckins(db: Database, scope: { dropzoneId?: string; userId?: string }, now = Date.now()): Promise<number> {
-	if (!scope.dropzoneId && !scope.userId) return 0;
+export async function closeStaleCheckins(
+	db: Database,
+	scope: { dropzoneId?: string; dropzoneSlug?: string; userId?: string },
+	now = Date.now()
+): Promise<number> {
+	const any = [
+		scope.userId ? eq(checkins.userId, scope.userId) : undefined,
+		scope.dropzoneId ? eq(checkins.dropzoneId, scope.dropzoneId) : undefined,
+		scope.dropzoneSlug ? eq(dropzones.slug, scope.dropzoneSlug) : undefined
+	].filter((c) => c !== undefined);
+	if (any.length === 0) return 0;
 	const rows = await db
 		.select({ id: checkins.id, day: checkins.day, tz: dropzones.timezone })
 		.from(checkins)
 		.innerJoin(dropzones, eq(dropzones.id, checkins.dropzoneId))
-		.where(
-			and(
-				isNull(checkins.checkedOutAt),
-				scope.dropzoneId ? eq(checkins.dropzoneId, scope.dropzoneId) : undefined,
-				scope.userId ? eq(checkins.userId, scope.userId) : undefined
-			)
-		);
+		.where(and(isNull(checkins.checkedOutAt), lt(checkins.day, localDate(now, LATEST_TZ)), or(...any)));
 	const stale = rows.filter((r) => r.day < localDate(now, r.tz)).map((r) => r.id);
 	// D1 binds at most 100 parameters per statement
 	for (let i = 0; i < stale.length; i += 90) {
