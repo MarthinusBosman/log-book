@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { Badge, Button, EmptyState, Icon, Input, Select, cn } from '#lib/ui/index.ts';
 	import { toastEnhance } from '#lib/components/tandems/enhance.ts';
@@ -33,6 +34,7 @@
 	</div>
 	<Button variant="secondary" href="/dz/{data.dz.slug}/book" target="_blank"><Icon name="globe" class="size-4" /> View booking page</Button>
 </div>
+<NoJsOutcome />
 
 <div class="mt-6 grid gap-6 lg:grid-cols-[22rem_1fr]">
 	<!-- add -->

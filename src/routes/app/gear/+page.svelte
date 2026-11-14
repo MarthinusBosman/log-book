@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { gearViewParams, readGearView, type GearOnly } from '#lib/components/staffadmin/gear-view.ts';
@@ -78,6 +79,7 @@
 		<Button href={newDialogHref(page.url)} onclick={addRig}><Icon name="plus" class="size-4" /> Add rig</Button>
 	{/snippet}
 </PageHeader>
+<NoJsOutcome />
 
 <div class="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
 	<Stat label="Available" value={counts.available} hint="ready to jump" />

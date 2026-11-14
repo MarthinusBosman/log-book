@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { Avatar, Badge, Button, Card, Icon, Input, Select } from '#lib/ui/index.ts';
 	import MoneyField from '#lib/components/staffadmin/MoneyField.svelte';
@@ -66,6 +67,7 @@
 		</div>
 	{/if}
 </div>
+<NoJsOutcome />
 
 <div class="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
 	<Card class="min-w-0 lg:col-span-1">

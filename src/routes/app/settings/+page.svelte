@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { Button, Card, Input, Select, Icon } from '#lib/ui/index.ts';
 	import Textarea from '#lib/components/staffadmin/Textarea.svelte';
@@ -42,6 +43,7 @@
 
 <svelte:head><title>Settings · Dropzone</title></svelte:head>
 
+<NoJsOutcome class="mb-4" />
 <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
 	<form method="POST" action="?/save" use:enhance={toastEnhance({ pending: (v) => (saving = v) })} class="space-y-6">
 		<Card title="Profile" description="Shown on your public dropzone page and booking widget.">

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { Button, Card, Input, Select, Icon } from '#lib/ui/index.ts';
 	import Switch from '#lib/components/staffadmin/Switch.svelte';
@@ -13,6 +14,7 @@
 
 <svelte:head><title>Settings · Features</title></svelte:head>
 
+<NoJsOutcome class="mb-4" />
 <form method="POST" action="?/save" use:enhance={toastEnhance({ pending: (v) => (saving = v) })} class="grid gap-6 lg:grid-cols-2">
 	<Card title="Payments & wallet" description="How jumpers pay for slots and tandems.">
 		<div class="divide-y divide-border">

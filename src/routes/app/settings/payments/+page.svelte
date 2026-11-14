@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { Badge, Button, Card, Icon, Input, toast } from '#lib/ui/index.ts';
 	import Switch from '#lib/components/staffadmin/Switch.svelte';
@@ -38,6 +39,7 @@
 
 <svelte:head><title>Settings · Payments</title></svelte:head>
 
+<NoJsOutcome class="mb-4" />
 {#snippet badge(id: Id)}
 	{@const st = status(id)}
 	<Badge tone={st.tone} dot={st.tone === 'success'}>{st.text}</Badge>

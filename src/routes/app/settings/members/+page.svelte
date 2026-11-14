@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { readChoice, readQuery } from '#lib/components/staffadmin/list-view.ts';
@@ -53,6 +54,7 @@
 
 <svelte:head><title>Settings · Members</title></svelte:head>
 
+<NoJsOutcome class="mb-4" />
 {#snippet roleBoxes(selected: Set<DropzoneRole>)}
 	<fieldset>
 		<legend class="text-sm font-medium">Roles</legend>

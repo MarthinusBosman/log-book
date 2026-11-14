@@ -49,6 +49,7 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(page).getByLabel('Pax (jumper slots)').fill('14');
 	await dialog(page).getByRole('button', { name: 'Add to fleet' }).click();
 	await expect(page.getByText('Caravan added to the fleet')).toBeVisible();
+	await expect(page.getByTestId('no-js-outcome')).toHaveCount(0); // with JS: toast only
 	await expect(page).toHaveURL(/\/app\/aircraft$/);
 	// Without JS (or before hydration) Add plane is a link that opens the form, and it posts.
 	{
@@ -61,10 +62,18 @@ test('owner runs the back office', async ({ page }) => {
 		await plain.goto('/app/aircraft');
 		await plain.getByRole('link', { name: 'Add plane' }).first().click();
 		await expect(plain).toHaveURL(/\/app\/aircraft\?new=1$/);
+		// Without JS the action's answer (normally a toast) shows on the page: a refusal…
+		await dialog(plain).getByLabel('Plane name').fill('   ');
+		await dialog(plain).getByLabel('Pax (jumper slots)').fill('4');
+		await dialog(plain).getByRole('button', { name: 'Add to fleet' }).click();
+		await expect(plain.getByTestId('no-js-outcome').getByRole('alert')).toHaveText('Enter the plane name.');
+		await plain.goto('/app/aircraft?new=1');
 		await dialog(plain).getByLabel('Plane name').fill('Cessna 182');
 		await dialog(plain).getByLabel('Pax (jumper slots)').fill('4');
 		await dialog(plain).getByRole('button', { name: 'Add to fleet' }).click();
 		await expect(plain.getByText('Cessna 182', { exact: true })).toBeVisible();
+		// …and a success.
+		await expect(plain.getByTestId('no-js-outcome').getByRole('status')).toHaveText('Cessna 182 added to the fleet');
 		// Tandems: New tandem is a link too, and keeps the board's day.
 		await plain.goto('/app/tandems?day=2026-12-01');
 		await plain.getByRole('link', { name: 'New tandem' }).first().click();

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { Button, Card, Icon } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
@@ -49,6 +50,7 @@
 			<Button type="submit" loading={saving}><Icon name="check" class="size-4" /> Save all</Button>
 		{/snippet}
 	</PageHeader>
+	<NoJsOutcome />
 
 	{#if data.unset}
 		<p class="mt-6 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">

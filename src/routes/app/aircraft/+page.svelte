@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
@@ -30,6 +31,7 @@
 		<Button href={newDialogHref(page.url)} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>
 	{/snippet}
 </PageHeader>
+<NoJsOutcome />
 
 <section class="mt-8">
 	<h2 class="text-sm font-medium tracking-wide text-muted uppercase">Fleet</h2>

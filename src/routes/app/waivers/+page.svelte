@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { goto } from '$app/navigation';
 	import { Badge, Button, EmptyState, Icon, cn } from '#lib/ui/index.ts';
 	import FormBuilder from '#lib/components/waivers/FormBuilder.svelte';
@@ -28,6 +29,7 @@
 	</div>
 	<Button variant="secondary" href="/app/waivers/sign/{data.dz.id}"><Icon name="checkin" class="size-4" /> Sign as jumper</Button>
 </div>
+<NoJsOutcome />
 
 <nav class="mt-6 scrollbar-none flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-surface-2/60 p-1 sm:inline-flex" aria-label="Waiver sections">
 	{#each tabs as t (t.id)}

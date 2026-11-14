@@ -1,4 +1,5 @@
 <script lang="ts">
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -84,6 +85,7 @@
 		<Button href={newDialogHref(page.url, ['p', 'created'])} onclick={openCreate} data-testid="new-tandem"><Icon name="plus" class="size-4" /> New tandem</Button>
 	</div>
 </div>
+<NoJsOutcome />
 
 <!-- search + date -->
 <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
