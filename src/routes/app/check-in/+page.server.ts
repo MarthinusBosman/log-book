@@ -14,7 +14,7 @@ import { localDate } from '#lib/server/domain/time.ts';
 import { CHANGE_JUMP_TYPES, TEAM_JUMP_TYPES, loadCard, priceTable } from '#lib/server/jumper/manifest.ts';
 import { bool, domainFail, num, requireUser, str } from '#lib/server/jumper/forms.ts';
 import { SOLO_JUMP_TYPES, SPORT_EXTRAS, type JumpType, type SlotExtra } from '#lib/domain/constants.ts';
-import { membershipWarnings } from '#lib/server/memberships/service.ts';
+import { membershipWarningFor } from '#lib/server/memberships/service.ts';
 import { requestDropzone } from '#lib/server/request-cache.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -38,20 +38,22 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	const preferred = url.searchParams.get('dz') ?? current?.dropzone.slug ?? null;
 
 	if (!open) {
-		return { checkin: null, choices, preferred, me: await meDefaults(locals, user.id) };
+		const me = await meDefaults(locals, user.id);
+		return { checkin: null, choices, preferred, me: { name: me.name, weightKg: me.weightKg, licence: me.licence } };
 	}
 
 	const dzId = open.dropzone.id;
 	const dz = await requestDropzone(locals, dzId);
 	if (!dz) error(404, 'Dropzone not found');
 	const today = localDate(Date.now(), dz.timezone);
-	const [openLoads, mine, prices, myTeams, needsWaiver, account] = await Promise.all([
+	const [openLoads, mine, prices, myTeams, needsWaiver, account, me] = await Promise.all([
 		loads.openLoadsToday(db, dz),
 		loads.upcomingSlotsForUser(db, user.id, today),
 		getPriceMap(db, dzId),
 		teams.listUserTeams(db, user.id),
 		indemnity.needsSportIndemnity(db, dz, user.id),
-		getAccount(db, user.id, dzId)
+		getAccount(db, user.id, dzId),
+		meDefaults(locals, user.id)
 	]);
 	// Came from another DZ's page ("Check in now" there): offer to move the check-in.
 	const wanted = url.searchParams.get('dz');
@@ -62,7 +64,6 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	}
 	list.sort((a, b) => a.day.localeCompare(b.day) || a.loadNumber - b.loadNumber);
 	const waiver = needsWaiver ? await indemnity.snapshotForm(db, dzId, 'sport') : null;
-	const membershipWarning = (await membershipWarnings(db, [user.id], today))[user.id] ?? null;
 
 	return {
 		checkin: {
@@ -75,8 +76,8 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 		},
 		choices,
 		preferred,
-		membershipWarning,
-		me: await meDefaults(locals, user.id),
+		membershipWarning: membershipWarningFor(me, today),
+		me: { name: me.name, weightKg: me.weightKg, licence: me.licence },
 		loads: list.map((l) => loadCard(l, user.id)),
 		prices: priceTable(prices),
 		soloTypes: SOLO_JUMP_TYPES,
@@ -98,9 +99,16 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	};
 };
 
+/** Form defaults + membership facts in one users read. */
 async function meDefaults(locals: App.Locals, userId: string) {
-	const u = (await locals.db.select({ name: users.name, w: users.loadingWeightKg, w2: users.weightKg, licence: users.licence }).from(users).where(eq(users.id, userId)).limit(1))[0];
-	return { name: u.name, weightKg: u.w ?? u.w2 ?? null, licence: u.licence };
+	const u = (
+		await locals.db
+			.select({ name: users.name, w: users.loadingWeightKg, w2: users.weightKg, licence: users.licence, association: users.association, expiry: users.associationExpiry })
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1)
+	)[0];
+	return { name: u.name, weightKg: u.w ?? u.w2 ?? null, licence: u.licence, association: u.association, expiry: u.expiry };
 }
 
 const asJumpType = (v: string, allowed: readonly JumpType[]): JumpType => {

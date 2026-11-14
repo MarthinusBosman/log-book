@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from '../db/index.ts';
 import type { Dropzone } from '../db/schema.ts';
 import { checkIn } from '../domain/checkins.ts';
-import { addSection, needsSportIndemnity, setIndemnityActive } from '../domain/indemnity.ts';
+import { addSection, needsSportIndemnity, setIndemnityActive, signIndemnity, WAIVER_VALID_DAYS } from '../domain/indemnity.ts';
+import { DAY_MS } from '../domain/time.ts';
 import { boardLoad, createLoads, openLoadsToday } from '../domain/loads.ts';
 import { DAY, NOW, freshDb, makeDropzone, makeUser } from '../domain/testing.ts';
 import { loadJumperDashboard } from './dashboard.ts';
@@ -27,6 +28,40 @@ describe('dropzone row reuse (fewer D1 round trips)', () => {
 		expect(await needsSportIndemnity(db, { id: dz.id, indemnitySportActive: true }, u.id)).toBe(true);
 		// The caller's row is trusted (it was read in the same request).
 		expect(await needsSportIndemnity(db, { id: dz.id, indemnitySportActive: false }, u.id)).toBe(false);
+	});
+
+	test('needsSportIndemnity is one statement and only counts this user’s sport signature here', async () => {
+		const { dz } = await makeDropzone(db);
+		const { dz: other } = await makeDropzone(db, { slug: 'other-dz', name: 'Other DZ' });
+		const u = await makeUser(db);
+		const someone = await makeUser(db);
+		let selects = 0;
+		const counted = new Proxy(db, {
+			get(t, k, r) {
+				if (k === 'select') selects++;
+				return Reflect.get(t, k, r);
+			}
+		}) as Database;
+		const row = { id: dz.id, indemnitySportActive: true };
+		// active but no sections: nothing to sign
+		expect(await needsSportIndemnity(counted, row, u.id)).toBe(false);
+		expect(selects).toBe(1);
+
+		await addSection(db, { dropzoneId: dz.id, audience: 'sport', title: 'Risk', content: 'Sport.' });
+		await addSection(db, { dropzoneId: dz.id, audience: 'sport', title: 'More', content: 'Sport.' });
+		await addSection(db, { dropzoneId: other.id, audience: 'sport', title: 'Risk', content: 'Sport.' });
+		// signatures that don't count: another jumper's, this jumper's at another dropzone
+		await signIndemnity(db, { dropzoneId: dz.id, audience: 'sport', userId: someone.id, signerName: 'S' });
+		await signIndemnity(db, { dropzoneId: other.id, audience: 'sport', userId: u.id, signerName: 'U' });
+		selects = 0;
+		expect(await needsSportIndemnity(counted, row, u.id)).toBe(true);
+		expect(selects).toBe(1);
+		// expired, then fresh
+		await signIndemnity(db, { dropzoneId: dz.id, audience: 'sport', userId: u.id, signerName: 'U', now: Date.now() - (WAIVER_VALID_DAYS + 1) * DAY_MS });
+		expect(await needsSportIndemnity(db, row, u.id)).toBe(true);
+		await signIndemnity(db, { dropzoneId: dz.id, audience: 'sport', userId: u.id, signerName: 'U' });
+		expect(await needsSportIndemnity(db, row, u.id)).toBe(false);
+		expect(await needsSportIndemnity(db, { id: other.id, indemnitySportActive: true }, someone.id)).toBe(true);
 	});
 
 	test('loadJumperDashboard resolves each dropzone once through the given getter', async () => {

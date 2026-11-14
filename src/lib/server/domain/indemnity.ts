@@ -209,15 +209,22 @@ export async function needsSportIndemnity(
 			: dropzone.indemnitySportActive;
 	if (!active) return false;
 	// An active form with no sections has nothing to sign: the sign page says "handled at manifest",
-	// so don't block self-manifest on it either.
-	const section = await db
-		.select({ id: indemnitySections.id })
-		.from(indemnitySections)
-		.where(and(eq(indemnitySections.dropzoneId, dropzoneId), eq(indemnitySections.audience, 'sport')))
-		.limit(1);
-	if (!section.length) return false;
-	const sig = await latestUserSignature(db, dropzoneId, userId);
-	return !sig || !isSignatureValid(sig);
+	// so don't block self-manifest on it either. One statement: any sport section + the user's latest
+	// sport signature time (no row = no sections).
+	const lastSigned = sql`(select max(${indemnitySignatures.signedAt}) from ${indemnitySignatures} where ${and(
+		eq(indemnitySignatures.dropzoneId, dropzoneId),
+		eq(indemnitySignatures.userId, userId),
+		eq(indemnitySignatures.audience, 'sport')
+	)})`.mapWith(indemnitySignatures.signedAt);
+	const row = (
+		await db
+			.select({ lastSigned })
+			.from(indemnitySections)
+			.where(and(eq(indemnitySections.dropzoneId, dropzoneId), eq(indemnitySections.audience, 'sport')))
+			.limit(1)
+	)[0];
+	if (!row) return false;
+	return !row.lastSigned || !isSignatureValid({ signedAt: row.lastSigned });
 }
 
 /** Valid = signed within WAIVER_VALID_DAYS. */

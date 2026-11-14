@@ -24,12 +24,18 @@ export async function loadJumperDashboard(
 	now = Date.now(),
 	dropzoneById: (id: string) => Promise<Dropzone | undefined> = async (id) => (await db.select().from(dropzones).where(eq(dropzones.id, id)).limit(1))[0]
 ) {
-	const user = (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
 	const dz = currentDropzoneId ? await dropzoneById(currentDropzoneId) : undefined;
 	const tz = dz?.timezone ?? 'UTC';
 	const today = localDate(now, tz);
 	// a day of slack so loads in DZs east of us aren't dropped
-	const [checkin, upcoming, totals, rigs, ratings, accounts] = await Promise.all([
+	const [user, checkin, upcoming, totals, rigs, ratings, accounts] = await Promise.all([
+		// only the membership fields (never the whole row: it carries the password hash)
+		db
+			.select({ association: users.association, associationExpiry: users.associationExpiry })
+			.from(users)
+			.where(eq(users.id, userId))
+			.limit(1)
+			.then((r) => r[0] ?? { association: null, associationExpiry: null }),
 		currentCheckin(db, userId),
 		upcomingSlotsForUser(db, userId, addDays(today, -1)),
 		logbookTotals(db, userId, today),
@@ -41,7 +47,12 @@ export async function loadJumperDashboard(
 
 	const checkedInDzId = checkin?.dropzone.id ?? null;
 	const checkedInDz = checkedInDzId ? (checkedInDzId === dz?.id ? dz : await dropzoneById(checkedInDzId)) : undefined;
-	const openLoads = checkedInDz ? await openLoadsToday(db, checkedInDz, now) : [];
+	// The DZ you're jumping at (checked in, else the selected one) wants a signed sport waiver first.
+	const waiverDz = checkedInDz ?? dz ?? null;
+	const [openLoads, needsWaiver] = await Promise.all([
+		checkedInDz ? openLoadsToday(db, checkedInDz, now) : Promise.resolve([]),
+		waiverDz ? needsSportIndemnity(db, waiverDz, userId) : Promise.resolve(false)
+	]);
 	const joinable = openLoads.filter(
 		(l) => SELF_SERVICE_LOAD_STATUSES.includes(l.status) && !l.stats.full && !l.slots.some((s) => s.userId === userId)
 	);
@@ -108,9 +119,7 @@ export async function loadJumperDashboard(
 			});
 		}
 	}
-	// The DZ you're jumping at (checked in, else the selected one) wants a signed sport waiver first.
-	const waiverDz = checkedInDz ?? dz ?? null;
-	if (waiverDz && (await needsSportIndemnity(db, waiverDz, userId))) {
+	if (waiverDz && needsWaiver) {
 		alerts.unshift({
 			id: 'waiver',
 			tone: 'warning',
