@@ -409,6 +409,8 @@ const todays = await createLoads(db, {
 	open: true,
 	createdBy: manifest.id,
 	scheduledAt: at(today, '08:30'),
+	// A realistic board: 08:30, 09:20, 10:10, … instead of six loads at the same time.
+	spacingMinutes: 50,
 	now: at(today, '07:40')
 });
 const extra182 = await createLoads(db, { dropzoneId: dz.id, day: today, aircraftId: c182.id, open: true, createdBy: manifest.id });

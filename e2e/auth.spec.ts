@@ -56,6 +56,9 @@ test('signup → dashboard → logout → login → dashboard', async ({ page })
 	await expect(page.getByTestId('dashboard-heading')).toContainText('Erin');
 	// No dropzone yet = no known timezone, so no time-of-day guess.
 	await expect(page.getByText('Welcome,')).toBeVisible();
+	// One "Find a dropzone" nudge (the banner with "Create one"), not a second one in the jumper card.
+	await expect(page.getByRole('main').getByRole('link', { name: 'Find a dropzone' })).toHaveCount(1);
+	await expect(page.getByTestId('jumper-dashboard').getByRole('link', { name: 'Find a dropzone' })).toHaveCount(0);
 
 	// Create a dropzone so the staff navigation + switcher are populated.
 	await page.goto('/app/dropzones/new');
