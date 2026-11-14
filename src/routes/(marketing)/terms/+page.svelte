@@ -128,8 +128,8 @@
 		<p>
 			To the extent South African law allows, we are not liable for indirect or consequential loss, lost data, lost
 			income, or for injury, death or damage arising from skydiving activities, decisions made using information in
-			the app, a dropzone’s records or conduct, or a payment provider’s service. Because the service is free, our total
-			liability for anything else connected with it is limited to R1 000.
+			the app, a dropzone’s records or conduct, or a payment provider’s service. Because the service is free and provided as
+			is, we accept no liability for any other loss connected with it either.
 		</p>
 		<p>
 			Nothing in these terms limits rights you have under the Consumer Protection Act or other law that can’t be
