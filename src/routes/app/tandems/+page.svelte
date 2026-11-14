@@ -199,7 +199,11 @@
 							</span>
 							<span class="flex flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
 								<Badge tone={STAGE_TONES[stage]} dot>{STAGE_LABELS[stage]}</Badge>
-								<Badge tone={PAYMENT_TONES[p.paymentStatus]} class="hidden sm:inline-flex">{PAYMENT_LABELS[p.paymentStatus]}</Badge>
+								{#if p.checkoutOpen}
+									<span data-testid="row-checkout-open" title="The customer started an online payment that isn't confirmed yet"><Badge tone="warning">Paying online</Badge></span>
+								{:else}
+									<Badge tone={PAYMENT_TONES[p.paymentStatus]} class="hidden sm:inline-flex">{PAYMENT_LABELS[p.paymentStatus]}</Badge>
+								{/if}
 							</span>
 							<span class="hidden w-24 text-right text-sm tabular-nums sm:block {due > 0 ? 'text-warning' : 'text-muted'}">
 								{due > 0 ? money(due) : 'Paid'}

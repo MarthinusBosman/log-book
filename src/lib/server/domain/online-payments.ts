@@ -273,6 +273,32 @@ export async function pendingTandemCheckout(db: Database, dropzoneId: string, pa
 	return rows.find((p) => paymentCovers(p, passengerId));
 }
 
+/**
+ * Which of these passengers have an open online checkout (see `pendingTandemCheckout`): one
+ * query for the whole tandem list, so staff can spot "customer is paying online" on a row
+ * before taking money at the counter.
+ */
+export async function passengersWithPendingCheckout(db: Database, dropzoneId: string, passengerIds: string[], now = Date.now()): Promise<Set<string>> {
+	const out = new Set<string>();
+	if (!passengerIds.length) return out;
+	const rows = await db
+		.select()
+		.from(payments)
+		.where(
+			and(
+				eq(payments.dropzoneId, dropzoneId),
+				eq(payments.status, 'pending'),
+				ne(payments.provider, 'manual'),
+				inArray(payments.purpose, ['tandem', 'tandem_deposit']),
+				gte(payments.createdAt, new Date(now - ABANDONED_CHECKOUT_MS))
+			)
+		)
+		.orderBy(desc(payments.createdAt))
+		.limit(200);
+	for (const id of passengerIds) if (rows.some((p) => paymentCovers(p, id))) out.add(id);
+	return out;
+}
+
 /** Online payments for a dropzone, newest first (settings page "recent payments"). */
 export async function listOnlinePayments(db: Database, dropzoneId: string, providers: PaymentProvider[], limit = 20) {
 	return db

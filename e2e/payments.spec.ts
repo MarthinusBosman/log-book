@@ -175,6 +175,7 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	// Staff see the open checkout on the passenger so they don't take the money twice.
 	const staff = await page.context().newPage();
 	await staff.goto('/app/tandems?q=Max%20Mate');
+	await expect(staff.getByTestId('tandem-row').filter({ hasText: 'Max Mate' }).first().getByTestId('row-checkout-open')).toContainText('Paying online');
 	await staff.getByTestId('tandem-row').filter({ hasText: 'Max Mate' }).first().click();
 	await expect(staff.getByTestId('pending-checkout')).toContainText('Online payment not confirmed yet');
 	await expect(staff.getByTestId('pending-checkout')).toContainText('Paystack');

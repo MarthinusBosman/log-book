@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { createPassenger, countByDay, listPassengers } from '#lib/server/domain/tandems.ts';
 import { addDays, isIsoDate, localDate, weekdayIndex } from '#lib/server/domain/time.ts';
 import { DomainError } from '#lib/server/domain/errors.ts';
+import { passengersWithPendingCheckout } from '#lib/server/domain/online-payments.ts';
 import { failFrom, moneyToMinor, staffContext, str } from '#lib/server/tandems/http.ts';
 import { parsePassengerForm } from '#lib/server/tandems/forms.ts';
 import { passengerDetail, tandemExtrasOffer, tandemLimits } from '#lib/server/tandems/detail.ts';
@@ -24,6 +25,13 @@ export const load: PageServerLoad = async (event) => {
 		tandemExtrasOffer(db, dz.id)
 	]);
 
+	// Rows whose customer has an online checkout open (staff shouldn't also take cash).
+	const checkout = await passengersWithPendingCheckout(
+		db,
+		dz.id,
+		rows.filter((p) => p.status !== 'cancelled' && p.paymentStatus !== 'paid').map((p) => p.id)
+	);
+
 	const pid = event.url.searchParams.get('p');
 	let detail = null;
 	if (pid) {
@@ -43,7 +51,7 @@ export const load: PageServerLoad = async (event) => {
 			const d = addDays(stripFrom, i);
 			return { date: d, count: counts[d] ?? 0 };
 		}),
-		passengers: rows,
+		passengers: rows.map((p) => ({ ...p, checkoutOpen: checkout.has(p.id) })),
 		offer,
 		limits: tandemLimits(dz),
 		detail

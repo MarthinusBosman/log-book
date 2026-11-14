@@ -9,7 +9,7 @@ import { dropzones, ledgerEntries, payments, tandemPassengers } from '../db/sche
 import { savePaymentConfig } from '../domain/dropzone-admin.ts';
 import { addBookingSlots, createOnlineBooking, getPassenger } from '../domain/tandems.ts';
 import { getAccount } from '../domain/wallet.ts';
-import { ABANDONED_CHECKOUT_MS, cancelPendingOnlinePayment, getPayment, pendingTandemCheckout } from '../domain/online-payments.ts';
+import { ABANDONED_CHECKOUT_MS, cancelPendingOnlinePayment, getPayment, passengersWithPendingCheckout, pendingTandemCheckout } from '../domain/online-payments.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from '../domain/testing.ts';
 import { encryptSecret } from '../staffadmin/secrets.ts';
 import { passengerDetail } from '../tandems/detail.ts';
@@ -264,11 +264,17 @@ describe('tandem booking', () => {
 		const staff = await passengerDetail(db, dz, bob.id);
 		expect(staff.pendingCheckout).toMatchObject({ id: payment.id, provider: 'Paystack', amountMinor: 100, totalMinor: 200, people: 2, deposit: true });
 		expect((await passengerDetail(db, dz, solo.passengers[0].id)).pendingCheckout).toBeNull();
+		// The tandem list flags the same rows in one query.
+		const ids = [ann.id, bob.id, solo.passengers[0].id];
+		expect([...(await passengersWithPendingCheckout(db, dz.id, ids))].sort()).toEqual([ann.id, bob.id].sort());
+		expect((await passengersWithPendingCheckout(db, dz.id, ids, Date.now() + ABANDONED_CHECKOUT_MS + 60_000)).size).toBe(0);
+		expect((await passengersWithPendingCheckout(db, dz.id, [])).size).toBe(0);
 		// Past the housekeeping window it is no longer offered.
 		expect(await pendingTandemCheckout(db, dz.id, ann.id, Date.now() + ABANDONED_CHECKOUT_MS + 60_000)).toBeUndefined();
 		await cancelPendingOnlinePayment(db, payment.id);
 		expect(await pendingTandemCheckout(db, dz.id, ann.id)).toBeUndefined();
 		expect((await passengerDetail(db, dz, ann.id)).pendingCheckout).toBeNull();
+		expect((await passengersWithPendingCheckout(db, dz.id, ids)).size).toBe(0);
 	});
 
 	test("can't pay for another dropzone's passenger", async () => {
