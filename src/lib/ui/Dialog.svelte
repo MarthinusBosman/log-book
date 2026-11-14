@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import { cn } from './cn.ts';
 
 	type Props = {
@@ -29,13 +29,35 @@
 	// unique per instance: pages often render several dialogs
 	const uid = $props.id();
 
+	// A dialog that starts open (driven by the URL, e.g. ?new=1) is server-rendered with the
+	// `open` attribute, so it shows before hydration and without JS. That is a NON-modal
+	// dialog; once hydrated, the effect re-opens it as a modal (backdrop, focus trap, Escape).
+	const ssrOpen = untrack(() => open) || undefined;
+	let reopening = false;
+
 	$effect(() => {
 		if (!el) return;
-		if (open && !el.open) el.showModal();
+		if (open && el.open && !isModal(el)) {
+			reopening = true; // the async close event from this hand-over must not close it for real
+			el.close();
+			el.showModal();
+		} else if (open && !el.open) el.showModal();
 		else if (!open && el.open) el.close();
 	});
 
+	function isModal(d: HTMLDialogElement) {
+		try {
+			return d.matches(':modal');
+		} catch {
+			return true; // no :modal support: leave it as it is
+		}
+	}
+
 	function handleClose() {
+		if (reopening) {
+			reopening = false;
+			return;
+		}
 		open = false;
 		onclose?.();
 	}
@@ -51,6 +73,7 @@
 
 <dialog
 	bind:this={el}
+	open={ssrOpen}
 	onclose={handleClose}
 	onclick={(e) => {
 		// click on the backdrop (the dialog element itself) closes
@@ -61,6 +84,8 @@
 	class={cn(
 		'border border-border bg-elevated p-0 text-fg shadow-2xl shadow-black/40',
 		'backdrop:bg-black/60 backdrop:backdrop-blur-sm backdrop:animate-fade-in',
+		// server-rendered open (non-modal until hydration): pin it like the modal would be
+		'[&:not(:modal)]:fixed [&:not(:modal)]:inset-0 [&:not(:modal)]:z-50',
 		placement[variant],
 		className
 	)}
@@ -72,16 +97,18 @@
 					<h2 id="{uid}-title" class="text-lg font-semibold tracking-tight">{title}</h2>
 					{#if description}<p id="{uid}-desc" class="mt-1 text-sm text-muted">{description}</p>{/if}
 				</div>
-				<button
-					type="button"
-					class="-mt-1 -mr-1 rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-fg"
-					aria-label="Close"
-					onclick={() => (open = false)}
-				>
-					<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-						><path d="M18 6 6 18M6 6l12 12" /></svg
+				<!-- method="dialog" closes natively, so this also works before hydration / without JS -->
+				<form method="dialog" class="contents">
+					<button
+						type="submit"
+						class="-mt-1 -mr-1 rounded-lg p-1.5 text-muted transition-colors hover:bg-surface-2 hover:text-fg"
+						aria-label="Close"
 					>
-				</button>
+						<svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+							><path d="M18 6 6 18M6 6l12 12" /></svg
+						>
+					</button>
+				</form>
 			</header>
 		{/if}
 		<div class="scrollbar-thin flex-1 overflow-y-auto px-5 pb-5">

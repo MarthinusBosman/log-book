@@ -57,7 +57,7 @@ test('owner runs the back office', async ({ page }) => {
 
 	// Gear
 	await go(page, '/app/gear');
-	await page.getByRole('button', { name: 'Add rig' }).first().click();
+	await page.getByRole('link', { name: 'Add rig' }).first().click();
 	await dialog(page).getByLabel('Name / number').fill('Student 1');
 	await dialog(page).getByLabel('Last reserve repack').fill('2026-01-01');
 	await dialog(page).getByRole('button', { name: 'Add to register' }).click();
@@ -99,6 +99,30 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(dialog(page).getByLabel('Name / number')).toBeVisible();
 	await page.keyboard.press('Escape');
 	await expect(page).toHaveURL(/\/app\/gear$/);
+	// The server renders a URL-opened dialog, so ?new=1 is upgraded to a real modal on hydration…
+	await go(page, '/app/gear?new=1');
+	expect(await dialog(page).evaluate((d) => d.matches(':modal'))).toBe(true);
+	await dialog(page).getByRole('button', { name: 'Close' }).click();
+	await expect(page).toHaveURL(/\/app\/gear$/);
+	// …and without JS (or before hydration) Add rig is a link that opens the form, Close works
+	// natively, and the form posts.
+	const noJs = await page.context().browser()!.newContext({
+		javaScriptEnabled: false,
+		baseURL: new URL(page.url()).origin,
+		storageState: await page.context().storageState()
+	});
+	const plain = await noJs.newPage();
+	await plain.goto('/app/gear');
+	await plain.getByRole('link', { name: 'Add rig' }).first().click();
+	await expect(plain).toHaveURL(/\/app\/gear\?new=1$/);
+	await dialog(plain).getByRole('button', { name: 'Close' }).click();
+	await expect(dialog(plain)).toHaveCount(0);
+	await plain.goto('/app/gear?new=1');
+	await dialog(plain).getByLabel('Name / number').fill('Student 2');
+	await dialog(plain).getByLabel('Last reserve repack').fill('2026-11-01');
+	await dialog(plain).getByRole('button', { name: 'Add to register' }).click();
+	await expect(plain.getByRole('cell', { name: /Student 2/ })).toBeVisible();
+	await noJs.close();
 
 	// Members: invite someone new with the packer (staff) role.
 	await go(page, '/app/settings/members');
