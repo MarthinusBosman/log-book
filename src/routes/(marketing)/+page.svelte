@@ -257,7 +257,7 @@
 						<p class="font-mono text-[11px] tracking-[0.16em] text-white/50 uppercase">Load 7 · on board</p>
 						<ul class="mt-2.5 grid grid-cols-2 gap-x-6 gap-y-1.5 text-[13px] text-white/80 sm:grid-cols-4">
 							{#each onboard as name, i (name)}
-								<li class="flex gap-2 truncate"><span class="w-4 shrink-0 text-right font-mono text-white/35 tabular-nums">{i + 1}</span>{name}</li>
+								<li class="flex gap-2 truncate"><span class="w-4 shrink-0 text-right font-mono text-white/50 tabular-nums">{i + 1}</span>{name}</li>
 							{/each}
 						</ul>
 					</div>

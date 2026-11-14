@@ -25,7 +25,7 @@
 						? 'border-border text-subtle line-through'
 						: 'border-border'}"
 			>
-				<p class="text-[10px] opacity-75">{day.d}</p>
+				<p class="text-[10px] {day.active ? 'opacity-90' : day.off ? '' : 'opacity-75'}">{day.d}</p>
 				<p class="font-semibold tabular-nums">{day.n}</p>
 			</div>
 		{/each}
@@ -36,7 +36,7 @@
 				class="rounded-lg border px-1 py-1 text-center font-mono tabular-nums {s.active
 					? 'border-primary text-primary ring-1 ring-primary'
 					: s.left === 0
-						? 'border-border text-subtle opacity-60'
+						? 'border-dashed border-border text-subtle'
 						: 'border-border'}"
 			>
 				{s.t}

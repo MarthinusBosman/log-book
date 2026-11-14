@@ -113,7 +113,7 @@
 		--dz-border-strong: #2a3a5e;
 		--dz-fg: #e8eefb;
 		--dz-muted: #93a1bd;
-		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
+		--dz-subtle: #7787a7; /* ≥4.5:1 on surfaces incl. surface-2/elevated (WCAG AA) */
 		--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 		--dz-primary-fg: #0b1220;
 		--dz-ring: rgb(96 151 255 / 0.5);
@@ -137,7 +137,7 @@
 			--dz-border-strong: #2a3a5e;
 			--dz-fg: #e8eefb;
 			--dz-muted: #93a1bd;
-			--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
+			--dz-subtle: #7787a7; /* ≥4.5:1 on surfaces incl. surface-2/elevated (WCAG AA) */
 			--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 			--dz-primary-fg: #0b1220;
 			--dz-ring: rgb(96 151 255 / 0.5);
@@ -201,7 +201,7 @@
 		--dz-border-strong: #2a3a5e;
 		--dz-fg: #e8eefb;
 		--dz-muted: #93a1bd;
-		--dz-subtle: #7383a3; /* ≥4.5:1 on surfaces (WCAG AA) */
+		--dz-subtle: #7787a7; /* ≥4.5:1 on surfaces incl. surface-2/elevated (WCAG AA) */
 		--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 		--dz-primary-fg: #0b1220;
 		--dz-ring: rgb(96 151 255 / 0.5);

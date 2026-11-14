@@ -204,6 +204,26 @@ describe('default theme tokens (app.css)', () => {
 			}
 		}
 	});
+
+	test.each([
+		[':root {', 'light'],
+		['.light-scope {', 'light'],
+		['.dark {', 'dark'],
+		[':root.system {', 'dark'],
+		['.dark-scope {', 'dark']
+	] as const)('%s text colours read on every surface (%s)', (selector) => {
+		const found = blocks(selector).filter((x) => x.includes('--dz-subtle:'));
+		expect(found.length).toBeGreaterThan(0);
+		for (const b of found) {
+			for (const text of ['--dz-fg', '--dz-muted', '--dz-subtle']) {
+				for (const surface of ['--dz-bg', '--dz-surface', '--dz-surface-2', '--dz-elevated']) {
+					// text-subtle on bg-surface-2 (closed days on the DZ page) was 4.49:1
+					const ratio = contrast(token(b, text)!, token(b, surface)!);
+					expect({ selector, text, surface, ok: ratio >= 4.5 }).toEqual({ selector, text, surface, ok: true });
+				}
+			}
+		}
+	});
 });
 
 describe('tinted surfaces', () => {
