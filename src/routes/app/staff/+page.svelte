@@ -4,7 +4,10 @@
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
 	import DateRange from '#lib/components/staffadmin/DateRange.svelte';
 	import RoleChips from '#lib/components/staffadmin/RoleChips.svelte';
+	import { page } from '$app/state';
 	import SearchBox from '#lib/components/staffadmin/SearchBox.svelte';
+	import { readChoice, readQuery } from '#lib/components/staffadmin/list-view.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import SortTh from '#lib/components/staffadmin/SortTh.svelte';
 	import { Sorter } from '#lib/components/staffadmin/sorter.svelte.ts';
 	import { ROLE_LABELS, STAFF_ROLES, formatMoney, type DropzoneRole } from '#lib/domain/constants.ts';
@@ -13,8 +16,10 @@
 	let { data }: PageProps = $props();
 	type Row = (typeof data.staff)[number];
 
-	let q = $state('');
-	let role = $state<'' | DropzoneRole>('');
+	// Search text and role filter follow the URL (?q=, ?role=), next to the date range.
+	let q = $state(readQuery(page.url.searchParams));
+	let role = $state<'' | DropzoneRole>(readChoice(page.url.searchParams, 'role', STAFF_ROLES));
+	syncViewToUrl(() => ({ q: q.trim(), role }));
 	const sorter = new Sorter<'name' | 'jumps' | 'loads' | 'earned' | 'owed'>('name');
 	const money = (m: number) => formatMoney(m, data.currency);
 

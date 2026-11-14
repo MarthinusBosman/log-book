@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { readChoice, readQuery } from '#lib/components/staffadmin/list-view.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input } from '#lib/ui/index.ts';
 	import RoleChips from '#lib/components/staffadmin/RoleChips.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
@@ -23,8 +26,10 @@
 		jumper: 'Member, no staff access'
 	};
 
-	let q = $state('');
-	let roleFilter = $state<'' | DropzoneRole>('');
+	// Search text and role filter follow the URL (?q=, ?role=): reload and shared links keep them.
+	let q = $state(readQuery(page.url.searchParams));
+	let roleFilter = $state<'' | DropzoneRole>(readChoice(page.url.searchParams, 'role', DROPZONE_ROLES));
+	syncViewToUrl(() => ({ q: q.trim(), role: roleFilter }));
 	let inviteOpen = $state(false);
 	let editing = $state<(typeof data.members)[number] | null>(null);
 	let removing = $state<(typeof data.members)[number] | null>(null);

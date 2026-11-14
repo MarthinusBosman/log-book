@@ -86,6 +86,11 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members$/);
 	await page.reload();
 	await expect(page.getByRole('tab', { name: /Jumpers.? gear/ })).toHaveAttribute('aria-selected', 'true');
+	// …and so does back from another page (a shallow URL would be lost on back).
+	await go(page, '/app');
+	await page.goBack();
+	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members$/);
+	await expect(page.getByRole('tab', { name: /Jumpers.? gear/ })).toHaveAttribute('aria-selected', 'true');
 	await page.getByRole('tab', { name: /DZ rigs/ }).click();
 	await page.getByLabel('Filter rigs').selectOption('');
 	await expect(page).toHaveURL(/\/app\/gear$/);
@@ -102,9 +107,26 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(page).getByLabel('Name').fill('Mia Member');
 	await dialog(page).getByRole('button', { name: 'Send invite' }).click();
 	await expect(page.getByText('Mia Member').first()).toBeVisible();
+	// The member search survives a reload (?q=).
+	await page.getByLabel('Search members').fill('mia');
+	await expect(page).toHaveURL(/\/app\/settings\/members\?q=mia$/);
+	await page.reload();
+	await expect(page.getByLabel('Search members')).toHaveValue('mia');
+	await expect(page.getByText('Mia Member').first()).toBeVisible();
+	await expect(page.locator('main').getByText('Olga Owner')).toHaveCount(0);
 
 	// Jumpers → detail → wallet top-up (reason required).
 	await go(page, '/app/jumpers');
+	// Search text and filter chip stay in the URL, so back from a jumper returns to the same list.
+	await page.getByLabel('Search', { exact: true }).fill('Mia');
+	await page.getByRole('button', { name: /^Staff/ }).click();
+	await expect(page).toHaveURL(/\/app\/jumpers\?q=Mia&show=staff$/);
+	await page.getByRole('link', { name: /Mia Member/ }).click();
+	await expect(page.getByRole('heading', { name: 'Mia Member' })).toBeVisible();
+	await page.goBack();
+	await expect(page.getByLabel('Search', { exact: true })).toHaveValue('Mia');
+	await expect(page.getByRole('button', { name: /^Staff/ })).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.locator('main').getByRole('link', { name: /Olga Owner/ })).toHaveCount(0);
 	await page.getByRole('link', { name: /Mia Member/ }).click();
 	await expect(page.getByRole('heading', { name: 'Mia Member' })).toBeVisible();
 	await page.getByLabel('Amount').fill('300');

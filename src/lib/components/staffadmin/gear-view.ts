@@ -1,3 +1,5 @@
+import { listViewHref } from './list-view.ts';
+
 /**
  * The gear page's view (tab, rig filter, "Add rig" dialog) lives in the query string
  * (?tab=members, ?show=attention, ?new=1) so reload, back and shared links return to it.
@@ -18,12 +20,12 @@ export function readGearView(params: Pick<URLSearchParams, 'get'>): GearView {
 	};
 }
 
+/** Query params for the view (defaults → null, i.e. left out of the URL). */
+export function gearViewParams(view: GearView): Record<string, string | null> {
+	return { tab: view.tab === 'members' ? 'members' : null, show: view.only || null, new: view.adding ? '1' : null };
+}
+
 /** `href` with the view applied; other query params are kept. */
 export function gearViewHref(href: string, view: GearView): string {
-	const url = new URL(href);
-	const set = (k: string, v: string | null) => (v ? url.searchParams.set(k, v) : url.searchParams.delete(k));
-	set('tab', view.tab === 'members' ? 'members' : null);
-	set('show', view.only || null);
-	set('new', view.adding ? '1' : null);
-	return url.href;
+	return listViewHref(href, gearViewParams(view));
 }

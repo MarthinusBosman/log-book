@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { replaceState } from '$app/navigation';
-	import { untrack } from 'svelte';
-	import { gearViewHref, readGearView, type GearOnly } from '#lib/components/staffadmin/gear-view.ts';
+	import { gearViewParams, readGearView, type GearOnly } from '#lib/components/staffadmin/gear-view.ts';
+	import { readQuery } from '#lib/components/staffadmin/list-view.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input, Select, Stat, Tabs } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
 	import DueBadge from '#lib/components/staffadmin/DueBadge.svelte';
@@ -20,16 +20,10 @@
 	// dashboard deep links land on them, and reload/back/shared links keep the view.
 	const initial = () => readGearView(page.url.searchParams);
 	let tab = $state<string>(initial().tab);
-	let q = $state('');
+	let q = $state(readQuery(page.url.searchParams));
 	let only = $state<GearOnly>(initial().only);
 	let editing = $state<Rig | 'new' | null>(initial().adding ? 'new' : null);
-	$effect(() => {
-		const view = { tab: tab === 'members' ? 'members' : 'dz', only, adding: editing === 'new' } as const;
-		untrack(() => {
-			const href = gearViewHref(location.href, view);
-			if (href !== location.href) replaceState(href, page.state);
-		});
-	});
+	syncViewToUrl(() => ({ q: q.trim(), ...gearViewParams({ tab: tab === 'members' ? 'members' : 'dz', only, adding: editing === 'new' }) }));
 	let servicing = $state<Rig | null>(null);
 	let deleting = $state<Rig | null>(null);
 	let pending = $state(false);

@@ -3,7 +3,10 @@
 	import { Avatar, Badge, Button, Icon, Stat } from '#lib/ui/index.ts';
 	import { formatMoneyShort } from '#lib/components/staffadmin/money.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
+	import { page } from '$app/state';
 	import SearchBox from '#lib/components/staffadmin/SearchBox.svelte';
+	import { readChoice, readQuery } from '#lib/components/staffadmin/list-view.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import SortTh from '#lib/components/staffadmin/SortTh.svelte';
 	import { Sorter } from '#lib/components/staffadmin/sorter.svelte.ts';
 	import { ROLE_LABELS, formatMoney } from '#lib/domain/constants.ts';
@@ -14,9 +17,12 @@
 	type Row = (typeof data.jumpers)[number];
 	type Filter = '' | 'checked_in' | 'membership' | 'waiver' | 'negative' | 'staff';
 
-	// svelte-ignore state_referenced_locally
-	let q = $state(data.q);
-	let filter = $state<Filter>('');
+	// Search text and filter chip follow the URL (?q=, ?show=): back from a jumper, reload and
+	// shared links keep the view.
+	const FILTERS = ['checked_in', 'membership', 'waiver', 'negative', 'staff'] as const;
+	let q = $state(readQuery(page.url.searchParams));
+	let filter = $state<Filter>(readChoice(page.url.searchParams, 'show', FILTERS));
+	syncViewToUrl(() => ({ q: q.trim(), show: filter }));
 	const sorter = new Sorter<'name' | 'licence' | 'membership' | 'balance'>('name');
 	const money = (m: number) => formatMoney(m, data.currency);
 
