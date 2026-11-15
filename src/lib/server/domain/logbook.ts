@@ -196,6 +196,53 @@ export async function signJump(
 	return rows[0];
 }
 
+export type JumpNeighbour = { id: string; jumpNumber: number; jumpDate: string };
+/** Gentle consistency hints for one jump (never blocking: paper logbooks are messy). */
+export type JumpSequenceHints = {
+	/** Another jump with the same number. */
+	duplicate: JumpNeighbour | null;
+	/** The previous-numbered jump, when it is dated AFTER this one. */
+	earlierNumberLaterDate: JumpNeighbour | null;
+	/** The next-numbered jump, when it is dated BEFORE this one. */
+	laterNumberEarlierDate: JumpNeighbour | null;
+};
+
+export async function jumpSequenceHints(
+	db: Database,
+	userId: string,
+	jump: Pick<LogbookJump, 'id' | 'jumpNumber' | 'jumpDate'>
+): Promise<JumpSequenceHints> {
+	const cols = { id: logbookJumps.id, jumpNumber: logbookJumps.jumpNumber, jumpDate: logbookJumps.jumpDate };
+	const mine = eq(logbookJumps.userId, userId);
+	const [dup, prev, next] = await Promise.all([
+		db
+			.select(cols)
+			.from(logbookJumps)
+			.where(and(mine, eq(logbookJumps.jumpNumber, jump.jumpNumber), sql`${logbookJumps.id} <> ${jump.id}`))
+			.orderBy(asc(logbookJumps.createdAt))
+			.limit(1),
+		db
+			.select(cols)
+			.from(logbookJumps)
+			.where(and(mine, sql`${logbookJumps.jumpNumber} < ${jump.jumpNumber}`))
+			.orderBy(desc(logbookJumps.jumpNumber), desc(logbookJumps.jumpDate))
+			.limit(1),
+		db
+			.select(cols)
+			.from(logbookJumps)
+			.where(and(mine, sql`${logbookJumps.jumpNumber} > ${jump.jumpNumber}`))
+			.orderBy(asc(logbookJumps.jumpNumber), asc(logbookJumps.jumpDate))
+			.limit(1)
+	]);
+	const p = prev[0];
+	const n = next[0];
+	return {
+		duplicate: dup[0] ?? null,
+		earlierNumberLaterDate: p && p.jumpDate > jump.jumpDate ? p : null,
+		laterNumberEarlierDate: n && n.jumpDate < jump.jumpDate ? n : null
+	};
+}
+
 export type JumpFilters = {
 	from?: string;
 	to?: string;

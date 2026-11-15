@@ -186,6 +186,37 @@ async function addLicence(page: Page, licence: string) {
 	await expect(page.getByText('Credentials updated successfully')).toBeVisible();
 }
 
+test('logbook hints: out-of-order dates and duplicate numbers are pointed out, not blocked', async ({ page }) => {
+	await signup(page, 'Paper Logbook');
+	async function add(no: string, date: string) {
+		await page.goto('/app/logbook/new');
+		await page.getByLabel('Jump #').fill(no);
+		await page.getByLabel('Date').fill(date);
+		await page.getByLabel('Location').fill('Skydive Test Field');
+		await page.getByTestId('save-jump').click();
+		await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]+$/);
+		return page.url();
+	}
+	const five = await add('5', '2026-06-27');
+	await expect(page.getByTestId('jump-hints')).toHaveCount(0);
+	const six = await add('6', '2026-06-11');
+	const hints = page.getByTestId('jump-hints');
+	await expect(hints).toContainText('Dated before jump #5');
+	await hints.getByRole('link', { name: 'jump #5' }).click();
+	await expect(page).toHaveURL(five);
+	await expect(page.getByTestId('jump-hints')).toContainText('Dated after jump #6');
+	// fixing the date clears the hint
+	await page.goto(six);
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Date').fill('2026-06-28');
+	await page.getByTestId('save-jump').click();
+	await expect(page.getByTestId('jump-hints')).toHaveCount(0);
+	// a second #6 on the same day is a duplicate
+	await add('6', '2026-06-28');
+	await expect(page.getByTestId('jump-hints')).toContainText('You have another jump #6');
+	await expect(page.getByTestId('jump-hints')).not.toContainText('Dated');
+});
+
 test('sign-off: a licensed jumper signs with a drawn signature; a second signer cannot replace it', async ({ page, browser }) => {
 	await signup(page, 'Sam Student');
 	await page.goto('/app/logbook/new');

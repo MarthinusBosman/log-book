@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { logbookJumps } from '../db/schema.ts';
 import { isDomainError } from './errors.ts';
-import { addJump, assertJumpDateInRange, deleteJump, getJump, importJumps, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
+import { addJump, assertJumpDateInRange, deleteJump, getJump, importJumps, jumpSequenceHints, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
 import { setRatings } from './profile.ts';
 import { addSlot, completeLoad, createLoads } from './loads.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from './testing.ts';
@@ -45,6 +45,26 @@ describe('numbering', () => {
 		await expect(addJump(db, u.id, { jumpDate: DAY, freefallSeconds: -1 })).rejects.toThrow("Freefall time can't be negative");
 		await expect(addJump(db, u.id, { jumpDate: DAY, altitudeFt: -500 })).rejects.toThrow("Altitude can't be negative");
 		await expect(addJump(db, u.id, { jumpDate: '0101-02-03' })).rejects.toThrow(/too far in the past/);
+	});
+
+	test('sequence hints: duplicate numbers and out-of-order dates', async () => {
+		const u = await makeUser(db);
+		const other = await makeUser(db);
+		const a = await addJump(db, u.id, { jumpDate: '2026-06-01', jumpNumber: 10 });
+		const b = await addJump(db, u.id, { jumpDate: '2026-06-27', jumpNumber: 12 });
+		const c = await addJump(db, u.id, { jumpDate: '2026-06-11', jumpNumber: 13 });
+		await addJump(db, other.id, { jumpDate: '2026-06-01', jumpNumber: 13 });
+		// in order: nothing to say
+		expect(await jumpSequenceHints(db, u.id, a)).toEqual({ duplicate: null, earlierNumberLaterDate: null, laterNumberEarlierDate: null });
+		// #12 (27 Jun) is dated after #13 (11 Jun): both sides see it; other users' jumps never count
+		expect((await jumpSequenceHints(db, u.id, b)).laterNumberEarlierDate).toMatchObject({ id: c.id, jumpNumber: 13 });
+		const hc = await jumpSequenceHints(db, u.id, c);
+		expect(hc.earlierNumberLaterDate).toMatchObject({ id: b.id, jumpDate: '2026-06-27' });
+		expect(hc.duplicate).toBeNull();
+		// same date is fine; a second #10 is a duplicate
+		const d = await addJump(db, u.id, { jumpDate: '2026-06-01', jumpNumber: 10 });
+		expect(await jumpSequenceHints(db, u.id, d)).toMatchObject({ duplicate: { id: a.id }, earlierNumberLaterDate: null });
+		expect((await jumpSequenceHints(db, u.id, a)).duplicate).toMatchObject({ id: d.id });
 	});
 
 	test('form dates: not in the future (one day of time-zone slack)', () => {

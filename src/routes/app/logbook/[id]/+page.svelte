@@ -15,6 +15,17 @@
 	const f = $derived(form as { action?: string; values?: typeof data.values; message?: string; success?: string; link?: string; qr?: string; expiresInDays?: number } | null);
 	let busySign = $state(false);
 	let copied = $state(false);
+	// Gentle hints only: paper logbooks get typed in out of order, nothing is blocked.
+	const hintLines = $derived.by(() => {
+		const h = data.hints;
+		const out: { before: string; link: string; href: string; after: string }[] = [];
+		if (h.duplicate) out.push({ before: 'You have another ', link: `jump #${h.duplicate.jumpNumber}`, href: `/app/logbook/${h.duplicate.id}`, after: ` (${fmtDate(h.duplicate.jumpDate)}). Check the number.` });
+		if (h.earlierNumberLaterDate)
+			out.push({ before: 'Dated before ', link: `jump #${h.earlierNumberLaterDate.jumpNumber}`, href: `/app/logbook/${h.earlierNumberLaterDate.id}`, after: ` (${fmtDate(h.earlierNumberLaterDate.jumpDate)}). Check the date or number.` });
+		if (h.laterNumberEarlierDate)
+			out.push({ before: 'Dated after ', link: `jump #${h.laterNumberEarlierDate.jumpNumber}`, href: `/app/logbook/${h.laterNumberEarlierDate.id}`, after: ` (${fmtDate(h.laterNumberEarlierDate.jumpDate)}). Check the date or number.` });
+		return out;
+	});
 
 	onMount(() => {
 		if (data.added) {
@@ -74,6 +85,16 @@
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
 	<div class="lg:col-span-3">
 		<Card title="Jump details" description={j.verified ? 'Logged by the dropzone when the load completed. Date, number, dropzone and aircraft are locked.' : undefined}>
+			{#if hintLines.length}
+				<div class="mb-4 flex gap-3 rounded-xl border border-warning/30 bg-warning/5 p-3 text-sm" role="note" data-testid="jump-hints">
+					<JIcon name="alert" class="mt-0.5 size-4 shrink-0 text-warning" />
+					<ul class="min-w-0 space-y-1">
+						{#each hintLines as h (h.href)}
+							<li>{h.before}<a href={h.href} class="font-medium underline underline-offset-2">{h.link}</a>{h.after}</li>
+						{/each}
+					</ul>
+				</div>
+			{/if}
 			<JumpForm
 				values={f?.action === 'update' && f.values ? f.values : data.values}
 				dropzones={data.dropzones}

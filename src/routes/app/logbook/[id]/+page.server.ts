@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { users } from '#lib/server/db/schema.ts';
-import { deleteJump, getJump, updateJump } from '#lib/server/domain/logbook.ts';
+import { deleteJump, getJump, jumpSequenceHints, updateJump } from '#lib/server/domain/logbook.ts';
 import { domainFail, requireUser } from '#lib/server/jumper/forms.ts';
 import { dropzoneOptions, dzNameMap, jumpFormEcho, jumpRow, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
 import { createSignToken, qrSvg, SIGN_LINK_TTL_S } from '#lib/server/jumper/signoff.ts';
@@ -16,10 +16,16 @@ async function ownJump(locals: App.Locals, userId: string, id: string) {
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const user = requireUser(locals, url);
 	const jump = await ownJump(locals, user.id, params.id);
-	const [dropzones, rigs, names] = await Promise.all([dropzoneOptions(locals.db, user.id), rigOptions(locals.db, user.id), dzNameMap(locals.db, [jump])]);
+	const [dropzones, rigs, names, hints] = await Promise.all([
+		dropzoneOptions(locals.db, user.id),
+		rigOptions(locals.db, user.id),
+		dzNameMap(locals.db, [jump]),
+		jumpSequenceHints(locals.db, user.id, jump)
+	]);
 	if (jump.dropzoneId && !dropzones.some((d) => d.id === jump.dropzoneId)) dropzones.push({ id: jump.dropzoneId, name: names.get(jump.dropzoneId) ?? 'Dropzone' });
 	return {
 		jump: jumpRow(jump, names),
+		hints,
 		values: {
 			jumpNumber: jump.jumpNumber,
 			jumpDate: jump.jumpDate,
