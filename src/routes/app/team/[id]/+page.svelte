@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { onMount } from 'svelte';
-	import { Avatar, Badge, Button, Card, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
+	import { Avatar, Badge, Button, Card, ConfirmAction, Icon, Input, Select, toast } from '#lib/ui/index.ts';
 	import { JUMP_TYPE_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
@@ -202,9 +202,12 @@
 					<Button type="submit" class="w-full" loading={busy === 'update'}>Save</Button>
 				</form>
 			</Card>
-			<form method="POST" action="?/delete" use:enhance={(e) => { if (!confirm(`Delete ${t.name}? This can’t be undone.`)) e.cancel(); }}>
-				<Button type="submit" variant="ghost" class={cn('w-full text-danger hover:text-danger')}><JIcon name="trash" class="size-4" /> Delete team</Button>
-			</form>
+			<ConfirmAction question="Delete {t.name}? This can’t be undone." testid="delete-team" triggerClass="h-10 w-full rounded-xl">
+				{#snippet trigger()}<JIcon name="trash" class="size-4" /> Delete team{/snippet}
+				<form method="POST" action="?/delete" use:enhance>
+					<Button type="submit" variant="danger" size="sm">Delete team</Button>
+				</form>
+			</ConfirmAction>
 		{:else}
 			<Card>
 				<p class="text-sm text-muted">{t.dz ? 'This team is managed by the dropzone.' : 'Only the team owner can change members and settings.'}</p>

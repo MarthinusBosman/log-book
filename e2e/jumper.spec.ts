@@ -217,6 +217,67 @@ test('logbook hints: out-of-order dates and duplicate numbers are pointed out, n
 	await expect(page.getByTestId('jump-hints')).not.toContainText('Dated');
 });
 
+test('deleting a jump, rig or team asks first — also before hydration / without JS', async ({ page, browser }) => {
+	await signup(page, 'Careful Deleter');
+	const visible = (id: string) => page.getByTestId(id).locator('visible=true');
+	// Jump: the trigger only opens the question; Cancel keeps it; confirming deletes
+	await page.goto('/app/logbook/new');
+	await page.getByLabel('Jump #').fill('1');
+	await page.getByLabel('Location').fill('Skydive Test Field');
+	await page.getByTestId('save-jump').click();
+	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]+$/);
+	const jumpUrl = page.url();
+	await page.waitForLoadState('networkidle');
+	await visible('delete-jump').locator('summary').click();
+	await expect(visible('delete-jump')).toContainText('Delete jump #1? This can’t be undone.');
+	await visible('delete-jump').getByRole('link', { name: 'Cancel' }).click();
+	await expect(visible('delete-jump').getByRole('button', { name: 'Delete jump' })).toBeHidden();
+	await expect(page).toHaveURL(jumpUrl);
+	await visible('delete-jump').locator('summary').click();
+	await visible('delete-jump').getByRole('button', { name: 'Delete jump' }).click();
+	await expect(page).toHaveURL(/\/app\/logbook\?deleted=1$/);
+
+	// Rig + team: created with JS, deleted without it
+	await page.goto('/app/my-gear/new');
+	await page.getByLabel('Container make & model *').fill('Javelin Odyssey');
+	await page.getByLabel('Main canopy *').fill('Sabre3');
+	await page.getByLabel('Reserve canopy *').fill('PD 160');
+	await page.getByLabel('Last repack date *').fill('2026-01-01');
+	await page.getByTestId('save-rig').click();
+	await expect(page).toHaveURL(/\/app\/my-gear\/[0-9a-f-]+$/);
+	const rigUrl = new URL(page.url()).pathname;
+	await page.goto('/app/team');
+	await page.getByTestId('new-team').click();
+	await page.getByLabel('Team name').fill('Doomed 4-way');
+	await page.getByRole('button', { name: 'Create team' }).click();
+	await expect(page).toHaveURL(/\/app\/team\/[0-9a-f-]+$/);
+	const teamUrl = new URL(page.url()).pathname;
+
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto(rigUrl);
+	const rig = plain.getByTestId('delete-rig');
+	await expect(rig.getByRole('button', { name: 'Delete rig' })).toBeHidden();
+	await rig.locator('summary').click();
+	await expect(rig).toContainText('Delete this rig and its service history?');
+	await rig.getByRole('link', { name: 'Cancel' }).click();
+	await expect(plain).toHaveURL(new RegExp(`${rigUrl}$`));
+	await expect(rig.getByRole('button', { name: 'Delete rig' })).toBeHidden();
+	await rig.locator('summary').click();
+	await rig.getByRole('button', { name: 'Delete rig' }).click();
+	await expect(plain).toHaveURL(/\/app\/my-gear$/);
+	await expect(plain.getByTestId('rig-card')).toHaveCount(0);
+
+	await plain.goto(teamUrl);
+	const team = plain.getByTestId('delete-team');
+	await team.locator('summary').click();
+	await expect(team).toContainText('Delete Doomed 4-way? This can’t be undone.');
+	await team.getByRole('button', { name: 'Delete team' }).click();
+	await expect(plain).toHaveURL(/\/app\/team$/);
+	await expect(plain.getByText('Doomed 4-way')).toHaveCount(0);
+	await noJs.close();
+});
+
 test('sign-off: a licensed jumper signs with a drawn signature; a second signer cannot replace it', async ({ page, browser }) => {
 	await signup(page, 'Sam Student');
 	await page.goto('/app/logbook/new');

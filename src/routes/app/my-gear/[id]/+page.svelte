@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { onMount, untrack } from 'svelte';
-	import { Badge, Button, Card, Input, Select, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, ConfirmAction, Input, Select, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import RigForm from '#lib/components/jumper/RigForm.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
@@ -84,14 +84,15 @@
 		</Card>
 
 		<Card>
-			<div class="flex flex-wrap items-center justify-between gap-2">
-				<form method="POST" action="?/retire" use:enhance>
-					<Button type="submit" variant="secondary" size="sm">{rig.active ? 'Retire rig' : 'Put back in service'}</Button>
+			<form method="POST" action="?/retire" use:enhance>
+				<Button type="submit" variant="secondary" size="sm">{rig.active ? 'Retire rig' : 'Put back in service'}</Button>
+			</form>
+			<ConfirmAction class="mt-3 border-t border-border pt-3" lead="Remove it from My gear." question="Delete this rig and its service history? This can’t be undone." testid="delete-rig">
+				{#snippet trigger()}<JIcon name="trash" class="size-4" /> Delete{/snippet}
+				<form method="POST" action="?/delete" use:enhance>
+					<Button type="submit" variant="danger" size="sm">Delete rig</Button>
 				</form>
-				<form method="POST" action="?/delete" use:enhance={(e) => { if (!confirm('Delete this rig and its service history?')) e.cancel(); }}>
-					<Button type="submit" variant="ghost" size="sm" class="text-danger hover:text-danger"><JIcon name="trash" class="size-4" /> Delete</Button>
-				</form>
-			</div>
+			</ConfirmAction>
 		</Card>
 	</aside>
 </div>

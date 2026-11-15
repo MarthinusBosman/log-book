@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { onMount, untrack } from 'svelte';
-	import { Badge, Button, Card, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, ConfirmAction, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import JumpForm from '#lib/components/jumper/JumpForm.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -56,18 +56,12 @@
 {#snippet deleteCard(cls: string)}
 		{#if !j.verified}
 			<Card class={cls}>
-				<form
-					method="POST"
-					action="?/delete"
-					use:enhance={(e) => {
-						if (!confirm('Are you sure you want to delete this jump?')) return e.cancel();
-					}}
-				>
-					<div class="flex items-center justify-between gap-3">
-						<p class="text-sm text-muted">Remove this jump from your logbook.</p>
-						<Button type="submit" variant="ghost" size="sm" class="text-danger hover:text-danger" data-testid="delete-jump"><JIcon name="trash" class="size-4" /> Delete</Button>
-					</div>
-				</form>
+				<ConfirmAction lead="Remove this jump from your logbook." question="Delete jump #{j.jumpNumber}? This can’t be undone." testid="delete-jump">
+					{#snippet trigger()}<JIcon name="trash" class="size-4" /> Delete{/snippet}
+					<form method="POST" action="?/delete" use:enhance>
+						<Button type="submit" variant="danger" size="sm">Delete jump</Button>
+					</form>
+				</ConfirmAction>
 				<FormAlert class="mt-3" message={f?.action === 'delete' ? f.message : null} />
 			</Card>
 		{/if}
