@@ -26,6 +26,8 @@
 	}: Props = $props();
 
 	let el: HTMLDialogElement | undefined = $state();
+	const FOCUSABLE =
+		'a[href],button:not([disabled]),input:not([type=hidden]):not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"]),summary,iframe,[contenteditable]';
 	// unique per instance: pages often render several dialogs
 	const uid = $props.id();
 
@@ -43,6 +45,34 @@
 			el.showModal();
 		} else if (open && !el.open) el.showModal();
 		else if (!open && el.open) el.close();
+	});
+
+	// A read-only body (e.g. a waiver preview) has nothing to Tab to, so keyboard users
+	// couldn't scroll it (focus sits on Close in the header). Make the scroll area itself a
+	// tab stop only while it holds no focusable element (WCAG 2.1.1, axe scrollable-region-focusable).
+	// Set imperatively: a reactive attribute in this template re-runs the dialog's attribute
+	// effect, which drops the `open` that showModal() set and closes the dialog.
+	let body: HTMLDivElement | undefined;
+
+	$effect(() => {
+		if (!open || !body) return;
+		const b = body;
+		const label = title ?? 'Dialog content';
+		const update = () => {
+			if (b.querySelector(FOCUSABLE)) {
+				b.removeAttribute('tabindex');
+				b.removeAttribute('role');
+				b.removeAttribute('aria-label');
+			} else {
+				b.tabIndex = 0;
+				b.setAttribute('role', 'region');
+				b.setAttribute('aria-label', label);
+			}
+		};
+		update();
+		const mo = new MutationObserver(update);
+		mo.observe(b, { childList: true, subtree: true });
+		return () => mo.disconnect();
 	});
 
 	function isModal(d: HTMLDialogElement) {
@@ -111,7 +141,11 @@
 				</form>
 			</header>
 		{/if}
-		<div class="scrollbar-thin flex-1 overflow-y-auto px-5 pb-5">
+		<!-- scroll area; becomes a labelled tab stop only when the body has no controls (see above) -->
+		<div
+			bind:this={body}
+			class="scrollbar-thin flex-1 overflow-y-auto px-5 pb-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+		>
 			{@render children?.()}
 		</div>
 		{#if footer}

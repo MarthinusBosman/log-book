@@ -46,6 +46,8 @@ test('owner runs the back office', async ({ page }) => {
 	await page.getByRole('link', { name: 'Add plane' }).first().click();
 	await expect(page).toHaveURL(/\/app\/aircraft\?new=1$/);
 	await dialog(page).getByLabel('Plane name').fill('Caravan');
+	// a dialog with form controls adds no extra tab stop for its scroll area
+	await expect(dialog(page).getByRole('region')).toHaveCount(0);
 	await dialog(page).getByLabel('Pax (jumper slots)').fill('14');
 	await dialog(page).getByRole('button', { name: 'Add to fleet' }).click();
 	await expect(page.getByText('Caravan added to the fleet')).toBeVisible();
@@ -188,6 +190,13 @@ test('owner runs the back office', async ({ page }) => {
 	await page.getByTestId('preview-sport').click();
 	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport&preview=1$/);
 	await expect(dialog(page).getByRole('heading', { name: '1. Risk' })).toBeVisible();
+	// Read-only body: the scroll area itself is the next tab stop after Close, so the
+	// keyboard can scroll a long waiver (axe scrollable-region-focusable).
+	const previewBody = dialog(page).getByRole('region');
+	await expect(previewBody).toHaveAttribute('tabindex', '0');
+	await dialog(page).getByRole('button', { name: 'Close' }).focus();
+	await page.keyboard.press('Tab');
+	await expect(previewBody).toBeFocused();
 	await dialog(page).getByRole('button', { name: 'Close' }).click();
 	await expect(dialog(page)).toHaveCount(0);
 	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport$/);
