@@ -358,3 +358,33 @@ test('join form with an empty wallet: "not enough" + Top up link, but not at a D
 	await load.getByRole('button', { name: 'Join this load' }).click();
 	await expect(load.getByText('You’re on this load')).toBeVisible();
 });
+
+test('two dropzones: checking in makes that one active; with no dz cookie the check-in decides', async ({ page, context }) => {
+	const project = test.info().project.name;
+	await signup(page, 'Tess Twodz');
+	const names = [`Home DZ ${project} ${Date.now()}`, `Away DZ ${project} ${Date.now()}`];
+	for (const name of names) {
+		await page.goto('/app/dropzones/new');
+		await page.getByLabel('Dropzone name').fill(name);
+		await page.getByRole('button', { name: 'Create dropzone' }).click();
+		await expect(page).toHaveURL(/\/app$/);
+	}
+	// creating "Away" made it active; check in at "Home"
+	await page.goto('/app/dropzones');
+	await page.getByTestId('dz-search').fill(names[0]);
+	await page.getByTestId('dz-search').press('Enter');
+	await page.getByRole('link', { name: names[0] }).click();
+	await page.getByTestId('dz-checkin').click();
+	await expect(page).toHaveURL(/\/app\/check-in/);
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toContainText(names[0]);
+	const dropzoneSelect = page.locator('select[name=dropzoneId] option:checked');
+	await page.goto('/app/logbook/new');
+	await expect(dropzoneSelect).toHaveText(names[0]);
+
+	// a new device / cleared cookie: the open check-in picks the dropzone, not the name order
+	await context.clearCookies({ name: 'dz' });
+	await page.goto('/app/logbook/new');
+	await expect(dropzoneSelect).toHaveText(names[0]);
+});

@@ -26,6 +26,28 @@ export function primaryRole(roles: readonly DropzoneRole[]): DropzoneRole {
 	return ROLE_PRECEDENCE.find((r) => roles.includes(r)) ?? 'jumper';
 }
 
+/**
+ * The active membership. The `dz` cookie wins when the user belongs to that dropzone. Without it
+ * (first visit, new device, cookie cleared) prefer the dropzone the user is checked in at today,
+ * then the one where they hold the strongest role (an owner lands on their own dropzone, not on
+ * a club they merely jump at), then the first by name.
+ */
+export function pickMembership(
+	memberships: readonly Membership[],
+	selectedSlug: string | null | undefined,
+	checkedInDropzoneId?: string | null
+): Membership | null {
+	const selected = selectedSlug ? memberships.find((m) => m.dropzone.slug === selectedSlug) : undefined;
+	if (selected) return selected;
+	const here = checkedInDropzoneId ? memberships.find((m) => m.dropzone.id === checkedInDropzoneId) : undefined;
+	if (here) return here;
+	let best: Membership | null = null;
+	for (const m of memberships) {
+		if (!best || ROLE_PRECEDENCE.indexOf(m.role) < ROLE_PRECEDENCE.indexOf(best.role)) best = m;
+	}
+	return best;
+}
+
 export function slugify(input: string): string {
 	return input
 		.toLowerCase()

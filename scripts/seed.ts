@@ -345,6 +345,57 @@ async function manifestOne(loadId: string, input: Parameters<typeof addSlot>[2],
 	}
 }
 
+// ── a second, smaller dropzone ─────────────────────────────────────────────
+// jumper@ (and a few others) also jump here, so multi-dropzone paths (switcher, wallets per DZ,
+// logbook place picker, check-in choice) show up in QA. Seeded before the main DZ's past day so
+// jump numbers follow the dates.
+const coastOwner = await person('coast@demo.example', 'Craig Adams', { licence: 'D-1377', declaredJumpCount: 1900 });
+const coast = await createDropzone(
+	db,
+	{ name: 'Demo Coast Skydivers', slug: 'demo-coast-skydivers', country: 'ZA', timezone: TZ, currency: 'ZAR' },
+	coastOwner.id
+);
+await updateDropzone(db, coast.id, {
+	description: 'Small club on the coast with a Cessna 182. Fun jumpers welcome on Saturdays.',
+	address: 'Demo Coast Airstrip, Eastern Cape, South Africa',
+	contactEmail: 'coast@demo.example',
+	openDays: ['sat'],
+	openTime: '09:00',
+	closeTime: '17:00',
+	walletEnabled: true,
+	payAtManifest: true
+});
+await setPrices(db, coast.id, { sport_slot: 40000, hop_pop: 28000, gear_rental: 20000 });
+const coastPlane = await createAircraft(db, coast.id, { name: 'Cessna 182', tailNumber: 'ZS-CST', capacity: 4, weightLimitKg: 460 });
+const coastJumpers = [jumpers[0], jumpers[4], jumpers[5]];
+for (const [k, u] of coastJumpers.entries()) {
+	await grantRole(db, { dropzoneId: coast.id, userId: u.id, role: 'jumper' });
+	await db.insert(dropzoneFollows).values({ dropzoneId: coast.id, userId: u.id, favourite: false }).onConflictDoNothing();
+	await topUp(db, {
+		userId: u.id,
+		dropzoneId: coast.id,
+		amountMinor: (k + 2) * 40000,
+		provider: 'cash',
+		providerTxId: `seed-coast-${k}`,
+		reason: 'Top-up',
+		createdBy: coastOwner.id,
+		now: now - 12 * 86400_000
+	});
+}
+const coastDay = addDays(today, -10);
+const [coastLoad] = await createLoads(db, {
+	dropzoneId: coast.id,
+	day: coastDay,
+	aircraftId: coastPlane.id,
+	open: true,
+	createdBy: coastOwner.id,
+	now: at(coastDay, '09:00')
+});
+for (const u of coastJumpers) {
+	await addSlot(db, coastLoad.id, { userId: u.id, jumpType: 'belly' }, { by: coastOwner.id, allowExpired: true, now: at(coastDay, '09:10') });
+}
+await completeLoad(db, coastLoad.id, { by: coastOwner.id, now: at(coastDay, '10:00') });
+
 // ── a past jump day (completed loads → verified logbook entries, wallet charges) ──
 const past = addDays(today, -7);
 const sportTypes: JumpType[] = ['belly', 'freefly', 'tracking', 'angle', 'hop_pop'];
@@ -461,5 +512,6 @@ function printLogins() {
 	console.log('  manifest@demo.example  — manifest + admin');
 	console.log('  ti1@demo.example       — tandem instructor + coach');
 	console.log('  rigger@demo.example    — rigger');
-	console.log('  jumper@demo.example    — fun jumper with logbook, rig and wallet');
+	console.log('  jumper@demo.example    — fun jumper with logbook, rig and wallet (also a member of Demo Coast Skydivers)');
+	console.log('  coast@demo.example     — owner of Demo Coast Skydivers (small second dropzone)');
 }

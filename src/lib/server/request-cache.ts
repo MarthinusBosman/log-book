@@ -6,9 +6,9 @@
  * form action (which may change memberships or dropzone settings) and the page load that renders
  * after it always read the database directly.
  */
-import { eq } from 'drizzle-orm';
-import { dropzones, type Dropzone } from './db/schema.ts';
-import { DZ_COOKIE, listMemberships, type Membership } from './dropzones/index.ts';
+import { and, eq, isNull } from 'drizzle-orm';
+import { checkins, dropzones, type Dropzone } from './db/schema.ts';
+import { DZ_COOKIE, listMemberships, pickMembership, type Membership } from './dropzones/index.ts';
 
 type CacheLocals = Pick<App.Locals, 'db' | 'cache'>;
 
@@ -36,14 +36,29 @@ export function requestMemberships(locals: CacheLocals, userId: string): Promise
 	return cached(locals, `memberships:${userId}`, () => listMemberships(locals.db, userId));
 }
 
-/** The active membership: the `dz` cookie's dropzone if the user belongs to it, else the first one. */
+/**
+ * The active membership (see `pickMembership`): the `dz` cookie's dropzone if the user belongs to
+ * it; otherwise, for users with several dropzones, the one they're checked in at, else their
+ * strongest role. The check-in read only happens on that cookie-less multi-dropzone path.
+ */
 export async function currentMembership(
 	event: { locals: CacheLocals; cookies: { get(name: string): string | undefined } },
-	userId: string
+	userId: string,
+	/** Already-loaded memberships (skips the read on requests without a cache). */
+	known?: Membership[]
 ): Promise<Membership | null> {
-	const memberships = await requestMemberships(event.locals, userId);
+	const memberships = known ?? (await requestMemberships(event.locals, userId));
 	const selected = event.cookies.get(DZ_COOKIE);
-	return memberships.find((m) => m.dropzone.slug === selected) ?? memberships[0] ?? null;
+	if (memberships.length < 2 || memberships.some((m) => m.dropzone.slug === selected)) return pickMembership(memberships, selected);
+	const open = await cached(event.locals, `open-checkin:${userId}`, async () => {
+		const row = await event.locals.db
+			.select({ dropzoneId: checkins.dropzoneId })
+			.from(checkins)
+			.where(and(eq(checkins.userId, userId), isNull(checkins.checkedOutAt)))
+			.limit(1);
+		return row[0]?.dropzoneId ?? null;
+	});
+	return pickMembership(memberships, selected, open);
 }
 
 /** Full dropzone row by id, cached per request. */

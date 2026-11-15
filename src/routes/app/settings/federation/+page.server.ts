@@ -3,7 +3,7 @@ import { count, eq, like, not } from 'drizzle-orm';
 import { instances, linkedAccounts } from '#lib/server/db/schema.ts';
 import { instanceMode, publicOrigin } from '#lib/server/config.ts';
 import { GRANT_ISSUER_PREFIX, outboxStats } from '#lib/server/domain/federation.ts';
-import { DZ_COOKIE, listMemberships } from '#lib/server/dropzones/index.ts';
+import { currentMembership } from '#lib/server/request-cache.ts';
 import { can } from '#lib/server/domain/permissions.ts';
 import { listInstances, OAuthError, registerInstance, rotateSecret, setInstanceStatus } from '#lib/server/import/federation/server.ts';
 import { CALLBACK_PATH, clearStoredConfig, FederationError, flushOutbox, saveStoredConfig, testConnection } from '#lib/server/import/federation/client.ts';
@@ -70,8 +70,7 @@ export const actions: Actions = {
 		const origin = String(form.get('origin') ?? '').trim();
 		const redirectUri = String(form.get('redirectUri') ?? '').trim() || (origin ? origin.replace(/\/+$/, '') + CALLBACK_PATH : '');
 		if (name.length < 2) return fail(400, { name, origin, redirectUri, message: 'Give the instance a name.' });
-		const memberships = await listMemberships(event.locals.db, user.id);
-		const m = memberships.find((x) => x.dropzone.slug === event.cookies.get(DZ_COOKIE)) ?? memberships[0];
+		const m = await currentMembership(event, user.id);
 		const dropzoneId = m && (await can(event.locals.db, user.id, m.dropzone.id, 'dz.settings')) ? m.dropzone.id : null;
 		try {
 			const r = await registerInstance(event.locals.db, { name, origin, redirectUris: [redirectUri], dropzoneId, createdBy: user.id });

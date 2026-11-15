@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from './db/index.ts';
 import { cacheableMethod, cached, currentMembership, requestDropzone, requestMemberships } from './request-cache.ts';
 import { grantRole } from './domain/permissions.ts';
-import { freshDb, makeDropzone, makeUser } from './domain/testing.ts';
+import { checkIn } from './domain/checkins.ts';
+import { pickMembership, type Membership } from './dropzones/index.ts';
+import { NOW, freshDb, makeDropzone, makeUser } from './domain/testing.ts';
 
 let db: Database;
 beforeEach(() => {
@@ -65,6 +67,40 @@ describe('request cache', () => {
 		expect((await currentMembership({ locals, cookies: cookies('not-mine') }, u.id))?.dropzone.id).toBeDefined();
 		const none = await makeUser(db);
 		expect(await currentMembership({ locals, cookies: cookies() }, none.id)).toBeNull();
+	});
+
+	test('without a dz cookie: checked-in dropzone first, else the strongest role', async () => {
+		const a = await makeDropzone(db, { name: 'Alpha Club' });
+		const b = await makeDropzone(db, { name: 'Zulu Skydive' });
+		const u = await makeUser(db);
+		await grantRole(db, { dropzoneId: a.dz.id, userId: u.id, role: 'jumper' });
+		await grantRole(db, { dropzoneId: b.dz.id, userId: u.id, role: 'manifest' });
+		const current = (dz?: string) => currentMembership({ locals: { db, cache: new Map() }, cookies: cookies(dz) }, u.id);
+		// manifest at Zulu outranks jumper at Alpha, though Alpha sorts first
+		expect((await current())?.dropzone.id).toBe(b.dz.id);
+		expect((await current('stale-slug'))?.dropzone.id).toBe(b.dz.id);
+		// checked in at Alpha today: that's where they are
+		await checkIn(db, { dropzoneId: a.dz.id, userId: u.id, now: NOW });
+		expect((await current())?.dropzone.id).toBe(a.dz.id);
+		// an explicit choice still wins
+		expect((await current(b.dz.slug))?.dropzone.id).toBe(b.dz.id);
+		// the check-in read only happens without a matching cookie
+		const c = counting(db);
+		await currentMembership({ locals: { db: c.db, cache: new Map() }, cookies: cookies(b.dz.slug) }, u.id);
+		expect(c.count()).toBe(1);
+		const d = counting(db);
+		await currentMembership({ locals: { db: d.db, cache: new Map() }, cookies: cookies() }, u.id);
+		expect(d.count()).toBe(2);
+	});
+
+	test('pickMembership: cookie, then check-in, then role precedence, then name order', () => {
+		const m = (id: string, role: Membership['role']): Membership => ({ dropzone: { id, slug: id, name: id, country: null }, roles: [role], role });
+		const list = [m('a', 'jumper'), m('b', 'owner'), m('c', 'jumper')];
+		expect(pickMembership(list, 'c')?.dropzone.id).toBe('c');
+		expect(pickMembership(list, undefined, 'a')?.dropzone.id).toBe('a');
+		expect(pickMembership(list, 'gone', 'gone')?.dropzone.id).toBe('b');
+		expect(pickMembership([m('a', 'jumper'), m('c', 'jumper')], null)?.dropzone.id).toBe('a');
+		expect(pickMembership([], 'a')).toBeNull();
 	});
 
 	test('a failed read is not cached', async () => {

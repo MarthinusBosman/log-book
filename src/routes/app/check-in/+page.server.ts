@@ -16,6 +16,7 @@ import { bool, domainFail, num, requireUser, str } from '#lib/server/jumper/form
 import { SOLO_JUMP_TYPES, SPORT_EXTRAS, type JumpType, type SlotExtra } from '#lib/domain/constants.ts';
 import { membershipWarningFor } from '#lib/server/memberships/service.ts';
 import { requestDropzone } from '#lib/server/request-cache.ts';
+import { DZ_COOKIE } from '#lib/server/dropzones/index.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, parent, url }) => {
@@ -130,7 +131,7 @@ async function requireCheckinFor(locals: App.Locals, userId: string, loadId: str
 }
 
 export const actions: Actions = {
-	checkin: async ({ locals, request }) => {
+	checkin: async ({ locals, request, cookies, url }) => {
 		const user = requireUser(locals);
 		const form = await request.formData();
 		const dzId = str(form, 'dropzoneId');
@@ -140,7 +141,7 @@ export const actions: Actions = {
 			if (weightKg !== null && (!Number.isFinite(weightKg) || weightKg < 30 || weightKg > 200)) {
 				throw new DomainError('invalid', 'Enter your exit weight in kg (30–200)');
 			}
-			const dz = (await locals.db.select({ id: dropzones.id, listed: dropzones.listed }).from(dropzones).where(eq(dropzones.id, dzId)).limit(1))[0];
+			const dz = (await locals.db.select({ id: dropzones.id, slug: dropzones.slug, listed: dropzones.listed }).from(dropzones).where(eq(dropzones.id, dzId)).limit(1))[0];
 			if (!dz) throw new DomainError('not_found', 'Dropzone not found');
 			// Unlisted dropzones only take check-ins from their members and followers.
 			if (!dz.listed) {
@@ -149,6 +150,8 @@ export const actions: Actions = {
 			}
 			await grantRole(locals.db, { dropzoneId: dz.id, userId: user.id, role: 'jumper' });
 			await checkins.checkIn(locals.db, { dropzoneId: dz.id, userId: user.id, weightKg, gearRental: bool(form, 'gearRental') });
+			// Checking in makes this the active dropzone (switcher, nav, wallet), like picking it in the switcher.
+			cookies.set(DZ_COOKIE, dz.slug, { path: '/', httpOnly: true, sameSite: 'lax', secure: url.protocol === 'https:', maxAge: 60 * 60 * 24 * 365 });
 		} catch (e) {
 			return domainFail(e, { action: 'checkin' });
 		}
