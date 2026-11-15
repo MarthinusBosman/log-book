@@ -184,6 +184,13 @@ test('owner runs the back office', async ({ page }) => {
 	await sport.getByRole('button', { name: 'Save section' }).click();
 	await expect(sport.getByRole('heading', { name: 'Risk', exact: true })).toBeVisible();
 	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport$/);
+	// Preview is a ?preview=1 link too: opens in place, closing clears the param.
+	await page.getByTestId('preview-sport').click();
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport&preview=1$/);
+	await expect(dialog(page).getByRole('heading', { name: '1. Risk' })).toBeVisible();
+	await dialog(page).getByRole('button', { name: 'Close' }).click();
+	await expect(dialog(page)).toHaveCount(0);
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport$/);
 	const noJsW = await page.context().browser()!.newContext({
 		javaScriptEnabled: false,
 		baseURL: new URL(page.url()).origin,
@@ -203,6 +210,8 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(sportW.getByLabel('Heading')).toHaveCount(0);
 	await sportW.getByRole('button', { name: 'Move Medical up' }).click();
 	await expect(sportW.getByTestId('section').first()).toContainText('Medical');
+	await sportW.getByRole('link', { name: 'Preview' }).click();
+	await expect(dialog(pw).getByText('I am fit to jump.')).toBeVisible();
 	await noJsW.close();
 
 	// Members: invite someone new with the packer (staff) role.

@@ -56,7 +56,7 @@
 
 <div class="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
 	<Stat label="Loads" value={t.loads} hint="{t.slots} slots" />
-	<Stat label="Slot revenue" value={formatMoneyShort(data.revenue.totalMinor, data.currency)} hint="{money(data.revenue.paidMinor)} paid" />
+	<Stat label="Slot revenue" value={formatMoneyShort(data.revenue.totalMinor, data.currency)} hint="{formatMoneyShort(data.revenue.paidMinor, data.currency)} paid" />
 	<Stat label="Tandems" value={t.tandems} hint="{data.tandems.passengers.length} bookings" />
 	<Stat label="Staff & pilot pay" value={formatMoneyShort(data.jumps.revenue.staffPayMinor + data.jumps.revenue.pilotPayMinor, data.currency)} hint="completed loads" />
 </div>

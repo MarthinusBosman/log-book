@@ -18,13 +18,14 @@
 	// hydration and without JS (the server renders the form open); hydrated clicks act in place.
 	let editing = $state<string | null>(page.url.searchParams.get('edit'));
 	let adding = $state(wantsNewDialog(page.url.searchParams));
-	syncViewToUrl(() => ({ edit: editing, new: adding ? '1' : null }), 0);
 	const href = (set: Record<string, string | null>) => viewParamsHref(page.url, set);
 	// No-JS posts land on the action URL: keep the tab so the page comes back on this form.
 	const act = (name: string) => `?/${name}&tab=${audience}`;
-	let previewing = $state(false);
+	let previewing = $state(page.url.searchParams.get('preview') === '1');
 	let busy = $state(false);
 	let newType = $state<IndemnitySectionType>('acknowledgement');
+	// Preview is a link too (?preview=1): the server renders the dialog open for no-JS taps.
+	syncViewToUrl(() => ({ edit: editing, new: adding ? '1' : null, preview: previewing ? '1' : null }), 0);
 
 	const typeOptions = INDEMNITY_SECTION_TYPES.map((t) => ({ value: t, label: SECTION_TYPE_LABELS[t] }));
 	const TYPE_TONES: Record<IndemnitySectionType, 'neutral' | 'brand' | 'warning' | 'success'> = {
@@ -51,7 +52,13 @@
 			<h2 class="font-semibold">{label} waiver <Badge tone={active ? 'success' : 'neutral'} dot class="ml-1">{active ? 'Active' : 'Off'}</Badge></h2>
 			<p class="text-sm text-muted">{where}</p>
 		</div>
-		<Button variant="secondary" size="sm" onclick={() => (previewing = true)} disabled={!sections.length}><Icon name="smartphone" class="size-4" /> Preview</Button>
+		{#if sections.length}
+			<Button variant="secondary" size="sm" href={href({ preview: '1' })} onclick={openInPlace(() => (previewing = true))} data-testid="preview-{audience}"
+				><Icon name="smartphone" class="size-4" /> Preview</Button
+			>
+		{:else}
+			<Button variant="secondary" size="sm" disabled><Icon name="smartphone" class="size-4" /> Preview</Button>
+		{/if}
 		{#if canEdit}
 			<form method="POST" action={act('activate')} use:enhance={toastEnhance()}>
 				<input type="hidden" name="audience" value={audience} />
