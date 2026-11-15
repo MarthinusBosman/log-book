@@ -39,6 +39,23 @@ test('common auth URL guesses redirect to the real pages', async ({ page }) => {
 	expect((await page.request.get('/registerx')).status()).toBe(404);
 });
 
+test.describe('new dropzone preselects the country from the browser timezone', () => {
+	// An en-US browser in Johannesburg is common: the zone, not the language, says where the DZ is.
+	test.use({ timezoneId: 'Africa/Johannesburg', locale: 'en-US' });
+	test('Africa/Johannesburg + en-US → South Africa / ZAR', async ({ page }) => {
+		await page.goto('/signup');
+		await page.getByLabel('Full name').fill('Zoe Zone');
+		await page.getByLabel('Email').fill(`e2e-tz-${Date.now()}-${test.info().project.name}@example.com`);
+		await page.getByLabel('Password').fill('blue-skies-123');
+		await page.getByRole('button', { name: 'Create account' }).click();
+		await expect(page).toHaveURL(/\/app$/);
+		await page.goto('/app/dropzones/new');
+		await expect(page.locator('select[name=country]')).toHaveValue('ZA');
+		await expect(page.locator('select[name=currency]')).toHaveValue('ZAR');
+		await expect(page.locator('select[name=timezone]')).toHaveValue('Africa/Johannesburg');
+	});
+});
+
 test('signup → dashboard → logout → login → dashboard', async ({ page }) => {
 	const email = `e2e-${Date.now()}-${test.info().project.name}@example.com`;
 	const password = 'blue-skies-123';

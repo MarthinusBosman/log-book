@@ -4,6 +4,7 @@
 	import { Button, Card, Input, Select } from '#lib/ui/index.ts';
 	import { CURRENCIES, currencyForCountry } from '#lib/domain/currency.ts';
 	import { countryFromLanguage, countryOptions } from '#lib/domain/countries.ts';
+	import { countryFromTimezone } from '#lib/domain/timezone-countries.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -13,9 +14,12 @@
 	let timezone = $state(untrack(() => form?.timezone) ?? 'UTC');
 	onMount(() => {
 		if (!form?.timezone) timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-		// Preselect the country from the browser's language region (en-ZA → South Africa).
+		// Preselect the country from the browser's timezone (Africa/Johannesburg → South Africa),
+		// else its language region (en-ZA → South Africa). The zone wins: en-US is common everywhere.
 		if (!form?.country && !country) {
-			const guess = navigator.languages.map(countryFromLanguage).find(Boolean);
+			const guess =
+				countryFromTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone) ??
+				navigator.languages.map(countryFromLanguage).find(Boolean);
 			if (guess) {
 				country = guess;
 				onCountry();
