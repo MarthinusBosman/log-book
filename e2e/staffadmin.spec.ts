@@ -167,6 +167,44 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(plain.getByRole('cell', { name: /Student 2/ })).toBeVisible();
 	await noJs.close();
 
+	// Waivers: Add section / Edit are links (?new=1 / ?edit=<id>) that work before hydration and
+	// without JS; no-JS posts come back on the same tab.
+	const sport = page.getByTestId('builder-sport');
+	await go(page, '/app/waivers?tab=sport');
+	await page.getByTestId('add-section-sport').click();
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport&new=1$/);
+	await sport.getByLabel('Heading').fill('Assumption of risk');
+	await sport.getByLabel('Content').fill('Skydiving is dangerous.');
+	await sport.getByRole('button', { name: 'Add section', exact: true }).click();
+	await expect(sport.getByRole('heading', { name: 'Assumption of risk' })).toBeVisible();
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport$/);
+	await sport.getByRole('link', { name: 'Edit Assumption of risk' }).click();
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport&edit=/);
+	await sport.getByLabel('Heading').fill('Risk');
+	await sport.getByRole('button', { name: 'Save section' }).click();
+	await expect(sport.getByRole('heading', { name: 'Risk', exact: true })).toBeVisible();
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport$/);
+	const noJsW = await page.context().browser()!.newContext({
+		javaScriptEnabled: false,
+		baseURL: new URL(page.url()).origin,
+		storageState: await page.context().storageState()
+	});
+	const pw = await noJsW.newPage();
+	const sportW = pw.getByTestId('builder-sport');
+	await pw.goto('/app/waivers?tab=sport');
+	await sportW.getByRole('link', { name: 'Add section' }).click();
+	await sportW.getByLabel('Heading').fill('Medical');
+	await sportW.getByLabel('Content').fill('I am fit to jump.');
+	await sportW.getByRole('button', { name: 'Add section', exact: true }).click();
+	await expect(sportW.getByRole('heading', { name: 'Medical' })).toBeVisible();
+	await sportW.getByRole('link', { name: 'Edit Medical' }).click();
+	await expect(sportW.getByLabel('Heading')).toHaveValue('Medical');
+	await sportW.getByRole('link', { name: 'Cancel' }).click();
+	await expect(sportW.getByLabel('Heading')).toHaveCount(0);
+	await sportW.getByRole('button', { name: 'Move Medical up' }).click();
+	await expect(sportW.getByTestId('section').first()).toContainText('Medical');
+	await noJsW.close();
+
 	// Members: invite someone new with the packer (staff) role.
 	await go(page, '/app/settings/members');
 	await page.getByRole('link', { name: 'Invite' }).click();

@@ -12,6 +12,17 @@ export function newDialogHref(url: { search: string }, drop: readonly string[] =
 	return `?${params}`;
 }
 
+/** Href for the current URL with `set` applied (`null` removes a param); other params are kept. */
+export function viewParamsHref(url: { pathname: string; search: string }, set: Record<string, string | null>): string {
+	const params = new URLSearchParams(url.search);
+	for (const [k, v] of Object.entries(set)) {
+		if (v === null) params.delete(k);
+		else params.set(k, v);
+	}
+	const qs = params.toString();
+	return qs ? `?${qs}` : url.pathname;
+}
+
 /** True when the URL asks for the "new" dialog (`?new=1`). */
 export function wantsNewDialog(params: Pick<URLSearchParams, 'get'>): boolean {
 	return params.get('new') === '1';

@@ -108,7 +108,7 @@
 										<span class="text-xs text-muted">· {s.capacity}</span>
 										<form method="POST" action="?/delete" use:enhance={toastEnhance()}>
 											<input type="hidden" name="id" value={s.id} />
-											<button type="submit" class="grid size-6 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger" aria-label="Remove {d.label} {s.time}">×</button>
+											<button type="submit" class="grid size-6 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger" aria-label="Remove {d.label} {s.time}"><Icon name="x" class="size-3.5" /></button>
 										</form>
 									</li>
 								{/each}
@@ -158,7 +158,7 @@
 										</form>
 										<form method="POST" action="?/delete" use:enhance={toastEnhance({ before: () => (s.booked && !confirm(`${s.booked} booking(s) at ${s.time} will keep their time. Remove the slot?`) ? false : null) })}>
 											<input type="hidden" name="id" value={s.id} />
-											<button type="submit" class="grid size-7 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger" aria-label="Remove {d.date} {s.time}">×</button>
+											<button type="submit" class="grid size-7 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger" aria-label="Remove {d.date} {s.time}"><Icon name="x" class="size-4" /></button>
 										</form>
 									</li>
 								{/each}

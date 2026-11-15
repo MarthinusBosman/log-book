@@ -1,6 +1,9 @@
 <script lang="ts">
 	/** Indemnity form builder for one audience: ordered sections, edit, reorder, delete, add, preview, activate. */
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { openInPlace, viewParamsHref, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Badge, Button, Dialog, Icon, Input, Select, cn } from '#lib/ui/index.ts';
 	import { INDEMNITY_SECTION_TYPES, type IndemnityAudience, type IndemnitySectionType } from '#lib/domain/constants.ts';
 	import { toastEnhance } from '#lib/components/tandems/enhance.ts';
@@ -11,8 +14,14 @@
 	type Props = { audience: IndemnityAudience; sections: Section[]; active: boolean; dropzoneName: string; canEdit: boolean };
 	let { audience, sections, active, dropzoneName, canEdit }: Props = $props();
 
-	let editing = $state<string | null>(null);
-	let adding = $state(false);
+	// Edit / Add section state lives in the URL (?edit=<id>, ?new=1) so the links work before
+	// hydration and without JS (the server renders the form open); hydrated clicks act in place.
+	let editing = $state<string | null>(page.url.searchParams.get('edit'));
+	let adding = $state(wantsNewDialog(page.url.searchParams));
+	syncViewToUrl(() => ({ edit: editing, new: adding ? '1' : null }), 0);
+	const href = (set: Record<string, string | null>) => viewParamsHref(page.url, set);
+	// No-JS posts land on the action URL: keep the tab so the page comes back on this form.
+	const act = (name: string) => `?/${name}&tab=${audience}`;
 	let previewing = $state(false);
 	let busy = $state(false);
 	let newType = $state<IndemnitySectionType>('acknowledgement');
@@ -44,7 +53,7 @@
 		</div>
 		<Button variant="secondary" size="sm" onclick={() => (previewing = true)} disabled={!sections.length}><Icon name="smartphone" class="size-4" /> Preview</Button>
 		{#if canEdit}
-			<form method="POST" action="?/activate" use:enhance={toastEnhance()}>
+			<form method="POST" action={act('activate')} use:enhance={toastEnhance()}>
 				<input type="hidden" name="audience" value={audience} />
 				<input type="hidden" name="active" value={String(!active)} />
 				<Button size="sm" variant={active ? 'outline' : 'primary'} type="submit" data-testid="toggle-{audience}">{active ? 'Switch off' : 'Activate'}</Button>
@@ -59,7 +68,7 @@
 				{#if editing === s.id}
 					<form
 						method="POST"
-						action="?/update"
+						action={act('update')}
 						use:enhance={toastEnhance({ pending: (on) => (busy = on), onSuccess: () => (editing = null) })}
 						class="grid gap-3 p-4"
 					>
@@ -73,7 +82,7 @@
 							<textarea id="c-{s.id}" name="content" rows="5" class={textarea}>{s.content}</textarea>
 						</div>
 						<div class="flex justify-end gap-2">
-							<Button variant="ghost" size="sm" onclick={() => (editing = null)}>Cancel</Button>
+							<Button variant="ghost" size="sm" href={href({ edit: null })} onclick={openInPlace(() => (editing = null))}>Cancel</Button>
 							<Button size="sm" type="submit" loading={busy}>Save section</Button>
 						</div>
 					</form>
@@ -89,17 +98,19 @@
 						</div>
 						{#if canEdit}
 							<div class="flex shrink-0 items-start gap-0.5">
-								{#each [['up', '↑', i === 0], ['down', '↓', i === sections.length - 1]] as [dir, glyph, off] (dir)}
-									<form method="POST" action="?/move" use:enhance={toastEnhance()}>
+								{#each [['up', 'arrowUp', i === 0], ['down', 'arrowDown', i === sections.length - 1]] as const as [dir, icon, off] (dir)}
+									<form method="POST" action={act('move')} use:enhance={toastEnhance()}>
 										<input type="hidden" name="id" value={s.id} />
 										<input type="hidden" name="direction" value={dir} />
-										<Button size="icon" variant="ghost" type="submit" disabled={off as boolean} aria-label="Move {s.title} {dir}" class="size-8">{glyph}</Button>
+										<Button size="icon" variant="ghost" type="submit" disabled={off} aria-label="Move {s.title} {dir}" class="size-8"><Icon name={icon} class="size-4" /></Button>
 									</form>
 								{/each}
-								<Button size="icon" variant="ghost" class="size-8" aria-label="Edit {s.title}" onclick={() => (editing = s.id)}>✎</Button>
-								<form method="POST" action="?/delete" use:enhance={toastEnhance({ before: () => (confirm(`Delete “${s.title}”?`) ? null : false) })}>
+								<Button size="icon" variant="ghost" class="size-8" aria-label="Edit {s.title}" href={href({ edit: s.id, new: null })} onclick={openInPlace(() => ((editing = s.id), (adding = false)))}
+									><Icon name="pencil" class="size-4" /></Button
+								>
+								<form method="POST" action={act('delete')} use:enhance={toastEnhance({ before: () => (confirm(`Delete “${s.title}”?`) ? null : false) })}>
 									<input type="hidden" name="id" value={s.id} />
-									<Button size="icon" variant="ghost" type="submit" class="size-8 hover:text-danger" aria-label="Delete {s.title}">×</Button>
+									<Button size="icon" variant="ghost" type="submit" class="size-8 hover:text-danger" aria-label="Delete {s.title}"><Icon name="x" class="size-4" /></Button>
 								</form>
 							</div>
 						{/if}
@@ -117,7 +128,7 @@
 		{#if adding}
 			<form
 				method="POST"
-				action="?/add"
+				action={act('add')}
 				use:enhance={toastEnhance({ reset: true, pending: (on) => (busy = on), onSuccess: () => (adding = false) })}
 				class="grid gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4"
 			>
@@ -131,12 +142,18 @@
 					<textarea id="new-{audience}" name="content" rows="5" class={textarea} required={newType !== 'signature'} placeholder="The clause text shown to the signer"></textarea>
 				</div>
 				<div class="flex justify-end gap-2">
-					<Button variant="ghost" size="sm" onclick={() => (adding = false)}>Cancel</Button>
+					<Button variant="ghost" size="sm" href={href({ new: null })} onclick={openInPlace(() => (adding = false))}>Cancel</Button>
 					<Button size="sm" type="submit" loading={busy}>Add section</Button>
 				</div>
 			</form>
 		{:else}
-			<Button variant="secondary" onclick={() => (adding = true)} class="self-start" data-testid="add-section-{audience}"><Icon name="plus" class="size-4" /> Add section</Button>
+			<Button
+				variant="secondary"
+				href={href({ new: '1', edit: null })}
+				onclick={openInPlace(() => ((adding = true), (editing = null)))}
+				class="self-start"
+				data-testid="add-section-{audience}"><Icon name="plus" class="size-4" /> Add section</Button
+			>
 		{/if}
 	{/if}
 </div>

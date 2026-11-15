@@ -45,8 +45,8 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await page.goto('/app/waivers?tab=tandem');
 	await page.getByTestId('add-section-tandem').click();
 	await page.getByLabel('Heading').fill('Assumption of risk');
-	await page.locator('form[action="?/add"] select[name=type]').selectOption('acknowledgement');
-	await page.locator('form[action="?/add"] textarea[name=content]').fill('I accept that skydiving is risky.');
+	await page.locator('form[action^="?/add"] select[name=type]').selectOption('acknowledgement');
+	await page.locator('form[action^="?/add"] textarea[name=content]').fill('I accept that skydiving is risky.');
 	await page.getByRole('button', { name: 'Add section' }).click();
 	await expect(page.getByTestId('section')).toHaveCount(1);
 	await page.getByTestId('toggle-tandem').click();

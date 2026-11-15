@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { newDialogHref, openInPlace, wantsNewDialog } from './open-dialog.ts';
+import { newDialogHref, openInPlace, viewParamsHref, wantsNewDialog } from './open-dialog.ts';
 
 describe('newDialogHref', () => {
 	test('adds new=1 and keeps the other params', () => {
@@ -9,6 +9,17 @@ describe('newDialogHref', () => {
 	test('drops the listed params and does not repeat new', () => {
 		expect(newDialogHref(new URL('https://x.test/app/tandems?day=2026-11-15&p=abc&created=1'), ['p', 'created'])).toBe('?day=2026-11-15&new=1');
 		expect(newDialogHref(new URL('https://x.test/app/gear?new=1&tab=members'))).toBe('?new=1&tab=members');
+	});
+});
+
+describe('viewParamsHref', () => {
+	test('sets and removes params, keeping the rest', () => {
+		const u = new URL('https://x.test/app/waivers?tab=sport&new=1');
+		expect(viewParamsHref(u, { edit: 'abc', new: null })).toBe('?tab=sport&edit=abc');
+		expect(viewParamsHref(u, { new: null })).toBe('?tab=sport');
+	});
+	test('falls back to the bare path when nothing is left', () => {
+		expect(viewParamsHref(new URL('https://x.test/app/waivers?new=1'), { new: null })).toBe('/app/waivers');
 	});
 });
 
