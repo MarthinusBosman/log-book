@@ -1,4 +1,4 @@
-import { fail } from '@sveltejs/kit';
+import { fail, type RequestEvent } from '@sveltejs/kit';
 import { brand } from '#lib/brand.ts';
 import { publicOrigin } from '#lib/server/config.ts';
 import { getMailer, idempotencyKey } from '#lib/server/email/index.ts';
@@ -15,6 +15,24 @@ const parseRoles = (f: FormData) =>
 
 const COLOUR_RE = /^#[0-9a-f]{6}$/i;
 
+/** Emails a fresh single-use set-password link (valid 1 hour). Resolves false when sending failed. */
+async function sendSetPasswordInvite(
+	event: RequestEvent,
+	o: { dzName: string; inviter: string; member: { userId: string; name: string; email: string }; roleText: string }
+): Promise<boolean> {
+	const token = await createPasswordResetToken(event.locals.db, o.member.userId);
+	const origin = publicOrigin(event.url.origin);
+	return getMailer()
+		.send({
+			to: o.member.email,
+			subject: `You're invited to ${o.dzName} on ${brand.name}`,
+			text: `Hi ${o.member.name},\n\n${o.inviter} added you to ${o.dzName} as: ${o.roleText}.\n\nSet your password to get started (link valid for 1 hour — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`,
+			// One per invite: the invite's single-use password link.
+			idempotencyKey: await idempotencyKey('invite', token)
+		})
+		.then(() => true, () => false);
+}
+
 export const load: PageServerLoad = async (event) => {
 	const ctx = await requirePage(event, 'staff.manage');
 	const members = await listMembers(event.locals.db, ctx.dz.id);
@@ -30,20 +48,13 @@ export const actions: Actions = {
 			const res = await inviteMember(event.locals.db, { dropzoneId: dz.id, email: str(f, 'email'), name: optStr(f, 'name'), roles, by: user.id });
 			const origin = publicOrigin(event.url.origin);
 			const roleText = roles.map((r) => ROLE_LABELS[r]).join(', ');
-			if (res.created) {
-				const token = await createPasswordResetToken(event.locals.db, res.userId);
-				const sent = await getMailer()
-					.send({
-						to: res.email,
-						subject: `You're invited to ${dz.name} on ${brand.name}`,
-						text: `Hi ${res.name},\n\n${user.name} added you to ${dz.name} as: ${roleText}.\n\nSet your password to get started (link valid for 1 hour — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`,
-						// One per invite: the invite's single-use password link.
-						idempotencyKey: await idempotencyKey('invite', token)
-					})
-					.then(() => true, () => false);
+			// New people, and earlier invitees who never set a password (the 1-hour link ran out),
+			// get a fresh set-password link.
+			if (res.created || !res.hasLogin) {
+				const sent = await sendSetPasswordInvite(event, { dzName: dz.name, inviter: user.name, member: res, roleText });
 				return {
 					message: sent
-						? `Invite sent to ${res.email}`
+						? `Invite ${res.created ? 'sent' : 'sent again'} to ${res.email}`
 						: `${res.name} was added, but the invite email couldn't be sent. They can use "Forgot password" on the login page with ${res.email}.`
 				};
 			}
@@ -90,6 +101,18 @@ export const actions: Actions = {
 				await setRoleColour(event.locals.db, dz.id, userId, 'tandem_instructor', colour);
 			}
 			return { message: `Roles updated for ${member.name}` };
+		}),
+
+	resendInvite: (event) =>
+		runAction(event, 'staff.manage', async ({ dz, user }) => {
+			const userId = str(await event.request.formData(), 'userId');
+			const member = (await listMembers(event.locals.db, dz.id)).find((m) => m.userId === userId);
+			if (!member) return fail(404, { message: 'That person is no longer a member.' });
+			if (member.hasLogin) return fail(400, { message: `${member.name} already has a login. They can use "Forgot password" if they're locked out.` });
+			const roleText = member.roles.map((r) => ROLE_LABELS[r.role]).join(', ') || ROLE_LABELS.jumper;
+			const sent = await sendSetPasswordInvite(event, { dzName: dz.name, inviter: user.name, member, roleText });
+			if (!sent) return fail(502, { message: `The invite email couldn't be sent. ${member.name} can use "Forgot password" on the login page with ${member.email}.` });
+			return { message: `Invite sent again to ${member.email}` };
 		}),
 
 	remove: (event) =>

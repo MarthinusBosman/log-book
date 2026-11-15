@@ -82,7 +82,7 @@ async function dzBasics(db: Database, dropzoneId: string) {
 export async function inviteMember(
 	db: Database,
 	input: { dropzoneId: string; email: string; name?: string | null; roles: DropzoneRole[]; by: string; now?: number }
-): Promise<{ userId: string; name: string; email: string; created: boolean; granted: DropzoneRole[] }> {
+): Promise<{ userId: string; name: string; email: string; created: boolean; hasLogin: boolean; granted: DropzoneRole[] }> {
 	const email = normalizeEmail(input.email);
 	const err = validateEmail(email);
 	if (err) throw new DomainError('invalid', err);
@@ -112,7 +112,7 @@ export async function inviteMember(
 			granted.push(role);
 		}
 	}
-	return { userId: user.id, name: user.name, email: user.email, created, granted };
+	return { userId: user.id, name: user.name, email: user.email, created, hasLogin: user.passwordHash != null, granted };
 }
 
 // ── staff overview ──────────────────────────────────────────────────────────

@@ -238,6 +238,13 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(page).getByLabel('Name').fill('Mia Member');
 	await dialog(page).getByRole('button', { name: 'Send invite' }).click();
 	await expect(page.getByText('Mia Member').first()).toBeVisible();
+	// Mia hasn't set a password yet: marked, and her invite link can be sent again.
+	const miaRow = page.locator('main li').filter({ hasText: 'Mia Member' });
+	await expect(miaRow.getByText('Not signed up')).toBeVisible();
+	await expect(page.locator('main li').filter({ hasText: 'Olga Owner' }).getByText('Not signed up')).toHaveCount(0);
+	await expect(page.getByText('1 not signed up yet')).toBeVisible();
+	await miaRow.getByRole('button', { name: 'Resend invite to Mia Member' }).click();
+	await expect(page.getByText(`Invite sent again to ${memberEmail}`)).toBeVisible();
 	// The member search survives a reload (?q=).
 	await page.getByLabel('Search members').fill('mia');
 	await expect(page).toHaveURL(/\/app\/settings\/members\?q=mia$/);

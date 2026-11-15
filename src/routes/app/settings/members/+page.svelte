@@ -47,6 +47,7 @@
 		})
 	);
 	const staffCount = $derived(data.members.filter((m) => m.roles.some((r) => r.role !== 'jumper')).length);
+	const notSignedUp = $derived(data.members.filter((m) => !m.hasLogin).length);
 	const editRoles = $derived(new Set(editing?.roles.map((r) => r.role) ?? []));
 	const tiColour = $derived(editing?.roles.find((r) => r.role === 'tandem_instructor')?.colour ?? '#22c55e');
 	const canPick = (r: DropzoneRole) => r !== 'owner' || data.isOwner;
@@ -97,7 +98,9 @@
 	<Button href={newDialogHref(page.url)} onclick={openInvite}><Icon name="plus" class="size-4" /> Invite</Button>
 </div>
 
-<p class="mt-4 text-sm text-muted">{data.members.length} {data.members.length === 1 ? 'member' : 'members'} · {staffCount} with staff roles</p>
+<p class="mt-4 text-sm text-muted">
+	{data.members.length} {data.members.length === 1 ? 'member' : 'members'} · {staffCount} with staff roles{#if notSignedUp}{` · ${notSignedUp} not signed up yet`}{/if}
+</p>
 
 <div class="mt-3 overflow-hidden rounded-2xl border border-border bg-surface">
 	<ul class="divide-y divide-border">
@@ -110,12 +113,19 @@
 							{m.name}
 							{#if m.userId === data.me}<span class="text-xs text-subtle">(you)</span>{/if}
 							{#if m.status !== 'active'}<Badge tone="warning" class="ml-1 !py-0 !text-[10px]">{m.status}</Badge>{/if}
+							{#if !m.hasLogin}<Badge class="ml-1 !py-0 !text-[10px]">Not signed up</Badge>{/if}
 						</p>
 						<p class="truncate text-xs text-muted">{m.email}{m.licence ? ` · ${m.licence}` : ''}</p>
 					</div>
 				</div>
 				<RoleChips roles={m.roles} class="sm:max-w-[45%] sm:justify-end" />
-				<div class="flex shrink-0 gap-1">
+				<div class="flex shrink-0 flex-wrap gap-1">
+					{#if !m.hasLogin}
+						<form method="POST" action="?/resendInvite" use:enhance={toastEnhance()}>
+							<input type="hidden" name="userId" value={m.userId} />
+							<Button type="submit" size="sm" variant="ghost" aria-label="Resend invite to {m.name}">Resend invite</Button>
+						</form>
+					{/if}
 					<Button size="sm" variant="secondary" onclick={() => (editing = m)} aria-label="Edit roles for {m.name}">Roles</Button>
 					{#if m.userId !== data.me}
 						<Button size="sm" variant="ghost" onclick={() => (removing = m)} aria-label="Remove {m.name}">Remove</Button>

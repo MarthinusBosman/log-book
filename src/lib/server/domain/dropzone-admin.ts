@@ -1,4 +1,4 @@
-import { and, asc, eq, like, or } from 'drizzle-orm';
+import { and, asc, eq, like, or, sql } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import {
 	aircraft,
@@ -97,7 +97,17 @@ export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; ln
 
 // ── staff / members ──
 
-export type StaffMember = { userId: string; name: string; avatar: string | null; email: string; licence: string | null; status: string; roles: { role: DropzoneRole; colour: string | null }[] };
+export type StaffMember = {
+	userId: string;
+	name: string;
+	avatar: string | null;
+	email: string;
+	licence: string | null;
+	status: string;
+	/** False for invited / imported people who haven't set a password yet (they can't sign in). */
+	hasLogin: boolean;
+	roles: { role: DropzoneRole; colour: string | null }[];
+};
 
 /** Members of a DZ with all their roles. */
 export async function listMembers(db: Database, dropzoneId: string): Promise<StaffMember[]> {
@@ -109,6 +119,7 @@ export async function listMembers(db: Database, dropzoneId: string): Promise<Sta
 			email: users.email,
 			licence: users.licence,
 			status: dropzoneMembers.status,
+			hasLogin: sql<number>`${users.passwordHash} is not null`,
 			role: dropzoneMemberRoles.role,
 			colour: dropzoneMemberRoles.colour
 		})
@@ -122,7 +133,7 @@ export async function listMembers(db: Database, dropzoneId: string): Promise<Sta
 		.orderBy(asc(users.name));
 	const by = new Map<string, StaffMember>();
 	for (const r of rows) {
-		const m = by.get(r.userId) ?? { userId: r.userId, name: r.name, avatar: r.avatar, email: r.email, licence: r.licence, status: r.status, roles: [] };
+		const m = by.get(r.userId) ?? { userId: r.userId, name: r.name, avatar: r.avatar, email: r.email, licence: r.licence, status: r.status, hasLogin: !!r.hasLogin, roles: [] };
 		if (r.role) m.roles.push({ role: r.role, colour: r.colour });
 		by.set(r.userId, m);
 	}

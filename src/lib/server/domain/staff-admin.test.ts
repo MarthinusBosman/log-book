@@ -10,6 +10,7 @@ import { createRig } from './gear.ts';
 import { setRatings } from './profile.ts';
 import { signIndemnity } from './indemnity.ts';
 import { checkIn } from './checkins.ts';
+import { listMembers } from './dropzone-admin.ts';
 import {
 	gearAttention,
 	gearRegister,
@@ -65,6 +66,20 @@ describe('inviteMember', () => {
 		expect(created).toMatchObject({ name: 'New Person', passwordHash: null });
 		const m = await db.select().from(dropzoneMembers).where(eq(dropzoneMembers.userId, r3.userId));
 		expect(m[0].status).toBe('active');
+	});
+
+	test('reports whether the person can sign in yet (re-inviting a password-less invitee)', async () => {
+		const { dz, owner } = await makeDropzone(db);
+		await makeUser(db, { email: 'has.login@example.com', passwordHash: 'x' });
+		const first = await inviteMember(db, { dropzoneId: dz.id, email: 'later@example.com', roles: ['staff'], by: owner.id });
+		expect(first).toMatchObject({ created: true, hasLogin: false });
+		const again = await inviteMember(db, { dropzoneId: dz.id, email: 'later@example.com', roles: ['staff'], by: owner.id });
+		expect(again).toMatchObject({ created: false, hasLogin: false, granted: [] });
+		const withLogin = await inviteMember(db, { dropzoneId: dz.id, email: 'has.login@example.com', roles: ['pilot'], by: owner.id });
+		expect(withLogin).toMatchObject({ created: false, hasLogin: true });
+		const members = await listMembers(db, dz.id);
+		expect(members.find((x) => x.email === 'later@example.com')?.hasLogin).toBe(false);
+		expect(members.find((x) => x.email === 'has.login@example.com')?.hasLogin).toBe(true);
 	});
 
 	test('validates email and roles', async () => {
