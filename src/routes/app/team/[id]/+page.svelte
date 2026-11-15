@@ -212,9 +212,12 @@
 			<Card>
 				<p class="text-sm text-muted">{t.dz ? 'This team is managed by the dropzone.' : 'Only the team owner can change members and settings.'}</p>
 				{#if !t.dz}
-					<form method="POST" action="?/leave" class="mt-3" use:enhance={(e) => { if (!confirm(`Leave ${t.name}?`)) e.cancel(); }}>
-						<Button type="submit" variant="secondary" size="sm"><JIcon name="logOut" class="size-4" /> Leave team</Button>
-					</form>
+					<ConfirmAction tone="neutral" class="mt-3" lead="Not jumping with them any more?" question="Leave {t.name}? Only the team owner can add you back." testid="leave-team">
+						{#snippet trigger()}<JIcon name="logOut" class="size-4" /> Leave team{/snippet}
+						<form method="POST" action="?/leave" use:enhance>
+							<Button type="submit" variant="danger" size="sm">Leave team</Button>
+						</form>
+					</ConfirmAction>
 				{/if}
 				<FormAlert class="mt-3" message={f?.action === 'leave' ? f.message : null} />
 			</Card>

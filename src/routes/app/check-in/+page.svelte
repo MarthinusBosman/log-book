@@ -2,7 +2,7 @@
 	import MembershipWarning from '#lib/components/memberships/MembershipWarning.svelte';
 	import { enhance } from '$app/forms';
 	import { formatMoney } from '#lib/domain/constants.ts';
-	import { Badge, Button, Card, EmptyState, Icon, Input, Select, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, ConfirmAction, EmptyState, Icon, Input, Select, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import Toggle from '#lib/components/jumper/Toggle.svelte';
@@ -129,21 +129,13 @@
 						</div>
 					</form>
 				{/if}
-				<div class="mt-4 flex gap-2">
-					{#if !editing}<Button size="sm" variant="secondary" onclick={() => (editing = true)}><JIcon name="edit" class="size-4" /> Edit</Button>{/if}
-					<form
-						method="POST"
-						action="?/checkout"
-						use:enhance={(e) => {
-							if (!confirm(`Check out of ${c.dropzone.name}?`)) return e.cancel();
-							return submit('checkout')();
-						}}
-					>
-						<Button type="submit" size="sm" variant="ghost" loading={busy === 'checkout'} data-testid="checkout">
-							<JIcon name="logOut" class="size-4" /> Check out
-						</Button>
+				{#if !editing}<div class="mt-4"><Button size="sm" variant="secondary" onclick={() => (editing = true)}><JIcon name="edit" class="size-4" /> Edit</Button></div>{/if}
+				<ConfirmAction tone="neutral" class="mt-4 border-t border-border pt-3" lead="Done for the day?" question="Check out of {c.dropzone.name}? You can check in again any time." testid="checkout">
+					{#snippet trigger()}<JIcon name="logOut" class="size-4" /> Check out{/snippet}
+					<form method="POST" action="?/checkout" use:enhance={submit('checkout')}>
+						<Button type="submit" size="sm" loading={busy === 'checkout'}>Check out</Button>
 					</form>
-				</div>
+				</ConfirmAction>
 			</div>
 
 			{#if data.membershipWarning}<MembershipWarning label={data.membershipWarning} />{/if}

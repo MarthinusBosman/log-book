@@ -454,6 +454,109 @@ test('join form with an empty wallet: "not enough" + Top up link, but not at a D
 	await expect(load.getByText('You’re on this load')).toBeVisible();
 });
 
+test('paying from the wallet, checking out and leaving a team ask first — also before hydration / without JS', async ({ page, browser }) => {
+	await signup(page, 'Prudent Payer');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Prudent DZ ${test.info().project.name} ${Date.now()}`);
+	await page.locator('select[name=country]').selectOption('ZA');
+	await page.locator('select[name=currency]').selectOption('ZAR');
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/pricelist');
+	await page.waitForLoadState('networkidle');
+	await page.locator('input[name=sport_slot]').first().fill('350');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: 'Price list updated' }).first()).toBeVisible();
+	await page.goto('/app/settings/features');
+	await page.waitForLoadState('networkidle');
+	await page.locator('label:has(input[name=walletEnabled])').click();
+	await page.locator('label:has(input[name=walletAllowNegative])').click();
+	await page.getByRole('button', { name: 'Save features' }).click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: /saved/i }).first()).toBeVisible();
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-PRU');
+	await dialog.getByLabel('Slots (pax)').fill('6');
+	await dialog.getByLabel('Weight limit (kg)').fill('600');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.locator('[data-testid=load-card][data-load-number="1"]')).toBeVisible();
+	await page.goto('/app/check-in');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toBeVisible();
+	const load = page.locator('[data-testid=load-card][data-load="1"]');
+	await page.goto(`/app/check-in${(await load.getByTestId('join-solo').getAttribute('href'))!}`);
+	await page.waitForLoadState('networkidle');
+	await load.getByRole('button', { name: 'Join this load' }).click();
+	await expect(load.getByText('You’re on this load')).toBeVisible();
+
+	// Wallet (JS): "Pay with wallet" only asks; Cancel keeps the jump unpaid
+	await page.goto('/app/wallet');
+	await page.locator('main a[href^="/app/wallet/"]').first().click();
+	await expect(page).toHaveURL(/\/app\/wallet\/[^/]+$/);
+	const walletUrl = new URL(page.url()).pathname;
+	await page.waitForLoadState('networkidle');
+	const pay = page.getByTestId('pay-wallet');
+	await expect(pay.getByTestId('pay-wallet-confirm')).toBeHidden();
+	await pay.locator('summary').click();
+	await expect(pay).toContainText(/Pay R\s?350,00 for 1 jump from your wallet\?/);
+	await pay.getByRole('link', { name: 'Cancel' }).click();
+	await expect(pay.getByTestId('pay-wallet-confirm')).toBeHidden();
+	await expect(page).toHaveURL(new RegExp(`${walletUrl}$`));
+
+	// Without JS: one tap opens the question, the confirm button pays
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto(walletUrl);
+	const plainPay = plain.getByTestId('pay-wallet');
+	await plainPay.locator('summary').click();
+	await expect(plainPay.getByTestId('pay-wallet-confirm')).toHaveText(/Pay R\s?350,00/);
+	await plainPay.getByTestId('pay-wallet-confirm').click();
+	await expect(plain.getByRole('tab', { name: 'Paid 1' })).toBeVisible();
+	await expect(plain.getByRole('tab', { name: 'Unpaid 0' })).toBeVisible();
+
+	// Check out: no-JS Cancel keeps the check-in; JS confirm checks out
+	await plain.goto('/app/check-in');
+	const plainOut = plain.getByTestId('checkout');
+	await plainOut.locator('summary').click();
+	await expect(plainOut).toContainText('Check out of Prudent DZ');
+	await plainOut.getByRole('link', { name: 'Cancel' }).click();
+	await expect(plain.getByTestId('checked-in')).toBeVisible();
+	await page.goto('/app/check-in');
+	await page.waitForLoadState('networkidle');
+	const out = page.getByTestId('checkout');
+	await out.locator('summary').click();
+	await out.getByRole('button', { name: 'Check out' }).click();
+	await expect(page.getByTestId('checked-in')).toHaveCount(0);
+
+	// Leave team: a teammate (not the owner) confirms without JS
+	await page.goto('/app/team');
+	await page.getByTestId('new-team').click();
+	await page.getByLabel('Team name').fill('Prudent 2-way');
+	await page.getByRole('button', { name: 'Create team' }).click();
+	await expect(page).toHaveURL(/\/app\/team\/[0-9a-f-]+$/);
+	const teamUrl = new URL(page.url()).pathname;
+	const mate = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin });
+	const matePage = await mate.newPage();
+	const mateName = `Mate ${Date.now().toString(36)}`;
+	await signup(matePage, mateName);
+	await page.goto(`${teamUrl}?q=${encodeURIComponent(mateName)}`);
+	await page.getByTestId('member-results').getByRole('button', { name: 'Add to team' }).click();
+	await expect(page.getByTestId('team-members')).toContainText(mateName);
+	await matePage.goto(teamUrl);
+	const leave = matePage.getByTestId('leave-team');
+	await expect(leave.getByRole('button', { name: 'Leave team' })).toBeHidden();
+	await leave.locator('summary').click();
+	await expect(leave).toContainText('Leave Prudent 2-way? Only the team owner can add you back.');
+	await leave.getByRole('button', { name: 'Leave team' }).click();
+	await expect(matePage).toHaveURL(/\/app\/team$/);
+	await expect(matePage.getByText('Prudent 2-way')).toHaveCount(0);
+	await mate.close();
+	await noJs.close();
+});
+
 test('two dropzones: checking in makes that one active; with no dz cookie the check-in decides', async ({ page, context }) => {
 	const project = test.info().project.name;
 	await signup(page, 'Tess Twodz');

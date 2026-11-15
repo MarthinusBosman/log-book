@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { Badge, Button, Card, EmptyState, Icon, Tabs, cn, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, ConfirmAction, EmptyState, Icon, Tabs, cn, toast } from '#lib/ui/index.ts';
 	import { formatMoney, paymentMethodLabel } from '#lib/domain/constants.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
@@ -144,11 +144,10 @@
 							{#snippet icon()}<Icon name="check" class="size-6" />{/snippet}
 						</EmptyState>
 					{:else}
-						<form method="POST" action="?/pay" use:enhance={(e) => { if (!confirm(`Are you sure you want to pay ${money(unpaidTotal)} from your wallet?`)) return e.cancel(); return submit('pay')(); }}>
+						<div>
 							<ul class="space-y-2.5">
 								{#each data.unpaid as s (s.id)}
 									<li class="rounded-2xl border border-border bg-surface p-4">
-										<input type="hidden" name="slotIds" value={s.id} />
 										<div class="flex items-start justify-between gap-3">
 											<div>
 												<p class="font-medium">Load {s.loadNumber} · {s.title}</p>
@@ -165,15 +164,23 @@
 								{/each}
 							</ul>
 							<FormAlert class="mt-3" message={f?.action === 'pay' ? f.message : null} />
-							<div class="mt-4 flex flex-col items-stretch gap-2 rounded-2xl bg-surface-2/60 p-4 sm:flex-row sm:items-center sm:justify-between">
-								<p class="text-sm text-muted">Total due <span class="ml-1 text-lg font-semibold text-fg tabular-nums">{money(unpaidTotal)}</span></p>
-								{#if data.dz.walletEnabled}
-									<Button type="submit" loading={busy === 'pay'} data-testid="pay-wallet"><Icon name="wallet" class="size-4" /> Pay with wallet</Button>
-								{:else}
+							{#snippet total()}<p class="text-sm text-muted">Total due <span class="ml-1 text-lg font-semibold text-fg tabular-nums">{money(unpaidTotal)}</span></p>{/snippet}
+							{#if data.dz.walletEnabled}
+								{@const jumps = data.unpaid.length === 1 ? '1 jump' : `${data.unpaid.length} jumps`}
+								<ConfirmAction tone="primary" class="mt-4 rounded-2xl bg-surface-2/60 p-4" lead={total} triggerClass="h-10 w-full rounded-xl px-4 sm:w-auto" question="Pay {money(unpaidTotal)} for {jumps} from your wallet?" testid="pay-wallet">
+									{#snippet trigger()}<Icon name="wallet" class="size-4" /> Pay with wallet{/snippet}
+									<form method="POST" action="?/pay" use:enhance={submit('pay')}>
+										{#each data.unpaid as s (s.id)}<input type="hidden" name="slotIds" value={s.id} />{/each}
+										<Button type="submit" size="sm" loading={busy === 'pay'} data-testid="pay-wallet-confirm">Pay {money(unpaidTotal)}</Button>
+									</form>
+								</ConfirmAction>
+							{:else}
+								<div class="mt-4 flex flex-col items-stretch gap-2 rounded-2xl bg-surface-2/60 p-4 sm:flex-row sm:items-center sm:justify-between">
+									{@render total()}
 									<p class="text-sm font-medium">Please pay at manifest</p>
-								{/if}
-							</div>
-						</form>
+								</div>
+							{/if}
+						</div>
 					{/if}
 				{:else if active === 'paid'}
 					{#if data.paid.length === 0}
