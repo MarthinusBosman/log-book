@@ -4,6 +4,7 @@
 	import { brand } from '#lib/brand.ts';
 	import Logo from '#lib/components/Logo.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import SkipLink from '#lib/components/SkipLink.svelte';
 	import DropzoneSwitcher from '#lib/components/DropzoneSwitcher.svelte';
 	import NotificationBell from '#lib/components/jumper/NotificationBell.svelte';
 	import { jumperNav, mobileTabs, visibleStaffNav, type NavItem } from '#lib/nav.ts';
@@ -128,6 +129,7 @@
 	</div>
 {/snippet}
 
+<SkipLink />
 <div class="min-h-dvh lg:pl-64">
 	<!-- Desktop sidebar -->
 	<aside aria-label="App menu" class="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-surface/70 backdrop-blur-xl lg:block">
@@ -162,7 +164,7 @@
 		{@render sidebar()}
 	</Dialog>
 
-	<main class="mx-auto w-full max-w-7xl px-4 pt-6 pb-28 sm:px-6 lg:px-10 lg:pt-10 lg:pb-12">
+	<main id="main" tabindex="-1" class="mx-auto w-full max-w-7xl scroll-mt-14 px-4 pt-6 pb-28 outline-none sm:px-6 lg:scroll-mt-0 lg:px-10 lg:pt-10 lg:pb-12">
 		{@render children()}
 	</main>
 

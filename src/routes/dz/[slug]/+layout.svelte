@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
+	import SkipLink from '#lib/components/SkipLink.svelte';
 	import { brand } from '#lib/brand.ts';
 	import type { LayoutProps } from './$types';
 
@@ -16,6 +17,7 @@
 
 <svelte:head>{@html data.branding.style}</svelte:head>
 
+<SkipLink />
 <div class="flex min-h-dvh flex-col">
 	<header class="sticky top-0 z-30 border-b border-border/60 bg-bg/75 backdrop-blur-xl">
 		<div class="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 sm:px-6">
@@ -32,7 +34,7 @@
 			</div>
 		</div>
 	</header>
-	<main class="flex-1">
+	<main id="main" tabindex="-1" class="flex-1 scroll-mt-14 outline-none">
 		{@render children()}
 	</main>
 	<footer class="border-t border-border/60 py-6 text-center text-xs text-subtle">

@@ -98,3 +98,31 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	expect(await headingSkips(page)).toEqual([]);
 	await expect(page.getByRole('link', { name: 'Back to dashboard' })).toBeVisible();
 });
+
+test('keyboard: "Skip to content" is the first Tab stop and jumps past the navigation', async ({ page, browser }) => {
+	await signup(page, 'Kim Keyboard');
+	await page.goto('/app/logbook');
+	await page.waitForLoadState('networkidle');
+	await page.keyboard.press('Tab');
+	const skip = page.getByRole('link', { name: 'Skip to content' });
+	await expect(skip).toBeFocused();
+	await expect(skip).toBeInViewport();
+	await page.keyboard.press('Enter');
+	await expect(page.locator('main#main')).toBeFocused();
+	// Hydrated: focus moves without adding #main to the URL (pages keep their view state there)
+	expect(new URL(page.url()).hash).toBe('');
+	await page.keyboard.press('Tab');
+	expect(await page.evaluate(() => !!document.activeElement?.closest('main'))).toBe(true);
+
+	// Without JS (marketing pages ship none) the plain #main link still works
+	const ctx = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin });
+	const plain = await ctx.newPage();
+	await plain.goto('/');
+	await plain.keyboard.press('Tab');
+	await expect(plain.getByRole('link', { name: 'Skip to content' })).toBeFocused();
+	await plain.keyboard.press('Enter');
+	await expect(plain).toHaveURL(/#main$/);
+	await plain.keyboard.press('Tab');
+	expect(await plain.evaluate(() => !!document.activeElement?.closest('main'))).toBe(true);
+	await ctx.close();
+});

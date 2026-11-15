@@ -2,6 +2,7 @@
 	import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
 	import SiteFooter from '#lib/components/marketing/SiteFooter.svelte';
 	import SiteHeader from '#lib/components/marketing/SiteHeader.svelte';
+	import SkipLink from '#lib/components/SkipLink.svelte';
 	import { THEME_COLORS, THEME_COOKIE } from '#lib/theme.ts';
 	import type { LayoutProps } from './$types';
 
@@ -17,14 +18,10 @@
 	{@html themeScript}
 </svelte:head>
 
-<a
-	href="#main"
-	class="sr-only z-[60] rounded-lg bg-primary px-4 py-2 text-primary-fg focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
-	>Skip to content</a
->
+<SkipLink />
 <div class="relative flex min-h-dvh flex-col overflow-x-clip">
 	<SiteHeader />
-	<main id="main" class="flex-1">
+	<main id="main" tabindex="-1" class="flex-1 scroll-mt-16 outline-none">
 		{@render children()}
 	</main>
 	<SiteFooter />
