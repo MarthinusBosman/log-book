@@ -20,17 +20,25 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 
+	// The dashboard's empty "Next load" card opens the New load dialog directly
+	await page.getByRole('link', { name: 'Create a load' }).click();
+	await expect(page).toHaveURL(/\/app\/manifest\?new=1$/);
+	await expect(page.getByRole('dialog')).toContainText('Create new load/s');
+
 	// Board starts empty, create a load from the dialog
 	await page.goto('/app/manifest');
 	await expect(page.getByTestId('manifest-heading')).toContainText('Today');
 	await page.getByTestId('new-load').click();
 	const dialog = page.getByRole('dialog');
+	// the URL follows the dialog (?new=1), so a reload or a shared link reopens it
+	await expect(page).toHaveURL(/\/app\/manifest\?new=1$/);
 	await dialog.getByLabel('Airplane name / number').fill('ZS-E2E');
 	await dialog.getByLabel('Slots (pax)').fill('8');
 	await dialog.getByLabel('Weight limit (kg)').fill('400');
 	await dialog.getByRole('button', { name: 'Create load' }).click();
 	const card = page.locator('[data-testid=load-card][data-load-number="1"]');
 	await expect(card).toBeVisible();
+	await expect(page).toHaveURL(/\/app\/manifest$/);
 
 	// Load detail: add a walk-in jumper from the Custom tab
 	await card.getByRole('link', { name: 'Add slots' }).click();
@@ -162,14 +170,26 @@ test('manifest without JS: actions on another day stay on that day', async ({ pa
 	const ctx = await browser.newContext({ javaScriptEnabled: false, storageState: await page.context().storageState(), viewport: page.viewportSize() ?? undefined });
 	const nojs = await ctx.newPage();
 	await nojs.goto(`/app/manifest?day=${day}`);
-	// create a load for that day with a native POST: the board re-renders the same day
-	const created = await nojs.request.post(`/app/manifest?/createLoad&day=${day}`, {
-		form: { day, count: '1', aircraftName: 'ZS-DAY', capacity: '8', weightLimitKg: '400' },
-		headers: { Accept: 'text/html', Origin: new URL(nojs.url()).origin }
-	});
-	expect(created.status()).toBeLessThan(400);
-	await nojs.goto(`/app/manifest?day=${day}`);
+	// "Create load" is a ?new=1 link: the server renders the dialog open, Cancel is a link back
+	await nojs.getByRole('link', { name: 'Create load' }).click();
+	await expect(nojs).toHaveURL(new RegExp(`\\?day=${day}&new=1$`));
+	const createDialog = nojs.locator('dialog[open]');
+	await expect(createDialog).toContainText('Create new load/s');
+	await expect(createDialog.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', `?day=${day}`);
+	await createDialog.getByRole('link', { name: 'Cancel' }).click();
+	await expect(nojs).toHaveURL(new RegExp(`\\?day=${day}$`));
+	await expect(nojs.locator('dialog[open]')).toHaveCount(0);
+	// create a load for that day with a native POST: the board re-renders the same day, dialog closed
+	await nojs.getByRole('link', { name: 'Create load' }).click();
+	await createDialog.getByLabel('Airplane name / number').fill('ZS-DAY');
+	await createDialog.getByLabel('Slots (pax)').fill('8');
+	await createDialog.getByLabel('Weight limit (kg)').fill('400');
+	await expect(createDialog.locator('form[method=POST]')).toHaveAttribute('action', `?/createLoad&day=${day}`);
+	await createDialog.getByRole('button', { name: 'Create load' }).click();
 	const card = nojs.getByTestId('load-card');
+	await expect(card).toHaveCount(1);
+	await expect(nojs.locator('dialog[open]')).toHaveCount(0);
+	await nojs.goto(`/app/manifest?day=${day}`);
 	await expect(card).toHaveCount(1);
 	await expect(card.locator(`form[action="?/cancel&day=${day}"]`)).toHaveCount(1);
 

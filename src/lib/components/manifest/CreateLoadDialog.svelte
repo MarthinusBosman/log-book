@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { Button, Dialog, Input, Select } from '#lib/ui/index.ts';
 	import { page } from '$app/state';
+	import { openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
 	import { act } from './forms.ts';
 	import { formAction } from './manifest.ts';
 
@@ -110,7 +111,8 @@
 		</label>
 	</form>
 	{#snippet footer()}
-		<Button variant="ghost" onclick={() => (open = false)}>Cancel</Button>
+		<!-- a link so Cancel also closes a dialog opened by ?new=1 before hydration / without JS -->
+		<Button variant="ghost" href={viewParamsHref(page.url, { new: null })} onclick={openInPlace(() => (open = false))}>Cancel</Button>
 		<Button type="submit" form="create-load-form" loading={busy}>Create load</Button>
 	{/snippet}
 </Dialog>

@@ -91,7 +91,7 @@
 			<div class="flex flex-col items-center gap-3 px-5 py-10 text-center">
 				<span class="grid size-12 place-items-center rounded-2xl bg-surface-2 text-muted"><MIcon name="plane" class="size-6" /></span>
 				<p class="text-sm text-muted">{today.loadsPlanned ? 'All of today’s loads have flown.' : 'No loads manifested today.'}</p>
-				<Button href="/app/manifest" size="sm"><Icon name="plus" class="size-4" /> Create a load</Button>
+				<Button href="/app/manifest?new=1" size="sm"><Icon name="plus" class="size-4" /> Create a load</Button>
 			</div>
 		{/if}
 	</div>

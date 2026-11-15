@@ -10,12 +10,18 @@
 	import { clock, poll } from '#lib/components/manifest/live.svelte.ts';
 	import { ACTIVE_STATUSES, prettyDay, shiftDay } from '#lib/components/manifest/manifest.ts';
 	import type { CompleteSummary, LoadVM, SlotVM } from '#lib/components/manifest/types.ts';
+	import { page } from '$app/state';
+	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import type { PageProps } from './$types';
 
 	const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 	let { data, form }: PageProps = $props();
 
-	let createOpen = $state(false);
+	// "New load" is a link to ?new=1 (works before hydration / without JS); the URL follows the dialog.
+	let createOpen = $state(wantsNewDialog(page.url.searchParams));
+	syncViewToUrl(() => ({ new: createOpen ? '1' : null }));
+	const newLoad = openInPlace(() => (createOpen = true));
 	let summary = $state<CompleteSummary | null>(null);
 	let drag = $state<{ slot: SlotVM; from: string } | null>(null);
 
@@ -91,7 +97,7 @@
 			<Icon name="display" class="size-4" /> <span class="sr-only sm:not-sr-only">Display</span>
 		</Button>
 		{#if data.canManifest}
-			<Button onclick={() => (createOpen = true)} data-testid="new-load"><Icon name="plus" class="size-4" /> New load</Button>
+			<Button href={newDialogHref(page.url)} onclick={newLoad} data-testid="new-load"><Icon name="plus" class="size-4" /> New load</Button>
 		{/if}
 	</div>
 </div>
@@ -117,7 +123,7 @@
 	<EmptyState class="mt-8" title="There are no loads on this day" description="Create the first load to start manifesting. Jumpers on their phones see open loads straight away.">
 		{#snippet icon()}<Icon name="plane" class="size-6" />{/snippet}
 		{#snippet action()}
-			{#if data.canManifest}<Button onclick={() => (createOpen = true)}><Icon name="plus" class="size-4" /> Create load</Button>{/if}
+			{#if data.canManifest}<Button href={newDialogHref(page.url)} onclick={newLoad}><Icon name="plus" class="size-4" /> Create load</Button>{/if}
 		{/snippet}
 	</EmptyState>
 {:else}

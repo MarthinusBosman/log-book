@@ -62,6 +62,11 @@ describe('manifest time helpers', () => {
 		expect(pageWithoutAction({ pathname: '/app/manifest', search: '?/cancel&day=2026-11-20' })).toBe('/app/manifest?day=2026-11-20');
 		expect(pageWithoutAction({ pathname: '/app/manifest', search: '?/cancel' })).toBe('/app/manifest');
 	});
+	test('formAction drops the ?new=1 that opened the New load dialog', () => {
+		expect(formAction({ search: '?day=2026-11-20&new=1' }, 'createLoad')).toBe('?/createLoad&day=2026-11-20');
+		expect(formAction({ search: '?new=1' }, 'createLoad')).toBe('?/createLoad');
+		expect(pageWithoutAction({ pathname: '/app/manifest', search: '?/createLoad&new=1' })).toBe('/app/manifest');
+	});
 
 	test('shiftDay crosses month ends', () => {
 		expect(shiftDay('2026-11-30', 1)).toBe('2026-12-01');
