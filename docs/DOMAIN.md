@@ -170,6 +170,9 @@ Online payments through the dropzone's own provider account (docs/PAYMENTS.md): 
 `unpaidSlots` / `paidSlots(db, userId, dzId)` (Jumper Account tabs), `outstandingByJumper(db, dzId, day)` (Jump Payments › Sporties),
 `markSlotsPaid(db, {dropzoneId, slotIds, provider: cash|card|eft|manual|stripe|payfast, by})` releases wallet holds and records a `payments` row,
 `sendPaymentReminder` (`payment_notice`), `staffEarnings(db, dzId, day)` (Staff tab, includes pilot pay).
+Wallet top-up requests: `requestTopUp`, `listTopUpRequests`, `cancelTopUpRequest` (jumper), `listPendingTopUpsForDropzone` (staff dashboard "Top-ups to collect"),
+`settleTopUpRequest(db, {paymentId, dropzoneId, userId, by, outcome: paid|declined, provider: cash|card|eft|manual})` (jumper page; pay-at-manifest requests only),
+`completeTopUpRequest` (credits the wallet, idempotent).
 
 ### reports.ts
 `jumpReport(db, dzId, from, to, {statuses?=['completed']})` → `{totals: {loads, slots, extraAltitude, maxAltitude, beachLanding, tandems, handcam, outsideVideo, extremeRide, sporties, aff, staticLine, gearRental, coachJumps}, perDay, perAircraft, perStaff, revenue}`.

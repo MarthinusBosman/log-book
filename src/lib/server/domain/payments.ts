@@ -209,6 +209,41 @@ export async function cancelTopUpRequest(db: Database, paymentId: string, userId
 	await db.update(payments).set({ status: 'cancelled' }).where(eq(payments.id, paymentId));
 }
 
+/** Pay-at-manifest top-up methods staff can record when the jumper pays at the desk. */
+export const DESK_TOPUP_PROVIDERS = ['cash', 'card', 'eft', 'manual'] as const satisfies readonly PaymentProvider[];
+
+/**
+ * Staff settle a jumper's pay-at-manifest request at the desk: `paid` credits the wallet with the
+ * method used, `declined` closes it without money moving. Only `manual` requests at this dropzone
+ * for this jumper (online ones confirm themselves from the provider).
+ */
+export async function settleTopUpRequest(
+	db: Database,
+	input: {
+		paymentId: string;
+		dropzoneId: string;
+		userId: string;
+		by: string;
+		outcome: 'paid' | 'declined';
+		provider?: (typeof DESK_TOPUP_PROVIDERS)[number];
+		now?: number;
+	}
+): Promise<Payment> {
+	const p = (await db.select().from(payments).where(eq(payments.id, input.paymentId)).limit(1))[0];
+	if (!p || p.dropzoneId !== input.dropzoneId || p.userId !== input.userId || p.purpose !== 'wallet_topup') {
+		throw new DomainError('not_found', 'Top-up request not found');
+	}
+	if (p.status !== 'pending') throw new DomainError('invalid_transition', 'This top-up request is no longer waiting');
+	// Online checkouts confirm themselves from the provider (completing here would bypass it).
+	if (p.provider !== 'manual') throw new DomainError('not_found', 'Top-up request not found');
+	if (input.outcome === 'declined') {
+		return (await db.update(payments).set({ status: 'cancelled', completedAt: new Date(input.now ?? Date.now()) }).where(eq(payments.id, p.id)).returning())[0];
+	}
+	const provider = input.provider ?? 'cash';
+	if (!DESK_TOPUP_PROVIDERS.includes(provider)) throw new DomainError('invalid', 'Pick how the money was paid');
+	return completeTopUpRequest(db, { paymentId: p.id, by: input.by, provider, now: input.now });
+}
+
 /**
  * Complete a pending top-up: credits the wallet (idempotent on provider + payment id) and marks the
  * payment succeeded. `by` is the staff member (manual) or null (webhook).

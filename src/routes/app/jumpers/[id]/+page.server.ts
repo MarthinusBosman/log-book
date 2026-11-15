@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { jumperDetail } from '#lib/server/domain/staff-admin.ts';
 import { adjust, refund, topUp } from '#lib/server/domain/wallet.ts';
+import { DESK_TOPUP_PROVIDERS, listTopUpRequests, settleTopUpRequest } from '#lib/server/domain/payments.ts';
 import { isDomainError } from '#lib/server/domain/errors.ts';
 import { parseMoney } from '#lib/components/staffadmin/money.ts';
 import { formatMoney } from '#lib/domain/constants.ts';
@@ -9,19 +10,25 @@ import { pasaCheckVM } from '#lib/server/memberships/web.ts';
 import { reviewMembership } from '#lib/server/memberships/service.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-const TOPUP_PROVIDERS = ['cash', 'card', 'eft', 'manual'] as const;
+const TOPUP_PROVIDERS = DESK_TOPUP_PROVIDERS;
 
 export const load: PageServerLoad = async (event) => {
 	const ctx = await requirePage(event, 'checkin.manage', 'payments.manage', 'staff.manage', 'manifest');
 	try {
-		const detail = await jumperDetail(event.locals.db, ctx.dz.id, event.params.id, ctx.today);
+		const canPay = ctx.can('payments.manage');
+		const [detail, requests] = await Promise.all([
+			jumperDetail(event.locals.db, ctx.dz.id, event.params.id, ctx.today),
+			canPay && ctx.dz.walletEnabled ? listTopUpRequests(event.locals.db, event.params.id, ctx.dz.id, { pendingOnly: true }) : Promise.resolve([])
+		]);
 		return {
 			...detail,
+			/** The jumper's pay-at-manifest top-up requests still waiting for the desk (online ones confirm themselves). */
+			topUpRequests: requests.filter((r) => r.provider === 'manual').map((r) => ({ id: r.id, amountMinor: r.amountMinor, createdAt: r.createdAt.getTime() })),
 			currency: ctx.dz.currency,
 			walletEnabled: ctx.dz.walletEnabled,
 			allowNegative: ctx.dz.walletAllowNegative,
 			waiverRequired: ctx.dz.indemnitySportActive,
-			canPay: ctx.can('payments.manage'),
+			canPay,
 			isSelf: ctx.user.id === event.params.id,
 			pasa: await pasaCheckVM(event.locals.db, event.params.id),
 			pasaToday: ctx.today,
@@ -41,6 +48,22 @@ export const actions: Actions = {
 			await jumperDetail(event.locals.db, dz.id, event.params.id, '1970-01-01');
 			const status = await reviewMembership(event.locals.db, { reviewerId: user.id, userId: event.params.id, approve, dropzoneName: dz.name });
 			return { message: status === 'rejected' ? 'PASA link declined' : 'PASA membership confirmed' };
+		}),
+	topUpRequest: (event) =>
+		runAction(event, 'payments.manage', async ({ dz, user }) => {
+			const f = await event.request.formData();
+			const outcome = str(f, 'outcome') === 'decline' ? 'declined' : 'paid';
+			const provider = str(f, 'provider') as (typeof DESK_TOPUP_PROVIDERS)[number];
+			if (outcome === 'paid' && !DESK_TOPUP_PROVIDERS.includes(provider)) return fail(400, { message: 'Pick how the money was paid.' });
+			const p = await settleTopUpRequest(event.locals.db, {
+				paymentId: str(f, 'id'),
+				dropzoneId: dz.id,
+				userId: event.params.id,
+				by: user.id,
+				outcome,
+				provider: outcome === 'paid' ? provider : undefined
+			});
+			return { message: outcome === 'paid' ? `${formatMoney(p.amountMinor, p.currency)} added to the wallet` : 'Top-up request declined' };
 		}),
 	wallet: (event) =>
 		runAction(event, 'payments.manage', async ({ dz, user }) => {

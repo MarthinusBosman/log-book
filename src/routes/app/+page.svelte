@@ -5,7 +5,7 @@
 	import JumperDashboard from '#lib/components/jumper/JumperDashboard.svelte';
 	import SetupChecklist from '#lib/components/staffadmin/SetupChecklist.svelte';
 	import { openToday } from '#lib/components/jumper/hours.ts';
-	import { ROLE_LABELS } from '#lib/domain/constants.ts';
+	import { ROLE_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -76,6 +76,27 @@
 
 {#if data.staffToday}
 	<StaffToday class="mt-8" today={data.staffToday} timezone={data.staffTz} serverNow={data.serverNow} />
+{/if}
+
+{#if data.topUpsToCollect.length}
+	<section class="mt-6 rounded-2xl border border-border bg-surface" data-testid="topups-to-collect" aria-labelledby="topups-title">
+		<header class="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-5">
+			<h2 id="topups-title" class="flex items-center gap-2 font-semibold tracking-tight">
+				<Icon name="wallet" class="size-4 text-muted" /> Top-ups to collect
+			</h2>
+			<Badge tone="warning">{data.topUpsToCollect.length}</Badge>
+		</header>
+		<ul class="divide-y divide-border">
+			{#each data.topUpsToCollect as t (t.id)}
+				<li>
+					<a href="/app/jumpers/{t.userId}" class="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-surface-2/60 sm:px-5">
+						<span class="min-w-0 truncate font-medium">{t.name}</span>
+						<span class="shrink-0 font-medium tabular-nums">{formatMoney(t.amountMinor, t.currency)}</span>
+					</a>
+				</li>
+			{/each}
+		</ul>
+	</section>
 {/if}
 
 {#if data.gear}

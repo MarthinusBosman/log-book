@@ -6,7 +6,7 @@ import { hashPassword, verifyPassword } from '../auth/password.ts';
 import { isDomainError } from './errors.ts';
 import { addJump, countJumps, listJumps, logbookBreakdown } from './logbook.ts';
 import { addSlot, createLoads, startCall, upcomingSlotsForUser, completeLoad } from './loads.ts';
-import { cancelTopUpRequest, completeTopUpRequest, listPendingTopUpsForDropzone, listTopUpRequests, requestTopUp } from './payments.ts';
+import { cancelTopUpRequest, completeTopUpRequest, listPendingTopUpsForDropzone, listTopUpRequests, requestTopUp, settleTopUpRequest } from './payments.ts';
 import { getAccount, listLedger } from './wallet.ts';
 import { addRating, changePassword, listRatings, removeRating, setRatings, updateProfile } from './profile.ts';
 import { dobProblem, localDate } from './time.ts';
@@ -88,6 +88,33 @@ describe('top-up requests', () => {
 		expect(acc.availableMinor).toBe(50000);
 		expect((await listLedger(db, acc.id)).length).toBe(1);
 		expect(await listPendingTopUpsForDropzone(db, dz.id)).toEqual([]);
+	});
+
+	test('staff settle a desk request: paid with the method used, declined, scoped to DZ + jumper', async () => {
+		const { dz, owner } = await makeDropzone(db, { walletEnabled: true });
+		const { dz: other } = await makeDropzone(db, { walletEnabled: true });
+		const u = await makeUser(db);
+		const v = await makeUser(db);
+		const req = await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 50000, provider: 'manual', now: NOW });
+		const base = { paymentId: req.id, dropzoneId: dz.id, userId: u.id, by: owner.id, now: NOW };
+		await expect(settleTopUpRequest(db, { ...base, dropzoneId: other.id, outcome: 'paid' })).rejects.toThrow(/not found/);
+		await expect(settleTopUpRequest(db, { ...base, userId: v.id, outcome: 'paid' })).rejects.toThrow(/not found/);
+		const done = await settleTopUpRequest(db, { ...base, outcome: 'paid', provider: 'card' });
+		expect(done).toMatchObject({ status: 'succeeded', provider: 'card' });
+		const acc = (await getAccount(db, u.id, dz.id))!;
+		expect(acc.availableMinor).toBe(50000);
+		expect((await listLedger(db, acc.id))[0]).toMatchObject({ type: 'topup', provider: 'card', createdBy: owner.id });
+		await expect(settleTopUpRequest(db, { ...base, outcome: 'paid' })).rejects.toThrow(/no longer waiting/);
+
+		const second = await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 1000, provider: 'manual', now: NOW });
+		const declined = await settleTopUpRequest(db, { ...base, paymentId: second.id, outcome: 'declined' });
+		expect(declined.status).toBe('cancelled');
+		expect((await getAccount(db, u.id, dz.id))!.availableMinor).toBe(50000);
+		expect(await listPendingTopUpsForDropzone(db, dz.id)).toEqual([]);
+
+		// Online requests confirm themselves from the provider; staff can't mark them paid.
+		const online = await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 1000, provider: 'payfast', now: NOW });
+		await expect(settleTopUpRequest(db, { ...base, paymentId: online.id, outcome: 'paid' })).rejects.toThrow(/not found/);
 	});
 
 	test('validation, wallet disabled and cancel', async () => {

@@ -5,6 +5,7 @@ import { setupChecklist, setupPending } from '#lib/server/staffadmin/setup.ts';
 import { requestDropzone } from '#lib/server/request-cache.ts';
 import { gearAttention } from '#lib/server/domain/staff-admin.ts';
 import { localDate } from '#lib/server/domain/time.ts';
+import { listPendingTopUpsForDropzone } from '#lib/server/domain/payments.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 /** Cookie set by "Not now" on the dashboard's add-a-photo card. */
@@ -17,17 +18,27 @@ export const load: PageServerLoad = async (event) => {
 	const now = Date.now();
 	const ctx = await activeDropzone(event);
 	const staffView = ctx && ctx.caps.includes('loads.view') ? ctx : null;
-	const [today, jumper, setup, gear] = await Promise.all([
+	const canCollect = !!ctx && ctx.caps.includes('payments.manage') && ctx.dz.walletEnabled;
+	const [today, jumper, setup, gear, topUps] = await Promise.all([
 		staffView ? staffToday(event.locals.db, staffView.dz, now) : Promise.resolve(null),
 		loadJumperDashboard(event.locals.db, user.id, current?.dropzone.id ?? null, now, (id) => requestDropzone(event.locals, id)),
 		ctx && ctx.caps.includes('dz.settings') ? setupChecklist(event.locals.db, ctx.dz) : Promise.resolve(null),
-		ctx && ctx.caps.includes('gear.manage') ? gearAttention(event.locals.db, ctx.dz, localDate(now, ctx.dz.timezone)) : Promise.resolve(null)
+		ctx && ctx.caps.includes('gear.manage') ? gearAttention(event.locals.db, ctx.dz, localDate(now, ctx.dz.timezone)) : Promise.resolve(null),
+		canCollect ? listPendingTopUpsForDropzone(event.locals.db, ctx.dz.id) : Promise.resolve([])
 	]);
 	return {
 		staffToday: today,
 		staffTz: staffView?.dz.timezone ?? 'UTC',
 		serverNow: now,
 		jumper,
+		/** Payment staff: jumpers who asked to top up their wallet at the desk (oldest first). */
+		topUpsToCollect: topUps.map((t) => ({
+			id: t.payment.id,
+			userId: t.user.id,
+			name: t.user.name,
+			amountMinor: t.payment.amountMinor,
+			currency: t.payment.currency
+		})),
 		/** Owner/admin onboarding steps; null when not allowed or everything is done. */
 		setup: setup && setupPending(setup) ? setup : null,
 		/** Riggers / gear managers: rigs needing attention (null when not allowed or nothing is due). */

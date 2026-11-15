@@ -304,6 +304,31 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.locator('#amount').fill('150,50');
 	await page.getByTestId('topup-submit').click();
 	await expect(page.getByTestId('pending-topups')).toContainText(/R\s?150,50/);
+
+	// Manifest sees the desk requests on the dashboard and settles them on the jumper's page.
+	await page.goto('/app');
+	const collect = page.getByTestId('topups-to-collect');
+	await expect(collect.locator('li')).toHaveCount(2);
+	await expect(collect).toContainText(/R\s?1\s?000,00/);
+	await collect.locator('li a').first().click();
+	await expect(page).toHaveURL(/\/app\/jumpers\/[^/]+$/);
+	await page.waitForLoadState('networkidle');
+	const requests = page.getByTestId('staff-topup-requests');
+	await expect(requests.locator('li')).toHaveCount(2);
+	const first = requests.locator('li').filter({ hasText: /R\s?1\s?000,00/ });
+	await first.locator('select[name=provider]').selectOption('card');
+	await first.getByRole('button', { name: 'Mark paid' }).click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: /1\s?000,00 added to the wallet/ }).first()).toBeVisible();
+	await expect(requests.locator('li')).toHaveCount(1);
+	await requests.getByRole('button', { name: 'Decline' }).click();
+	await expect(page.locator('[role=status], [aria-live]').filter({ hasText: 'Top-up request declined' }).first()).toBeVisible();
+	await expect(requests).toHaveCount(0);
+	await page.goto('/app');
+	await expect(page.getByTestId('topups-to-collect')).toHaveCount(0);
+	await page.goto('/app/wallet');
+	await page.locator('main a[href^="/app/wallet/"]').first().click();
+	await expect(page.getByTestId('pending-topups')).toHaveCount(0);
+	await expect(page.locator('main')).toContainText(/Top-up[\s\S]*Card/);
 });
 
 test('join form with an empty wallet: "not enough" + Top up link, but not at a DZ that allows a negative balance', async ({ page }) => {

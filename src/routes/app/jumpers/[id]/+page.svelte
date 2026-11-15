@@ -119,6 +119,46 @@
 	</Card>
 
 	<div class="min-w-0 space-y-4 lg:col-span-2">
+		{#if data.canPay && data.walletEnabled && data.topUpRequests.length}
+			<Card padded={false} class="overflow-hidden border-warning/40" data-testid="staff-topup-requests">
+				<div class="px-5 pt-5">
+					<h2 class="text-sm font-semibold">Asked to top up at manifest</h2>
+					<p class="mt-1 text-sm text-muted">Take the payment, then mark it paid to credit the wallet.</p>
+				</div>
+				<ul class="mt-3 divide-y divide-border border-t border-border">
+					{#each data.topUpRequests as r (r.id)}
+						<li class="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-end sm:justify-between">
+							<div class="min-w-0">
+								<p class="text-lg font-semibold tabular-nums">{money(r.amountMinor)}</p>
+								<p class="text-xs text-muted">Requested {fmtTime(new Date(r.createdAt))}</p>
+							</div>
+							<div class="flex flex-wrap items-end gap-2">
+								<form method="POST" action="?/topUpRequest" class="flex items-end gap-2" use:enhance={toastEnhance()}>
+									<input type="hidden" name="id" value={r.id} />
+									<Select
+										label="Paid by"
+										name="provider"
+										value="cash"
+										options={[
+											{ value: 'cash', label: 'Cash' },
+											{ value: 'card', label: 'Card' },
+											{ value: 'eft', label: 'EFT' },
+											{ value: 'manual', label: 'Other' }
+										]}
+									/>
+									<Button type="submit">Mark paid</Button>
+								</form>
+								<form method="POST" action="?/topUpRequest" use:enhance={toastEnhance()}>
+									<input type="hidden" name="id" value={r.id} />
+									<input type="hidden" name="outcome" value="decline" />
+									<Button type="submit" variant="ghost">Decline</Button>
+								</form>
+							</div>
+						</li>
+					{/each}
+				</ul>
+			</Card>
+		{/if}
 		{#if data.canPay && data.walletEnabled}
 			<Card>
 				<div class="flex flex-wrap items-center justify-between gap-3">
