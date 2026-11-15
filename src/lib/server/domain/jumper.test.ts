@@ -7,6 +7,8 @@ import { isDomainError } from './errors.ts';
 import { addJump, countJumps, listJumps, logbookBreakdown } from './logbook.ts';
 import { addSlot, createLoads, startCall, upcomingSlotsForUser, completeLoad } from './loads.ts';
 import { cancelTopUpRequest, completeTopUpRequest, listPendingTopUpsForDropzone, listTopUpRequests, requestTopUp, settleTopUpRequest } from './payments.ts';
+import { listNotifications } from './notifications.ts';
+import { formatMoney } from '../../domain/constants.ts';
 import { getAccount, listLedger } from './wallet.ts';
 import { addRating, changePassword, listRatings, removeRating, setRatings, updateProfile } from './profile.ts';
 import { dobProblem, localDate } from './time.ts';
@@ -111,6 +113,16 @@ describe('top-up requests', () => {
 		expect(declined.status).toBe('cancelled');
 		expect((await getAccount(db, u.id, dz.id))!.availableMinor).toBe(50000);
 		expect(await listPendingTopUpsForDropzone(db, dz.id)).toEqual([]);
+
+		// The jumper hears about both outcomes; nobody else does, refused attempts notify nobody.
+		const notes = await listNotifications(db, u.id);
+		expect(notes.map((n) => n.type).sort()).toEqual(['topup_declined', 'topup_paid']);
+		const paidNote = notes.find((n) => n.type === 'topup_paid')!;
+		const declinedNote = notes.find((n) => n.type === 'topup_declined')!;
+		expect(paidNote).toMatchObject({ title: 'Wallet topped up', href: `/app/wallet/${dz.slug}`, dropzoneId: dz.id, actorUserId: owner.id });
+		expect(paidNote.body).toBe(`Your ${formatMoney(50000, dz.currency)} top-up at ${dz.name} is paid and in your wallet.`);
+		expect(declinedNote.body).toContain(`${dz.name} declined your ${formatMoney(1000, dz.currency)} top-up request`);
+		expect(await listNotifications(db, v.id)).toEqual([]);
 
 		// Online requests confirm themselves from the provider; staff can't mark them paid.
 		const online = await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 1000, provider: 'payfast', now: NOW });

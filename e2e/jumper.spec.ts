@@ -329,6 +329,15 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.locator('main a[href^="/app/wallet/"]').first().click();
 	await expect(page.getByTestId('pending-topups')).toHaveCount(0);
 	await expect(page.locator('main')).toContainText(/Top-up[\s\S]*Card/);
+
+	// The jumper is told about both outcomes; the note opens that dropzone's wallet.
+	await page.goto('/app/notifications');
+	const list = page.getByTestId('notification-list');
+	await expect(list).toContainText('Top-up declined');
+	await expect(list).toContainText(/declined your R\s?150,50 top-up request/);
+	await list.getByRole('button', { name: /Wallet topped up/ }).click();
+	await expect(page).toHaveURL(/\/app\/wallet\/[^/]+$/);
+	await expect(page.getByTestId('topup-form')).toBeVisible();
 });
 
 test('join form with an empty wallet: "not enough" + Top up link, but not at a DZ that allows a negative balance', async ({ page }) => {

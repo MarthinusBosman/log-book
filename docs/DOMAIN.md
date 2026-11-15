@@ -171,7 +171,7 @@ Online payments through the dropzone's own provider account (docs/PAYMENTS.md): 
 `markSlotsPaid(db, {dropzoneId, slotIds, provider: cash|card|eft|manual|stripe|payfast, by})` releases wallet holds and records a `payments` row,
 `sendPaymentReminder` (`payment_notice`), `staffEarnings(db, dzId, day)` (Staff tab, includes pilot pay).
 Wallet top-up requests: `requestTopUp`, `listTopUpRequests`, `cancelTopUpRequest` (jumper), `listPendingTopUpsForDropzone` (staff dashboard "Top-ups to collect"),
-`settleTopUpRequest(db, {paymentId, dropzoneId, userId, by, outcome: paid|declined, provider: cash|card|eft|manual})` (jumper page; pay-at-manifest requests only),
+`settleTopUpRequest(db, {paymentId, dropzoneId, userId, by, outcome: paid|declined, provider: cash|card|eft|manual})` (jumper page; pay-at-manifest requests only; the jumper gets `topup_paid` / `topup_declined` linking to that DZ's wallet),
 `completeTopUpRequest` (credits the wallet, idempotent).
 
 ### reports.ts

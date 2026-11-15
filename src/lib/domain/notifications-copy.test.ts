@@ -9,4 +9,19 @@ describe('notification copy', () => {
 		expect(renderNotification('new_loads', { dropzoneName: 'Skydive Demo', count: 3 }).body).toBe('Skydive Demo just opened 3 new loads for today.');
 		expect(renderNotification('load_completed', { loadNumber: 4, day: '2026-11-11' }).body).toContain('Load 4 (Wed 11 Nov) is in your logbook');
 	});
+
+	test('top-up outcomes link to that dropzone wallet and cope with a missing amount', () => {
+		expect(renderNotification('topup_paid', { dropzoneName: 'Skydive Demo', dropzoneSlug: 'demo', amount: 'R 500.00' })).toEqual({
+			title: 'Wallet topped up',
+			body: 'Your R 500.00 top-up at Skydive Demo is paid and in your wallet.',
+			href: '/app/wallet/demo'
+		});
+		expect(renderNotification('topup_paid', {}).body).toBe('Your top-up at the dropzone is paid and in your wallet.');
+		expect(renderNotification('topup_declined', { dropzoneName: 'Skydive Demo', amount: 'R 10.00' })).toEqual({
+			title: 'Top-up declined',
+			body: 'Skydive Demo declined your R 10.00 top-up request. Nothing was added to your wallet.',
+			href: '/app/wallet'
+		});
+		expect(renderNotification('topup_declined', {}).body).toBe('The dropzone declined your top-up request. Nothing was added to your wallet.');
+	});
 });

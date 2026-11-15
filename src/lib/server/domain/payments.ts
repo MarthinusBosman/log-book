@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { dropzones, loads, payments, slots, users, type Payment } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
-import type { PaymentProvider } from '../../domain/constants.ts';
+import { formatMoney, type PaymentProvider } from '../../domain/constants.ts';
 import { runAtomic, type Statement } from './atomic.ts';
 import { DomainError, assertFound } from './errors.ts';
 import { notify } from './notifications.ts';
@@ -236,12 +236,23 @@ export async function settleTopUpRequest(
 	if (p.status !== 'pending') throw new DomainError('invalid_transition', 'This top-up request is no longer waiting');
 	// Online checkouts confirm themselves from the provider (completing here would bypass it).
 	if (p.provider !== 'manual') throw new DomainError('not_found', 'Top-up request not found');
-	if (input.outcome === 'declined') {
-		return (await db.update(payments).set({ status: 'cancelled', completedAt: new Date(input.now ?? Date.now()) }).where(eq(payments.id, p.id)).returning())[0];
-	}
 	const provider = input.provider ?? 'cash';
-	if (!DESK_TOPUP_PROVIDERS.includes(provider)) throw new DomainError('invalid', 'Pick how the money was paid');
-	return completeTopUpRequest(db, { paymentId: p.id, by: input.by, provider, now: input.now });
+	if (input.outcome === 'paid' && !DESK_TOPUP_PROVIDERS.includes(provider)) throw new DomainError('invalid', 'Pick how the money was paid');
+	const done =
+		input.outcome === 'declined'
+			? (await db.update(payments).set({ status: 'cancelled', completedAt: new Date(input.now ?? Date.now()) }).where(eq(payments.id, p.id)).returning())[0]
+			: await completeTopUpRequest(db, { paymentId: p.id, by: input.by, provider, now: input.now });
+	// Tell the jumper: the request was made at the desk and they may have walked off.
+	const dz = (await db.select({ name: dropzones.name, slug: dropzones.slug }).from(dropzones).where(eq(dropzones.id, p.dropzoneId)).limit(1))[0];
+	await notify(db, {
+		userIds: [p.userId],
+		type: input.outcome === 'paid' ? 'topup_paid' : 'topup_declined',
+		dropzoneId: p.dropzoneId,
+		actorUserId: input.by,
+		payload: { dropzoneName: dz?.name, dropzoneSlug: dz?.slug, amount: formatMoney(p.amountMinor, p.currency) },
+		now: input.now
+	});
+	return done;
 }
 
 /**

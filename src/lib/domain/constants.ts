@@ -381,6 +381,9 @@ export const NOTIFICATION_TYPES = [
 	'checked_in',
 	'checked_out',
 	'jump_signed',
+	// pay-at-manifest wallet top-up requests settled by staff
+	'topup_paid',
+	'topup_declined',
 	'general'
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
@@ -465,6 +468,14 @@ export function renderNotification(
 			return { title: 'Checked out', body: `You have been checked out at ${dz}.`, href: '/app' };
 		case 'jump_signed':
 			return { title: 'Jump signed', body: `${p.actorName ?? 'Someone'} signed your jump.`, href: '/app/logbook' };
+		case 'topup_paid':
+		case 'topup_declined': {
+			const amount = typeof p.amount === 'string' ? p.amount : null;
+			const href = typeof p.dropzoneSlug === 'string' ? `/app/wallet/${p.dropzoneSlug}` : '/app/wallet';
+			return type === 'topup_paid'
+				? { title: 'Wallet topped up', body: `${amount ? `Your ${amount}` : 'Your'} top-up at ${dz} is paid and in your wallet.`, href }
+				: { title: 'Top-up declined', body: `${p.dropzoneName ?? 'The dropzone'} declined your ${amount ? `${amount} ` : ''}top-up request. Nothing was added to your wallet.`, href };
+		}
 		case 'general':
 			return { title: p.title ?? 'Notice', body: p.body ?? '', href: p.href ?? null };
 	}

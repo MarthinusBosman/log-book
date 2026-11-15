@@ -23,6 +23,8 @@
 		jump_signed: 'book',
 		repack_due: 'parachute',
 		payment_notice: 'wallet',
+		topup_paid: 'wallet',
+		topup_declined: 'wallet',
 		checked_out: 'checkin',
 		team_add: 'team',
 		friend_add: 'team',
