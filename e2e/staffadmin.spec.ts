@@ -252,6 +252,42 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page.getByLabel('Search members')).toHaveValue('mia');
 	await expect(page.getByText('Mia Member').first()).toBeVisible();
 	await expect(page.locator('main').getByText('Olga Owner')).toHaveCount(0);
+	// Roles / Remove are links (?edit= / ?remove=): open in place, the URL follows, and
+	// closing or saving drops the param again.
+	await page.getByRole('link', { name: 'Edit roles for Mia Member' }).click();
+	await expect(page).toHaveURL(/\/app\/settings\/members\?q=mia&edit=[^&]+$/);
+	await expect(dialog(page).getByRole('heading', { name: 'Roles · Mia Member' })).toBeVisible();
+	await dialog(page).getByRole('checkbox', { name: /Coach/ }).check();
+	await dialog(page).getByRole('button', { name: 'Save roles' }).click();
+	await expect(page.getByText('Roles updated for Mia Member')).toBeVisible();
+	await expect(page).toHaveURL(/\/app\/settings\/members\?q=mia$/);
+	await page.getByRole('link', { name: 'Remove Mia Member' }).click();
+	await expect(page).toHaveURL(/\/app\/settings\/members\?q=mia&remove=[^&]+$/);
+	await expect(dialog(page).getByRole('heading', { name: 'Remove member?' })).toBeVisible();
+	await dialog(page).getByRole('link', { name: 'Cancel' }).click();
+	await expect(dialog(page)).toHaveCount(0);
+	await expect(page).toHaveURL(/\/app\/settings\/members\?q=mia$/);
+	{
+		// Without JS (or before hydration) the same links open the dialogs and the forms post.
+		const noJsM = await page.context().browser()!.newContext({
+			javaScriptEnabled: false,
+			baseURL: new URL(page.url()).origin,
+			storageState: await page.context().storageState()
+		});
+		const pm = await noJsM.newPage();
+		await pm.goto('/app/settings/members');
+		await pm.getByRole('link', { name: 'Edit roles for Mia Member' }).click();
+		await expect(dialog(pm).getByRole('checkbox', { name: /Coach/ })).toBeChecked();
+		await dialog(pm).getByRole('checkbox', { name: /Rigger/ }).check();
+		await dialog(pm).getByRole('button', { name: 'Save roles' }).click();
+		await expect(pm.getByTestId('no-js-outcome').getByRole('status')).toHaveText('Roles updated for Mia Member');
+		await expect(pm.locator('main li').filter({ hasText: 'Mia Member' }).getByText('Rigger')).toBeVisible();
+		await pm.getByRole('link', { name: 'Remove Mia Member' }).click();
+		await expect(dialog(pm).getByRole('heading', { name: 'Remove member?' })).toBeVisible();
+		await dialog(pm).getByRole('link', { name: 'Cancel' }).click();
+		await expect(dialog(pm)).toHaveCount(0);
+		await noJsM.close();
+	}
 
 	// Jumpers → detail → wallet top-up (reason required).
 	await go(page, '/app/jumpers');

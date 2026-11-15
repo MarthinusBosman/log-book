@@ -75,6 +75,19 @@
 		return () => mo.disconnect();
 	});
 
+	// Same for the labels: pages pass a title that changes with what's open (e.g. "Roles · Mia"
+	// → "" on close). As template attributes, that change re-ran the attribute effect, which
+	// dropped `open` while the dialog stayed modal in the top layer: an invisible backdrop
+	// blocked every click on the page. SSR still gets them via the initial values below.
+	const ssrLabelledBy = untrack(() => (title ? `${uid}-title` : undefined));
+	const ssrDescribedBy = untrack(() => (title && description ? `${uid}-desc` : undefined));
+	$effect(() => {
+		if (!el) return;
+		const set = (name: string, v: string | undefined) => (v ? el!.setAttribute(name, v) : el!.removeAttribute(name));
+		set('aria-labelledby', title ? `${uid}-title` : undefined);
+		set('aria-describedby', title && description ? `${uid}-desc` : undefined);
+	});
+
 	function isModal(d: HTMLDialogElement) {
 		try {
 			return d.matches(':modal');
@@ -104,13 +117,13 @@
 <dialog
 	bind:this={el}
 	open={ssrOpen}
+	aria-labelledby={ssrLabelledBy}
+	aria-describedby={ssrDescribedBy}
 	onclose={handleClose}
 	onclick={(e) => {
 		// click on the backdrop (the dialog element itself) closes
 		if (e.target === el) open = false;
 	}}
-	aria-labelledby={title ? `${uid}-title` : undefined}
-	aria-describedby={title && description ? `${uid}-desc` : undefined}
 	class={cn(
 		'border border-border bg-elevated p-0 text-fg shadow-2xl shadow-black/40',
 		'backdrop:bg-black/60 backdrop:backdrop-blur-sm backdrop:animate-fade-in',

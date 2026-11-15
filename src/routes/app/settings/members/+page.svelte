@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { readChoice, readQuery } from '#lib/components/staffadmin/list-view.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
-	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
+	import { newDialogHref, openInPlace, viewParamsHref, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input } from '#lib/ui/index.ts';
 	import RoleChips from '#lib/components/staffadmin/RoleChips.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
@@ -32,10 +32,19 @@
 	let q = $state(readQuery(page.url.searchParams));
 	let roleFilter = $state<'' | DropzoneRole>(readChoice(page.url.searchParams, 'role', DROPZONE_ROLES));
 	let inviteOpen = $state(wantsNewDialog(page.url.searchParams));
-	syncViewToUrl(() => ({ q: q.trim(), role: roleFilter, new: inviteOpen ? '1' : null }));
-	const openInvite = openInPlace(() => (inviteOpen = true));
-	let editing = $state<(typeof data.members)[number] | null>(null);
-	let removing = $state<(typeof data.members)[number] | null>(null);
+	// Roles / Remove are links too (?edit=<userId>, ?remove=<userId>): they open the dialog
+	// before hydration and without JS; once hydrated they open in place and the URL follows.
+	const memberParam = (key: string) => {
+		const id = page.url.searchParams.get(key);
+		return id && data.members.some((m) => m.userId === id) ? id : null;
+	};
+	let editingId = $state<string | null>(memberParam('edit'));
+	let removingId = $state<string | null>(memberParam('remove'));
+	syncViewToUrl(() => ({ q: q.trim(), role: roleFilter, new: inviteOpen ? '1' : null, edit: editingId, remove: removingId }));
+	const openInvite = openInPlace(() => ((inviteOpen = true), (editingId = null), (removingId = null)));
+	const editing = $derived(data.members.find((m) => m.userId === editingId) ?? null);
+	const removing = $derived(data.members.find((m) => m.userId === removingId) ?? null);
+	const href = (set: Record<string, string | null>) => viewParamsHref(page.url, set);
 	let pending = $state(false);
 
 	const filtered = $derived(
@@ -95,7 +104,7 @@
 		<option value="">All roles</option>
 		{#each DROPZONE_ROLES as r (r)}<option value={r}>{ROLE_LABELS[r]}</option>{/each}
 	</select>
-	<Button href={newDialogHref(page.url)} onclick={openInvite}><Icon name="plus" class="size-4" /> Invite</Button>
+	<Button href={newDialogHref(page.url, ['edit', 'remove'])} onclick={openInvite}><Icon name="plus" class="size-4" /> Invite</Button>
 </div>
 
 <p class="mt-4 text-sm text-muted">
@@ -126,9 +135,21 @@
 							<Button type="submit" size="sm" variant="ghost" aria-label="Resend invite to {m.name}">Resend invite</Button>
 						</form>
 					{/if}
-					<Button size="sm" variant="secondary" onclick={() => (editing = m)} aria-label="Edit roles for {m.name}">Roles</Button>
+					<Button
+						size="sm"
+						variant="secondary"
+						href={href({ edit: m.userId, remove: null, new: null })}
+						onclick={openInPlace(() => ((editingId = m.userId), (removingId = null), (inviteOpen = false)))}
+						aria-label="Edit roles for {m.name}">Roles</Button
+					>
 					{#if m.userId !== data.me}
-						<Button size="sm" variant="ghost" onclick={() => (removing = m)} aria-label="Remove {m.name}">Remove</Button>
+						<Button
+							size="sm"
+							variant="ghost"
+							href={href({ remove: m.userId, edit: null, new: null })}
+							onclick={openInPlace(() => ((removingId = m.userId), (editingId = null), (inviteOpen = false)))}
+							aria-label="Remove {m.name}">Remove</Button
+						>
 					{/if}
 				</div>
 			</li>
@@ -154,14 +175,14 @@
 	</form>
 </Dialog>
 
-<Dialog open={!!editing} onclose={() => (editing = null)} title={editing ? `Roles · ${editing.name}` : ''} description={editing?.email} variant="right">
+<Dialog open={!!editing} onclose={() => (editingId = null)} title={editing ? `Roles · ${editing.name}` : ''} description={editing?.email} variant="right">
 	{#if editing}
 		{#key editing.userId}
 			<form
 				method="POST"
 				action="?/setRoles"
 				class="space-y-4"
-				use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (editing = null) })}
+				use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (editingId = null) })}
 			>
 				<input type="hidden" name="userId" value={editing.userId} />
 				{@render roleBoxes(editRoles)}
@@ -178,7 +199,7 @@
 	{/if}
 </Dialog>
 
-<Dialog open={!!removing} onclose={() => (removing = null)} title="Remove member?">
+<Dialog open={!!removing} onclose={() => (removingId = null)} title="Remove member?">
 	{#if removing}
 		<p class="text-sm text-muted">
 			{removing.name} loses access to this dropzone and all roles. Their logbook, wallet history and past jumps stay intact.
@@ -187,10 +208,10 @@
 			method="POST"
 			action="?/remove"
 			class="mt-5 flex justify-end gap-2"
-			use:enhance={toastEnhance({ onSuccess: () => (removing = null) })}
+			use:enhance={toastEnhance({ onSuccess: () => (removingId = null) })}
 		>
 			<input type="hidden" name="userId" value={removing.userId} />
-			<Button variant="ghost" onclick={() => (removing = null)}>Cancel</Button>
+			<Button variant="ghost" href={href({ remove: null })} onclick={openInPlace(() => (removingId = null))}>Cancel</Button>
 			<Button type="submit" variant="danger">Remove</Button>
 		</form>
 	{/if}
