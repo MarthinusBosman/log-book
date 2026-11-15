@@ -83,6 +83,10 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 
 	// Step 4: sign the indemnity.
 	await page.locator('input[name=ack_0]').check();
+	// The pad spans the form (a stray col-span once squeezed it to ~140 px on desktop).
+	const formBox = (await page.getByTestId('sign-form').boundingBox())!;
+	const padBox = (await page.locator('[data-testid="sign-form"] canvas').first().boundingBox())!;
+	expect(padBox.width).toBeGreaterThan(formBox.width * 0.8);
 	await drawSignature(page);
 	await page.getByTestId('sign-submit').click();
 	await expect(page.getByTestId('ticket')).toContainText('Signed');
