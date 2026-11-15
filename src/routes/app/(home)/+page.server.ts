@@ -1,8 +1,7 @@
 import { activeDropzone } from '#lib/server/manifest/context.ts';
-import { staffToday } from '#lib/server/manifest/board.ts';
 import { loadJumperDashboard } from '#lib/server/jumper/dashboard.ts';
 import { setupChecklist, setupPending } from '#lib/server/staffadmin/setup.ts';
-import { requestDropzone } from '#lib/server/request-cache.ts';
+import { currentMembership, requestDropzone } from '#lib/server/request-cache.ts';
 import { gearAttention } from '#lib/server/domain/staff-admin.ts';
 import { localDate } from '#lib/server/domain/time.ts';
 import { listPendingTopUpsForDropzone } from '#lib/server/domain/payments.ts';
@@ -11,25 +10,24 @@ import type { Actions, PageServerLoad } from './$types';
 /** Cookie set by "Not now" on the dashboard's add-a-photo card. */
 const PHOTO_PROMPT_COOKIE = 'dz_photo_prompt';
 
-/** Dashboard: staff numbers + next load (manifest module, staff only) and the jumper half (everyone). */
+/**
+ * Dashboard: the jumper half (everyone) + staff cards. The live staff numbers come from
+ * `(home)/+layout.server.ts`. No `parent()` and no `manifest:today` dependency here, so the
+ * 15 s StaffToday poll doesn't re-run this load.
+ */
 export const load: PageServerLoad = async (event) => {
-	event.depends('manifest:today');
-	const { user, current } = await event.parent();
+	const ctx = await activeDropzone(event); // redirects to /login when signed out
+	const user = event.locals.user!;
+	const current = await currentMembership(event, user.id);
 	const now = Date.now();
-	const ctx = await activeDropzone(event);
-	const staffView = ctx && ctx.caps.includes('loads.view') ? ctx : null;
 	const canCollect = !!ctx && ctx.caps.includes('payments.manage') && ctx.dz.walletEnabled;
-	const [today, jumper, setup, gear, topUps] = await Promise.all([
-		staffView ? staffToday(event.locals.db, staffView.dz, now) : Promise.resolve(null),
+	const [jumper, setup, gear, topUps] = await Promise.all([
 		loadJumperDashboard(event.locals.db, user.id, current?.dropzone.id ?? null, now, (id) => requestDropzone(event.locals, id)),
 		ctx && ctx.caps.includes('dz.settings') ? setupChecklist(event.locals.db, ctx.dz) : Promise.resolve(null),
 		ctx && ctx.caps.includes('gear.manage') ? gearAttention(event.locals.db, ctx.dz, localDate(now, ctx.dz.timezone)) : Promise.resolve(null),
 		canCollect ? listPendingTopUpsForDropzone(event.locals.db, ctx.dz.id) : Promise.resolve([])
 	]);
 	return {
-		staffToday: today,
-		staffTz: staffView?.dz.timezone ?? 'UTC',
-		serverNow: now,
 		jumper,
 		/** Payment staff: jumpers who asked to top up their wallet at the desk (oldest first). */
 		topUpsToCollect: topUps.map((t) => ({

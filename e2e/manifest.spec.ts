@@ -88,6 +88,16 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await page.goto('/app');
 	await expect(page.getByTestId('staff-today')).toContainText('Loads flown');
 	await expect(page.getByTestId('staff-today')).toContainText('of 1 manifested');
+
+	// The 15 s live poll re-runs only the small (home) layout load, not the whole dashboard
+	// (nodes: root layout, app layout, (home) layout, page). A visible tab polls on visibilitychange.
+	await page.waitForLoadState('networkidle');
+	const poll = page.waitForResponse((r) => r.url().includes('/app/__data.json'));
+	await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+	const res = await poll;
+	const nodes = JSON.parse((await res.text()).split('\n')[0]).nodes as { type: string }[];
+	expect(nodes.map((n) => n?.type)).toEqual(['skip', 'skip', 'data', 'skip']);
+	await expect(page.getByTestId('staff-today')).toContainText('of 1 manifested');
 });
 
 test('manifest without JS: destructive load actions ask on a confirmation step first', async ({ page, browser }) => {
