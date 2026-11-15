@@ -22,9 +22,11 @@ export function friendlyError(code: string, message: string, details?: Record<st
 			const a = Number(details?.availableMinor ?? NaN);
 			const r = Number(details?.requiredMinor ?? NaN);
 			const cur = String(details?.currency ?? currency);
+			const who = typeof details?.name === 'string' && details.name ? `${details.name}: ` : '';
+			const nobody = who ? ' Nobody was added.' : '';
 			return Number.isFinite(a) && Number.isFinite(r)
-				? `Insufficient wallet funds — available ${formatMoney(a, cur)}, slot costs ${formatMoney(r, cur)}. Tick “Pay at manifest” to skip the wallet.`
-				: 'Insufficient wallet funds. Tick “Pay at manifest” to skip the wallet.';
+				? `${who}Insufficient wallet funds — available ${formatMoney(a, cur)}, slot costs ${formatMoney(r, cur)}.${nobody} Tick “Pay at manifest” to skip the wallet.`
+				: `${who}Insufficient wallet funds.${nobody} Tick “Pay at manifest” to skip the wallet.`;
 		}
 		case 'membership_expired':
 			return `${message}. Tick “Allow expired membership” to manifest anyway.`;
@@ -145,19 +147,22 @@ export function groupHue(id: string): number {
 
 /**
  * Money summary for a load's slots. Wallet-held slots are charged automatically when the load
- * completes, so they are NOT outstanding: only unpaid slots without a hold are.
+ * completes, so they are NOT outstanding: only unpaid slots without a hold are. Paid, held and
+ * outstanding add up to the total (free slots count in none of them).
  */
 export function slotMoney(slots: readonly { totalMinor: number; paid: boolean; held: boolean }[]) {
 	let totalMinor = 0;
+	let paidMinor = 0;
 	let heldMinor = 0;
 	let outstandingMinor = 0;
 	for (const s of slots) {
 		totalMinor += s.totalMinor;
-		if (s.paid || s.totalMinor <= 0) continue;
-		if (s.held) heldMinor += s.totalMinor;
+		if (s.totalMinor <= 0) continue;
+		if (s.paid) paidMinor += s.totalMinor;
+		else if (s.held) heldMinor += s.totalMinor;
 		else outstandingMinor += s.totalMinor;
 	}
-	return { totalMinor, heldMinor, outstandingMinor };
+	return { totalMinor, paidMinor, heldMinor, outstandingMinor };
 }
 
 /**

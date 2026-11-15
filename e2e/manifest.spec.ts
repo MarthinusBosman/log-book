@@ -20,6 +20,13 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 
+	// a price, so the load detail has money to summarise
+	await page.goto('/app/pricelist');
+	await page.getByLabel('Sport slot', { exact: true }).fill('450');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.getByText('Price list updated')).toBeVisible();
+	await page.goto('/app');
+
 	// The dashboard's empty "Next load" card opens the New load dialog directly
 	await page.getByRole('link', { name: 'Create a load' }).click();
 	await expect(page).toHaveURL(/\/app\/manifest\?new=1$/);
@@ -48,6 +55,16 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await page.getByLabel('Slot weight (kg)').fill('72');
 	await page.getByRole('button', { name: 'Create jumper slot' }).click();
 	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Vera Visitor"]')).toBeVisible();
+
+	// Money line: unpaid → outstanding; marked paid (cash) → shows as paid, so the parts add up to the total
+	await expect(page.getByTestId('outstanding-total')).toContainText('450');
+	await expect(page.getByTestId('paid-total')).toHaveCount(0);
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('checkbox', { name: 'Select Vera Visitor' }).check();
+	await page.getByRole('button', { name: /Mark paid/ }).click();
+	await expect(page.getByText('1 slot marked paid')).toBeVisible();
+	await expect(page.getByTestId('paid-total')).toContainText('450');
+	await expect(page.getByTestId('outstanding-total')).toHaveCount(0);
 
 	// Overweight is rejected with a friendly message
 	await page.getByLabel('Jumper name').fill('Heavy Harry');

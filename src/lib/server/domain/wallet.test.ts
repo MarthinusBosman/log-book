@@ -60,6 +60,7 @@ describe('holds', () => {
 		const err = await addSlot(db, load.id, { userId: jumper.id, jumpType: 'belly' }).catch((e) => e);
 		expect(isDomainError(err, 'insufficient_funds')).toBe(true);
 		expect(err.details).toMatchObject({ availableMinor: 1000, requiredMinor: P.sport_slot });
+		expect(err.details.name).toBeUndefined();
 		expect(await db.select().from(slots).where(eq(slots.loadId, load.id))).toHaveLength(0);
 		const acc = (await getAccount(db, jumper.id, dz.id))!;
 		expect(acc.availableMinor).toBe(1000);
@@ -68,7 +69,7 @@ describe('holds', () => {
 
 	test('team manifest is all-or-nothing when one wallet is short', async () => {
 		const { dz, load, jumper } = await setup();
-		const broke = await makeUser(db);
+		const broke = await makeUser(db, { name: 'Bo Broke' });
 		await topUp(db, { userId: jumper.id, dropzoneId: dz.id, amountMinor: 100000, provider: 'cash' });
 		const err = await (await import('./loads.ts'))
 			.addSlots(db, load.id, [
@@ -77,6 +78,8 @@ describe('holds', () => {
 			])
 			.catch((e) => e);
 		expect(isDomainError(err, 'insufficient_funds')).toBe(true);
+		// the error says whose wallet is short, so manifest knows who to fix
+		expect(err.details).toMatchObject({ name: 'Bo Broke', userId: broke.id, availableMinor: 0, requiredMinor: P.sport_slot });
 		expect(await db.select().from(slots).where(eq(slots.loadId, load.id))).toHaveLength(0);
 		const acc = (await getAccount(db, jumper.id, dz.id))!;
 		expect(acc.availableMinor).toBe(100000);

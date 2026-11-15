@@ -633,6 +633,11 @@ export async function addSlots(db: Database, loadId: string, inputs: SlotInput[]
 		} catch (e) {
 			for (const id of placed) await releaseHold(db, id, { origin: 'manifest_failed', now });
 			await db.delete(slots).where(inArray(slots.id, rows.map((r) => r.id!)));
+			// In a group, say WHOSE wallet is short (the message alone doesn't tell manifest).
+			const failed = rows[placed.length];
+			if (rows.length > 1 && failed && e instanceof DomainError && e.code === 'insufficient_funds') {
+				throw new DomainError(e.code, e.message, { ...e.details, name: failed.displayName, userId: failed.userId });
+			}
 			throw e;
 		}
 	}

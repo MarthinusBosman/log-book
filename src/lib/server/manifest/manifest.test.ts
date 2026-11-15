@@ -103,6 +103,12 @@ describe('friendly errors', () => {
 		const m = friendlyError('insufficient_funds', 'x', { availableMinor: 0, requiredMinor: 45000, currency: 'ZAR' });
 		expect(m).toContain('Insufficient wallet funds');
 		expect(m).toContain('450');
+		expect(m).not.toContain('Nobody was added');
+	});
+	test('insufficient funds in a group names the jumper', () => {
+		const m = friendlyError('insufficient_funds', 'x', { availableMinor: 0, requiredMinor: 45000, currency: 'ZAR', name: 'Anika Fourie' });
+		expect(m.startsWith('Anika Fourie: Insufficient wallet funds')).toBe(true);
+		expect(m).toContain('Nobody was added.');
 	});
 	test('overweight mentions the limit', () => {
 		expect(friendlyError('overweight', 'x', { weightKg: 1700, weightLimitKg: 1600 })).toContain('1600 kg');
@@ -145,6 +151,7 @@ describe('slotMoney', () => {
 			{ totalMinor: 45000, paid: true, held: false },
 			{ totalMinor: 0, paid: false, held: false }
 		]);
-		expect(m).toEqual({ totalMinor: 145000, heldMinor: 45000, outstandingMinor: 55000 });
+		expect(m).toEqual({ totalMinor: 145000, paidMinor: 45000, heldMinor: 45000, outstandingMinor: 55000 });
+		expect(m.paidMinor + m.heldMinor + m.outstandingMinor).toBe(m.totalMinor);
 	});
 });

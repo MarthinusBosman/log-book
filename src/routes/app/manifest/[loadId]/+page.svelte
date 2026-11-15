@@ -71,7 +71,7 @@
 				<div>
 					<h2 id="slots-title" class="font-semibold tracking-tight">Slots <span class="text-subtle tabular-nums">{load.slots.length}/{load.capacity}</span></h2>
 					<p class="text-xs text-muted">
-						Total {formatMoney(money.totalMinor, data.dz.currency)}{#if money.heldMinor}{' · '}<span class="whitespace-nowrap" data-testid="held-total">{formatMoney(money.heldMinor, data.dz.currency)} in wallets</span>{/if}{#if money.outstandingMinor}{' · '}<span class="whitespace-nowrap text-warning" data-testid="outstanding-total">{formatMoney(money.outstandingMinor, data.dz.currency)} outstanding</span>{/if}
+						Total {formatMoney(money.totalMinor, data.dz.currency)}{#if money.paidMinor}{' · '}<span class="whitespace-nowrap" data-testid="paid-total">{formatMoney(money.paidMinor, data.dz.currency)} paid</span>{/if}{#if money.heldMinor}{' · '}<span class="whitespace-nowrap" data-testid="held-total">{formatMoney(money.heldMinor, data.dz.currency)} in wallets</span>{/if}{#if money.outstandingMinor}{' · '}<span class="whitespace-nowrap text-warning" data-testid="outstanding-total">{formatMoney(money.outstandingMinor, data.dz.currency)} outstanding</span>{/if}
 					</p>
 				</div>
 				{#if data.canPay && unpaid.length}
