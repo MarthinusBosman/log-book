@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { PRICE_CODES } from '#lib/domain/constants.ts';
 import { PRICE_GROUPS } from './pricelistGroups.ts';
-import { currencySymbol, minorToInput, parseMoney } from './money.ts';
+import { currencySymbol, minorToInput, parseMoney, priceToInput } from './money.ts';
 import { settingsTabs, visibleSettingsTabs } from './settingsTabs.ts';
 
 describe('parseMoney', () => {
@@ -34,6 +34,9 @@ describe('parseMoney', () => {
 	});
 	test('round-trips and symbols', () => {
 		expect(minorToInput(45050)).toBe('450.50');
+		expect(minorToInput(0)).toBe('0.00');
+		expect(priceToInput(0)).toBe('');
+		expect(priceToInput(45000)).toBe('450.00');
 		expect(currencySymbol('ZAR')).toBe('R');
 		expect(currencySymbol('USD')).toBe('$');
 		expect(currencySymbol('XXX1')).toBe('XXX1');

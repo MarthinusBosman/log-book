@@ -35,6 +35,14 @@ export function minorToInput(minor: number): string {
 	return (minor / 100).toFixed(2);
 }
 
+/**
+ * Minor units → price-field value where 0 means "not set": an empty string, so the field
+ * shows its "0.00" placeholder and the owner can type straight away (an empty field saves as 0).
+ */
+export function priceToInput(minor: number): string {
+	return minor === 0 ? '' : minorToInput(minor);
+}
+
 /** Currency symbol for display next to inputs (e.g. ZAR → "R", USD → "$"). */
 export function currencySymbol(currency: string, locale = 'en-ZA'): string {
 	try {

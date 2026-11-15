@@ -5,7 +5,7 @@
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
 	import MoneyField from '#lib/components/staffadmin/MoneyField.svelte';
 	import { PRICE_GROUPS } from '#lib/components/staffadmin/pricelistGroups.ts';
-	import { currencySymbol, minorToInput, parseMoney } from '#lib/components/staffadmin/money.ts';
+	import { currencySymbol, priceToInput, parseMoney } from '#lib/components/staffadmin/money.ts';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
 	import { PRICE_ITEMS, formatMoney } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
@@ -14,7 +14,7 @@
 
 	const symbol = $derived(currencySymbol(data.currency));
 	// svelte-ignore state_referenced_locally
-	let values = $state<Record<string, string>>(Object.fromEntries(Object.entries(data.prices).map(([k, v]) => [k, minorToInput(v)])));
+	let values = $state<Record<string, string>>(Object.fromEntries(Object.entries(data.prices).map(([k, v]) => [k, priceToInput(v)])));
 	let saving = $state(false);
 	let dirty = $state(false);
 	const errors = $derived((form as { errors?: Record<string, string> } | null)?.errors ?? {});

@@ -96,9 +96,16 @@ test('owner runs the back office', async ({ page }) => {
 
 	// Price list
 	await go(page, '/app/pricelist');
-	await page.getByLabel('Sport slot', { exact: true }).fill('450');
+	// A new dropzone's prices are 0: the fields are empty (placeholder only), ready to type into.
+	const sportSlot = page.getByLabel('Sport slot', { exact: true });
+	await expect(sportSlot).toHaveValue('');
+	await expect(sportSlot).toHaveAttribute('placeholder', '0.00');
+	await sportSlot.fill('450');
 	await page.getByRole('button', { name: 'Save all' }).first().click();
 	await expect(page.getByText('Price list updated')).toBeVisible();
+	await page.reload();
+	await expect(sportSlot).toHaveValue('450.00');
+	await expect(page.getByLabel('Gear rental', { exact: true })).toHaveValue('');
 
 	// Gear
 	await go(page, '/app/gear');
