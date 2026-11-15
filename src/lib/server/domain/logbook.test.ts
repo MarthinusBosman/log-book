@@ -104,6 +104,19 @@ describe('sign-off', () => {
 		expect(a.signerUserId).toBeNull();
 	});
 
+	test('moving a signed jump to another dropzone clears the signature', async () => {
+		const { dz: a } = await makeDropzone(db);
+		const { dz: b } = await makeDropzone(db);
+		const owner = await makeUser(db);
+		const signer = await makeUser(db, { licence: 'C-1' });
+		const j = await addJump(db, owner.id, { jumpDate: DAY, dropzoneId: a.id });
+		await signJump(db, { jumpId: j.id, signerUserId: signer.id });
+		// same DZ re-posted with the form (unchanged) keeps it
+		expect((await updateJump(db, owner.id, j.id, { dropzoneId: a.id, location: null })).signedAt).not.toBeNull();
+		const moved = await updateJump(db, owner.id, j.id, { dropzoneId: b.id, location: null });
+		expect(moved).toMatchObject({ dropzoneId: b.id, signedAt: null, signerUserId: null, signerName: null });
+	});
+
 	test('an imported sign-off (name, no signature) is cleared by fact edits too', async () => {
 		const owner = await makeUser(db);
 		const j = await addJump(db, owner.id, { jumpDate: DAY, altitudeFt: 12000 });
