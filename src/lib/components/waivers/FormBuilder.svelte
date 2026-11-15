@@ -22,10 +22,12 @@
 	// No-JS posts land on the action URL: keep the tab so the page comes back on this form.
 	const act = (name: string) => `?/${name}&tab=${audience}`;
 	let previewing = $state(page.url.searchParams.get('preview') === '1');
+	// Delete asks first (?delete=<id> shows an inline confirm), with or without JS.
+	let deleting = $state<string | null>(page.url.searchParams.get('delete'));
 	let busy = $state(false);
 	let newType = $state<IndemnitySectionType>('acknowledgement');
 	// Preview is a link too (?preview=1): the server renders the dialog open for no-JS taps.
-	syncViewToUrl(() => ({ edit: editing, new: adding ? '1' : null, preview: previewing ? '1' : null }), 0);
+	syncViewToUrl(() => ({ edit: editing, new: adding ? '1' : null, preview: previewing ? '1' : null, delete: deleting }), 0);
 
 	const typeOptions = INDEMNITY_SECTION_TYPES.map((t) => ({ value: t, label: SECTION_TYPE_LABELS[t] }));
 	const TYPE_TONES: Record<IndemnitySectionType, 'neutral' | 'brand' | 'warning' | 'success'> = {
@@ -112,16 +114,35 @@
 										<Button size="icon" variant="ghost" type="submit" disabled={off} aria-label="Move {s.title} {dir}" class="size-8"><Icon name={icon} class="size-4" /></Button>
 									</form>
 								{/each}
-								<Button size="icon" variant="ghost" class="size-8" aria-label="Edit {s.title}" href={href({ edit: s.id, new: null })} onclick={openInPlace(() => ((editing = s.id), (adding = false)))}
+								<Button size="icon" variant="ghost" class="size-8" aria-label="Edit {s.title}" href={href({ edit: s.id, new: null, delete: null })} onclick={openInPlace(() => ((editing = s.id), (adding = false), (deleting = null)))}
 									><Icon name="pencil" class="size-4" /></Button
 								>
-								<form method="POST" action={act('delete')} use:enhance={toastEnhance({ before: () => (confirm(`Delete “${s.title}”?`) ? null : false) })}>
-									<input type="hidden" name="id" value={s.id} />
-									<Button size="icon" variant="ghost" type="submit" class="size-8 hover:text-danger" aria-label="Delete {s.title}"><Icon name="x" class="size-4" /></Button>
-								</form>
+								<Button
+									size="icon"
+									variant="ghost"
+									class="size-8 hover:text-danger"
+									aria-label="Delete {s.title}"
+									href={href({ delete: s.id, edit: null, new: null })}
+									onclick={openInPlace(() => ((deleting = s.id), (editing = null), (adding = false)))}><Icon name="x" class="size-4" /></Button
+								>
 							</div>
 						{/if}
 					</div>
+					{#if canEdit && deleting === s.id}
+						<!-- inline confirm: a link + real form, so it also asks before deleting without JS -->
+						<form
+							method="POST"
+							action={act('delete')}
+							use:enhance={toastEnhance({ onSuccess: () => (deleting = null) })}
+							class="flex flex-wrap items-center justify-end gap-2 border-t border-danger/30 bg-danger/5 px-4 py-3"
+							data-testid="confirm-delete"
+						>
+							<input type="hidden" name="id" value={s.id} />
+							<p class="mr-auto text-sm">Delete “{s.title}”? People who already signed keep their signed copy.</p>
+							<Button variant="ghost" size="sm" href={href({ delete: null })} onclick={openInPlace(() => (deleting = null))}>Cancel</Button>
+							<Button variant="danger" size="sm" type="submit">Delete section</Button>
+						</form>
+					{/if}
 				{/if}
 			</li>
 		{:else}
@@ -156,8 +177,8 @@
 		{:else}
 			<Button
 				variant="secondary"
-				href={href({ new: '1', edit: null })}
-				onclick={openInPlace(() => ((adding = true), (editing = null)))}
+				href={href({ new: '1', edit: null, delete: null })}
+				onclick={openInPlace(() => ((adding = true), (editing = null), (deleting = null)))}
 				class="self-start"
 				data-testid="add-section-{audience}"><Icon name="plus" class="size-4" /> Add section</Button
 			>

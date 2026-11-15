@@ -193,6 +193,14 @@ test('owner runs the back office', async ({ page }) => {
 	await sport.getByRole('button', { name: 'Save section' }).click();
 	await expect(sport.getByRole('heading', { name: 'Risk', exact: true })).toBeVisible();
 	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport$/);
+	// Delete asks first: the ✕ is a ?delete=<id> link showing an inline confirm; Cancel keeps it.
+	await sport.getByRole('link', { name: 'Delete Risk' }).click();
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport&delete=/);
+	await expect(sport.getByTestId('confirm-delete')).toContainText('Delete “Risk”?');
+	await sport.getByTestId('confirm-delete').getByRole('link', { name: 'Cancel' }).click();
+	await expect(sport.getByTestId('confirm-delete')).toHaveCount(0);
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport$/);
+	await expect(sport.getByRole('heading', { name: 'Risk', exact: true })).toBeVisible();
 	// Preview is a ?preview=1 link too: opens in place, closing clears the param.
 	await page.getByTestId('preview-sport').click();
 	await expect(page).toHaveURL(/\/app\/waivers\?tab=sport&preview=1$/);
@@ -226,6 +234,16 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(sportW.getByLabel('Heading')).toHaveCount(0);
 	await sportW.getByRole('button', { name: 'Move Medical up' }).click();
 	await expect(sportW.getByTestId('section').first()).toContainText('Medical');
+	// Without JS, Delete still asks before removing anything.
+	await sportW.getByRole('link', { name: 'Add section' }).click();
+	await sportW.getByLabel('Heading').fill('Temporary');
+	await sportW.getByLabel('Content').fill('Remove me.');
+	await sportW.getByRole('button', { name: 'Add section', exact: true }).click();
+	await sportW.getByRole('link', { name: 'Delete Temporary' }).click();
+	await expect(sportW.getByRole('heading', { name: 'Temporary' })).toBeVisible();
+	await sportW.getByTestId('confirm-delete').getByRole('button', { name: 'Delete section' }).click();
+	await expect(pw.getByText('Section removed')).toBeVisible();
+	await expect(sportW.getByRole('heading', { name: 'Temporary' })).toHaveCount(0);
 	await sportW.getByRole('link', { name: 'Preview' }).click();
 	await expect(dialog(pw).getByText('I am fit to jump.')).toBeVisible();
 	await noJsW.close();
