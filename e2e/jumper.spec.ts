@@ -12,7 +12,7 @@ async function signup(page: Page, name: string) {
 	return email;
 }
 
-test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet', async ({ page }) => {
+test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet', async ({ page, browser }) => {
 	const project = test.info().project.name;
 	await signup(page, 'Jo Jumper');
 	await expect(page.getByTestId('jumper-dashboard')).toBeVisible();
@@ -67,6 +67,36 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	await expect(page.getByTestId('jump-card')).toContainText('12 000 ft');
 	await expect(page.getByTestId('logbook-breakdown')).toBeVisible();
 	await expect(page.getByTestId('breakdown-scope')).toHaveCount(0);
+	// The long dropzone name on the jump card truncates instead of widening the page on a phone
+	expect(await page.evaluate(() => innerWidth)).toBeLessThanOrEqual(page.viewportSize()!.width);
+
+	// Breakdown tabs are ?by= links: switch in place with JS, survive reload, stay off CSV/Print
+	const tabs = page.getByTestId('breakdown-tabs');
+	await expect(tabs.getByRole('link', { name: 'Type' })).toHaveAttribute('aria-current', 'true');
+	await tabs.getByRole('link', { name: 'Year' }).click();
+	await expect(tabs.getByRole('link', { name: 'Year' })).toHaveAttribute('aria-current', 'true');
+	await expect(page.getByTestId('logbook-breakdown')).toContainText(String(new Date().getFullYear()));
+	await expect(page).toHaveURL(/[?&]by=year/);
+	await page.reload();
+	await expect(tabs.getByRole('link', { name: 'Year' })).toHaveAttribute('aria-current', 'true');
+	await expect(page.getByTestId('export-csv')).toHaveAttribute('href', '/app/logbook/export.csv');
+	{
+		const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+		const p = await noJs.newPage();
+		await p.goto('/app/logbook');
+		const t = p.getByTestId('breakdown-tabs');
+		await t.getByRole('link', { name: 'Dropzone' }).click();
+		await expect(p).toHaveURL(/[?&]by=dz/);
+		await expect(t.getByRole('link', { name: 'Dropzone' })).toHaveAttribute('aria-current', 'true');
+		await p.getByTestId('logbook-filters').locator('input[name=q]').fill('freefly');
+		await p.getByTestId('logbook-filters').locator('input[name=q]').press('Enter');
+		await expect(p).toHaveURL(/[?&]q=freefly/);
+		await expect(t.getByRole('link', { name: 'Dropzone' })).toHaveAttribute('aria-current', 'true');
+		await t.getByRole('link', { name: 'Type' }).click();
+		await expect(p).not.toHaveURL(/by=/);
+		await expect(p).toHaveURL(/[?&]q=freefly/);
+		await noJs.close();
+	}
 	const csv = await page.request.get('/app/logbook/export.csv');
 	expect(csv.headers()['content-type']).toContain('text/csv');
 	const body = await csv.text();

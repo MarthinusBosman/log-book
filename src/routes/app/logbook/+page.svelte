@@ -6,20 +6,33 @@
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
 	import BarList from '#lib/components/jumper/BarList.svelte';
 	import JumpCard from '#lib/components/jumper/JumpCard.svelte';
-	import { fmtDate, fmtFreefall, fmtNumber, loggedScope } from '#lib/components/jumper/format.ts';
+	import { exportQuery, fmtDate, fmtFreefall, fmtNumber, loggedScope } from '#lib/components/jumper/format.ts';
+	import { openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
+	import { readChoice } from '#lib/components/staffadmin/list-view.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { JUMP_TYPES, JUMP_TYPE_LABELS } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	const scope = $derived(loggedScope(data.totals));
-	let tab = $state<'type' | 'dz' | 'year'>('type');
-	const rows = $derived(tab === 'type' ? data.breakdown.byType : tab === 'dz' ? data.breakdown.byDropzone : data.breakdown.byYear);
-	const qs = $derived(pageState.url.searchParams.toString());
+	// Breakdown tab follows the URL (?by=dz|year, default type): the tabs are links so they work
+	// before hydration and without JS; once hydrated they switch in place.
+	const BY = ['dz', 'year'] as const;
+	const TABS = [
+		['', 'Type'],
+		['dz', 'Dropzone'],
+		['year', 'Year']
+	] as const;
+	let tab = $state<(typeof BY)[number] | ''>(readChoice(pageState.url.searchParams, 'by', BY));
+	syncViewToUrl(() => ({ by: tab }));
+	const rows = $derived(tab === '' ? data.breakdown.byType : tab === 'dz' ? data.breakdown.byDropzone : data.breakdown.byYear);
+	const qs = $derived(exportQuery(pageState.url.search));
 	const linkFor = (key: string) => {
 		const p = new URLSearchParams();
-		if (tab === 'type') p.set('type', key);
+		if (tab === '') p.set('type', key);
 		else if (tab === 'dz') p.set('place', key);
 		else p.set('year', key);
+		if (tab) p.set('by', tab);
 		return `?${p}`;
 	};
 	const pageHref = (n: number) => {
@@ -47,15 +60,21 @@
 </div>
 
 {#if data.totals.logged > 0}
-	<div class="mt-6 grid gap-6 lg:grid-cols-3">
+	<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
 		<section class="rounded-2xl border border-border bg-surface p-4 sm:p-5 lg:order-2 lg:self-start" data-testid="logbook-breakdown">
 			<div class="flex items-center justify-between gap-2">
 				<h2 class="font-semibold tracking-tight">Breakdown</h2>
-				<div class="inline-flex rounded-lg border border-border bg-surface-2/60 p-0.5 text-xs">
-					{#each [['type', 'Type'], ['dz', 'Dropzone'], ['year', 'Year']] as [id, label] (id)}
-						<button type="button" aria-pressed={tab === id} class={cn('rounded-md px-2.5 py-1 font-medium', tab === id ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg')} onclick={() => (tab = id as typeof tab)}>{label}</button>
+				<nav aria-label="Breakdown by" class="inline-flex rounded-lg border border-border bg-surface-2/60 p-0.5 text-xs" data-testid="breakdown-tabs">
+					{#each TABS as [id, label] (id)}
+						<a
+							href={viewParamsHref(pageState.url, { by: id || null })}
+							onclick={openInPlace(() => (tab = id))}
+							aria-current={tab === id ? 'true' : undefined}
+							data-sveltekit-reset="false"
+							class={cn('rounded-md px-2.5 py-1 font-medium', tab === id ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg')}>{label}</a
+						>
 					{/each}
-				</div>
+				</nav>
 			</div>
 			{#if scope}<p class="mt-1 text-xs text-muted" data-testid="breakdown-scope">{scope.long}</p>{/if}
 			<BarList class="mt-4" rows={rows.slice(0, 8)} href={linkFor} />
@@ -78,6 +97,7 @@
 						{#each data.breakdown.byYear as y (y.key)}<option value={y.key}>{y.key}</option>{/each}
 					</select>
 					{#if data.filters.place}<input type="hidden" name="place" value={data.filters.place} />{/if}
+					{#if tab}<input type="hidden" name="by" value={tab} />{/if}
 					<Button type="submit" variant="secondary" size="md"><JIcon name="filter" class="size-4" /><span class="sr-only sm:not-sr-only">Filter</span></Button>
 				</div>
 			</form>

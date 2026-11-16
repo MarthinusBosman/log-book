@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { fmtFreefall, loggedScope, walletShortfall } from './format.ts';
+import { exportQuery, fmtFreefall, loggedScope, walletShortfall } from './format.ts';
+
+test('exportQuery keeps the logbook filters, drops page and breakdown tab', () => {
+	expect(exportQuery('?q=sunset&type=fun&by=dz&page=3&year=2025')).toBe('q=sunset&type=fun&year=2025');
+	expect(exportQuery('?by=year')).toBe('');
+});
 
 describe('walletShortfall', () => {
 	const w = { availableMinor: 10_000, currency: 'ZAR' };

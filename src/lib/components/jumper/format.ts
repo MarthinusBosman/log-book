@@ -55,6 +55,14 @@ export function fmtNumber(n: number | null | undefined): string {
 	return n === null || n === undefined ? '—' : new Intl.NumberFormat('en-ZA').format(n);
 }
 
+/** Query string for the logbook's CSV/Print links: the filters only (no page or breakdown tab). */
+export function exportQuery(search: string): string {
+	const p = new URLSearchParams(search);
+	p.delete('page');
+	p.delete('by');
+	return p.toString();
+}
+
 /**
  * When a jumper's total (highest jump number / declared count) is above the jumps
  * actually logged here, freefall and the breakdown only cover the logged ones: say so.
