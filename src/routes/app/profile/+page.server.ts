@@ -25,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const [u, ratings, today, pasa, emailChange] = await Promise.all([
 		locals.db.select().from(users).where(eq(users.id, user.id)).limit(1),
 		listRatings(locals.db, user.id),
-		todayAt(locals.db, current?.dropzone.id),
+		todayAt(locals, current?.dropzone.id),
 		pasaCheckVM(locals.db, user.id),
 		pendingEmailChange(locals.db, user.id)
 	]);

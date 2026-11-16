@@ -1,23 +1,21 @@
 import { eq } from 'drizzle-orm';
-import type { Database } from '../db/index.ts';
-import { dropzones, users, type Rig } from '../db/schema.ts';
+import { users, type Rig } from '../db/schema.ts';
+import { requestDropzone } from '../request-cache.ts';
 import { aadStatus, repackIntervalDays, repackStatus, wingLoading, type RigInput } from '../domain/gear.ts';
 import { DomainError } from '../domain/errors.ts';
 import { int, num, opt, todayAt } from './forms.ts';
 
 /** Repack interval, warn window, today and exit weight for a jumper's gear pages. */
-export async function gearContext(db: Database, userId: string, dropzoneId: string | null | undefined) {
-	const [dz, u, today] = await Promise.all([
-		dropzoneId
-			? db.select({ days: dropzones.repackIntervalDays, country: dropzones.country, settings: dropzones.settings, name: dropzones.name }).from(dropzones).where(eq(dropzones.id, dropzoneId)).limit(1)
-			: Promise.resolve([]),
-		db.select({ w: users.loadingWeightKg, w2: users.weightKg }).from(users).where(eq(users.id, userId)).limit(1),
-		todayAt(db, dropzoneId)
+export async function gearContext(locals: Pick<App.Locals, 'db' | 'cache'>, userId: string, dropzoneId: string | null | undefined) {
+	// The dropzone row comes from the per-request cache (the /app layout already read it).
+	const [d, u, today] = await Promise.all([
+		dropzoneId ? requestDropzone(locals, dropzoneId) : Promise.resolve(undefined),
+		locals.db.select({ w: users.loadingWeightKg, w2: users.weightKg }).from(users).where(eq(users.id, userId)).limit(1),
+		todayAt(locals, dropzoneId)
 	]);
-	const d = dz[0];
 	return {
 		today,
-		intervalDays: repackIntervalDays({ dropzoneDays: d?.days, country: d?.country }),
+		intervalDays: repackIntervalDays({ dropzoneDays: d?.repackIntervalDays, country: d?.country }),
 		intervalSource: d ? d.name : null,
 		warnDays: d?.settings.gearWarnDays ?? 30,
 		exitWeightKg: u[0]?.w ?? u[0]?.w2 ?? null

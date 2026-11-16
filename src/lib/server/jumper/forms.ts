@@ -1,9 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { formatMoney } from '../../domain/constants.ts';
 import { parseMoney } from '../../components/staffadmin/money.ts';
-import { eq } from 'drizzle-orm';
-import type { Database } from '../db/index.ts';
-import { dropzones } from '../db/schema.ts';
+import { requestDropzone } from '../request-cache.ts';
 import { localDate } from '../domain/time.ts';
 import { isDomainError, type DomainError } from '../domain/errors.ts';
 
@@ -115,8 +113,11 @@ export function seconds(form: FormData, key: string): number | null {
 	return Number.isFinite(n) ? Math.round(n) : NaN;
 }
 
-/** Today's calendar date at a dropzone (its timezone), or UTC without one. */
-export async function todayAt(db: Database, dropzoneId: string | null | undefined, now = Date.now()): Promise<string> {
-	const tz = dropzoneId ? (await db.select({ tz: dropzones.timezone }).from(dropzones).where(eq(dropzones.id, dropzoneId)).limit(1))[0]?.tz : undefined;
+/**
+ * Today's calendar date at a dropzone (its timezone), or UTC without one. Reads the dropzone via
+ * the per-request cache, so on page loads under /app (whose layout already read it) it costs no query.
+ */
+export async function todayAt(locals: Pick<App.Locals, 'db' | 'cache'>, dropzoneId: string | null | undefined, now = Date.now()): Promise<string> {
+	const tz = dropzoneId ? (await requestDropzone(locals, dropzoneId))?.timezone : undefined;
 	return localDate(now, tz ?? 'UTC');
 }

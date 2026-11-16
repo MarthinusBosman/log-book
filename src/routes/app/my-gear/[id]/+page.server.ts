@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ locals, params, url, parent }) => {
 	const user = requireUser(locals, url);
 	const { current } = await parent();
 	const rig = await ownRig(locals, user.id, params.id);
-	const [ctx, history] = await Promise.all([gearContext(locals.db, user.id, current?.dropzone.id), listServiceHistory(locals.db, rig.id)]);
+	const [ctx, history] = await Promise.all([gearContext(locals, user.id, current?.dropzone.id), listServiceHistory(locals.db, rig.id)]);
 	return {
 		ctx,
 		rig: rigView(rig, ctx),
@@ -31,7 +31,7 @@ export const actions: Actions = {
 		const rig = await ownRig(locals, user.id, params.id);
 		const form = await request.formData();
 		try {
-			const ctx = await gearContext(locals.db, user.id, null);
+			const ctx = await gearContext(locals, user.id, null);
 			await updateRig(locals.db, rig.id, parseRigForm(form, ctx.exitWeightKg));
 		} catch (e) {
 			return domainFail(e, { action: 'update', values: rigFormEcho(form) });

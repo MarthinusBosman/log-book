@@ -7,7 +7,7 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const user = requireUser(locals, url);
 	const { current } = await parent();
-	return { ctx: await gearContext(locals.db, user.id, current?.dropzone.id) };
+	return { ctx: await gearContext(locals, user.id, current?.dropzone.id) };
 };
 
 export const actions: Actions = {
@@ -16,7 +16,7 @@ export const actions: Actions = {
 		const form = await request.formData();
 		let id: string;
 		try {
-			const ctx = await gearContext(locals.db, user.id, null);
+			const ctx = await gearContext(locals, user.id, null);
 			id = (await createRig(locals.db, { userId: user.id }, parseRigForm(form, ctx.exitWeightKg))).id;
 		} catch (e) {
 			return domainFail(e, { values: rigFormEcho(form) });

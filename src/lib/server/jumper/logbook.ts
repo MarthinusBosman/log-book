@@ -2,7 +2,7 @@ import { eq, inArray, isNotNull, and } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { dropzones, logbookJumps, type LogbookJump } from '../db/schema.ts';
 import { listFollowedDropzones } from '../domain/dropzone-admin.ts';
-import { listMemberships } from '../dropzones/index.ts';
+import { requestMemberships } from '../request-cache.ts';
 import { listUserRigs } from '../domain/gear.ts';
 import { DomainError } from '../domain/errors.ts';
 import { assertJumpDateInRange, type JumpInput, type JumpFilters } from '../domain/logbook.ts';
@@ -11,9 +11,11 @@ import { JUMP_TYPES, type JumpType } from '../../domain/constants.ts';
 import { int, opt, seconds, str } from './forms.ts';
 
 /** Dropzones a jumper can pick for a jump: memberships, follows and any DZ already in their logbook. */
-export async function dropzoneOptions(db: Database, userId: string) {
+export async function dropzoneOptions(locals: Pick<App.Locals, 'db' | 'cache'>, userId: string) {
+	const db = locals.db;
+	// Memberships come from the per-request cache (the /app layout already read them on page loads).
 	const [members, follows, used] = await Promise.all([
-		listMemberships(db, userId),
+		requestMemberships(locals, userId),
 		listFollowedDropzones(db, userId),
 		db.selectDistinct({ id: logbookJumps.dropzoneId }).from(logbookJumps).where(and(eq(logbookJumps.userId, userId), isNotNull(logbookJumps.dropzoneId)))
 	]);

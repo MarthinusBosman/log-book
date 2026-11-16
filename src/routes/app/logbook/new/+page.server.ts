@@ -7,14 +7,14 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const user = requireUser(locals, url);
 	const { current } = await parent();
-	const [next, dropzones, rigs] = await Promise.all([nextJumpNumber(locals.db, user.id), dropzoneOptions(locals.db, user.id), rigOptions(locals.db, user.id)]);
+	const [next, dropzones, rigs] = await Promise.all([nextJumpNumber(locals.db, user.id), dropzoneOptions(locals, user.id), rigOptions(locals.db, user.id)]);
 	const activeRigs = rigs.filter((r) => r.active);
 	return {
 		dropzones,
 		rigs,
 		values: {
 			jumpNumber: next,
-			jumpDate: await todayAt(locals.db, current?.dropzone.id),
+			jumpDate: await todayAt(locals, current?.dropzone.id),
 			dropzoneId: current && dropzones.some((d) => d.id === current.dropzone.id) ? current.dropzone.id : (dropzones[0]?.id ?? null),
 			location: null,
 			aircraft: null,
@@ -33,7 +33,7 @@ export const actions: Actions = {
 		const form = await request.formData();
 		let id: string;
 		try {
-			const allowed = new Set((await dropzoneOptions(locals.db, user.id)).map((d) => d.id));
+			const allowed = new Set((await dropzoneOptions(locals, user.id)).map((d) => d.id));
 			const input = parseJumpForm(form, allowed);
 			if (input.rigId && !(await rigOptions(locals.db, user.id)).some((r) => r.id === input.rigId)) input.rigId = null;
 			id = (await addJump(locals.db, user.id, input)).id;

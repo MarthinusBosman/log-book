@@ -9,7 +9,7 @@ const PAGE_SIZE = 50;
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const user = requireUser(locals, url);
 	const { current } = await parent();
-	const today = await todayAt(locals.db, current?.dropzone.id);
+	const today = await todayAt(locals, current?.dropzone.id);
 	const filters = filtersFromUrl(url);
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
 	const [totals, breakdown, jumps, matched] = await Promise.all([

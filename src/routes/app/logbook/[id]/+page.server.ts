@@ -17,7 +17,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const user = requireUser(locals, url);
 	const jump = await ownJump(locals, user.id, params.id);
 	const [dropzones, rigs, names, hints] = await Promise.all([
-		dropzoneOptions(locals.db, user.id),
+		dropzoneOptions(locals, user.id),
 		rigOptions(locals.db, user.id),
 		dzNameMap(locals.db, [jump]),
 		jumpSequenceHints(locals.db, user.id, jump)
@@ -50,7 +50,7 @@ export const actions: Actions = {
 		const jump = await ownJump(locals, user.id, params.id);
 		const form = await request.formData();
 		try {
-			const allowed = new Set((await dropzoneOptions(locals.db, user.id)).map((d) => d.id));
+			const allowed = new Set((await dropzoneOptions(locals, user.id)).map((d) => d.id));
 			if (jump.dropzoneId) allowed.add(jump.dropzoneId);
 			const input = parseJumpForm(form, allowed);
 			if (input.rigId && !(await rigOptions(locals.db, user.id)).some((r) => r.id === input.rigId)) input.rigId = null;
