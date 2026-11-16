@@ -6,7 +6,7 @@ import { hashPassword, verifyPassword } from '../auth/password.ts';
 import { isDomainError } from './errors.ts';
 import { addJump, countJumps, listJumps, logbookBreakdown } from './logbook.ts';
 import { addSlot, createLoads, startCall, upcomingSlotsForUser, completeLoad } from './loads.ts';
-import { cancelTopUpRequest, completeTopUpRequest, listPendingTopUpsForDropzone, listTopUpRequests, requestTopUp, settleTopUpRequest } from './payments.ts';
+import { cancelTopUpRequest, completeTopUpRequest, listPendingTopUpsForDropzone, listTopUpRequests, pendingTopUpTotals, requestTopUp, settleTopUpRequest } from './payments.ts';
 import { listNotifications } from './notifications.ts';
 import { formatMoney } from '../../domain/constants.ts';
 import { getAccount, listLedger } from './wallet.ts';
@@ -127,6 +127,21 @@ describe('top-up requests', () => {
 		// Online requests confirm themselves from the provider; staff can't mark them paid.
 		const online = await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 1000, provider: 'payfast', now: NOW });
 		await expect(settleTopUpRequest(db, { ...base, paymentId: online.id, outcome: 'paid' })).rejects.toThrow(/not found/);
+	});
+
+	test('pending desk totals per jumper: summed, desk-only, this DZ only', async () => {
+		const { dz } = await makeDropzone(db, { walletEnabled: true });
+		const { dz: other } = await makeDropzone(db, { walletEnabled: true });
+		const u = await makeUser(db);
+		const v = await makeUser(db);
+		await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 50000, provider: 'manual', now: NOW });
+		await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 1050, provider: 'manual', now: NOW + 1000 });
+		await requestTopUp(db, { userId: u.id, dropzoneId: dz.id, amountMinor: 999, provider: 'payfast', now: NOW + 2000 });
+		await requestTopUp(db, { userId: v.id, dropzoneId: other.id, amountMinor: 700, provider: 'manual', now: NOW });
+		const cancelled = await requestTopUp(db, { userId: v.id, dropzoneId: dz.id, amountMinor: 300, provider: 'manual', now: NOW });
+		await cancelTopUpRequest(db, cancelled.id, v.id);
+		expect(await pendingTopUpTotals(db, dz.id)).toEqual({ [u.id]: 51050 });
+		expect(await pendingTopUpTotals(db, other.id)).toEqual({ [v.id]: 700 });
 	});
 
 	test('validation, wallet disabled and cancel', async () => {

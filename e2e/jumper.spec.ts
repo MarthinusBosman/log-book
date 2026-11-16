@@ -366,6 +366,12 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.getByTestId('topup-submit').click();
 	await expect(page.getByTestId('pending-topups')).toContainText(/R\s?150,50/);
 
+	// The Jumpers list flags the money waiting at the desk (both requests summed) + a filter chip.
+	await page.goto('/app/jumpers?show=topup');
+	await expect(page.locator('tbody tr')).toHaveCount(1);
+	await expect(page.getByTestId('topup-to-collect')).toHaveText(/R\s?1\s?150,50 to collect/);
+	await expect(page.getByRole('button', { name: /Top-up to collect\s*1/ })).toHaveAttribute('aria-pressed', 'true');
+
 	// Manifest sees the desk requests on the dashboard and settles them on the jumper's page.
 	await page.goto('/app');
 	const collect = page.getByTestId('topups-to-collect');
@@ -386,6 +392,9 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await expect(requests).toHaveCount(0);
 	await page.goto('/app');
 	await expect(page.getByTestId('topups-to-collect')).toHaveCount(0);
+	await page.goto('/app/jumpers');
+	await expect(page.getByTestId('topup-to-collect')).toHaveCount(0);
+	await expect(page.getByRole('button', { name: /Top-up to collect/ })).toHaveCount(0);
 	await page.goto('/app/wallet');
 	await page.locator('main a[href^="/app/wallet/"]').first().click();
 	await expect(page.getByTestId('pending-topups')).toHaveCount(0);

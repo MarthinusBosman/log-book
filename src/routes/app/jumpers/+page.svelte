@@ -15,11 +15,11 @@
 
 	let { data }: PageProps = $props();
 	type Row = (typeof data.jumpers)[number];
-	type Filter = '' | 'checked_in' | 'membership' | 'waiver' | 'negative' | 'staff';
+	type Filter = '' | 'checked_in' | 'membership' | 'waiver' | 'negative' | 'topup' | 'staff';
 
 	// Search text and filter chip follow the URL (?q=, ?show=): back from a jumper, reload and
 	// shared links keep the view.
-	const FILTERS = ['checked_in', 'membership', 'waiver', 'negative', 'staff'] as const;
+	const FILTERS = ['checked_in', 'membership', 'waiver', 'negative', 'topup', 'staff'] as const;
 	let q = $state(readQuery(page.url.searchParams));
 	let filter = $state<Filter>(readChoice(page.url.searchParams, 'show', FILTERS));
 	syncViewToUrl(() => ({ q: q.trim(), show: filter }));
@@ -32,6 +32,7 @@
 		membership: (r) => r.membership.status !== 'valid',
 		waiver: (r) => r.waiver === 'missing',
 		negative: (r) => r.availableMinor < 0,
+		topup: (r) => !!data.topUps[r.userId],
 		staff: (r) => r.isStaff
 	};
 	const filtered = $derived.by(() => {
@@ -55,6 +56,7 @@
 			{ id: 'membership' as Filter, label: 'Membership issue', n: count('membership') },
 			...(data.waiverRequired ? [{ id: 'waiver' as Filter, label: 'No waiver', n: count('waiver') }] : []),
 			...(data.walletEnabled ? [{ id: 'negative' as Filter, label: 'Negative balance', n: count('negative') }] : []),
+			{ id: 'topup' as Filter, label: 'Top-up to collect', n: count('topup') },
 			{ id: 'staff' as Filter, label: 'Staff', n: count('staff') }
 		].filter((c) => c.id === '' || c.n > 0 || c.id === filter)
 	);
@@ -156,6 +158,9 @@
 					<td class="py-2.5 pr-4 pl-3 text-right font-medium tabular-nums {r.availableMinor < 0 ? 'text-danger' : r.availableMinor === 0 ? 'text-subtle' : ''}">
 						{money(r.availableMinor)}
 						{#if r.pendingMinor}<span class="block text-xs font-normal text-muted">{money(r.pendingMinor)} held</span>{/if}
+						{#if data.topUps[r.userId]}
+							<span class="mt-0.5 block text-xs font-medium text-warning" data-testid="topup-to-collect">{money(data.topUps[r.userId])} to collect</span>
+						{/if}
 					</td>
 				</tr>
 			{:else}

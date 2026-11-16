@@ -201,6 +201,15 @@ export async function listPendingTopUpsForDropzone(db: Database, dropzoneId: str
 		.orderBy(asc(payments.createdAt));
 }
 
+/** Pay-at-manifest money waiting per jumper at a DZ (userId → total minor units), for the Jumpers list. */
+export async function pendingTopUpTotals(db: Database, dropzoneId: string): Promise<Record<string, number>> {
+	const totals: Record<string, number> = {};
+	for (const { payment, user } of await listPendingTopUpsForDropzone(db, dropzoneId)) {
+		totals[user.id] = (totals[user.id] ?? 0) + payment.amountMinor;
+	}
+	return totals;
+}
+
 /** The requesting user cancels their own pending request. */
 export async function cancelTopUpRequest(db: Database, paymentId: string, userId: string): Promise<void> {
 	const p = assertFound((await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1))[0], 'Top-up request');
