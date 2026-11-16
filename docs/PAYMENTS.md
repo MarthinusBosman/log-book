@@ -59,6 +59,7 @@ customer abandons ──► jumper wallet lists it under "Pending top-ups" with 
 | `src/lib/server/payments/config.ts` | per-dropzone settings: decrypt for use, mask for the UI, save |
 | `src/lib/server/payments/index.ts` | registry, `dropzonePayments()` (which providers are usable), `startTandemCheckout` / `startTopUpCheckout`, `handleProviderWebhook`, `verifyOnReturn` |
 | `src/lib/server/domain/online-payments.ts` | pending payment creation + `confirmOnlinePayment` (the only place money effects happen) |
+| `src/lib/server/payments/timeout.ts` | `fetchWithTimeout`: every provider call aborts after 15 s (`PROVIDER_TIMEOUT_MS`) with "<host> did not answer…", so a hanging provider can't hang checkout, Test connection or a webhook; wired in `runtime.ts` |
 | `src/lib/server/payments/mock.ts`, `scripts/mock-payments.ts` | local mocks of all four providers (see Testing) |
 | `src/routes/api/payments/[provider]/[dropzoneId]/+server.ts` | webhook / ITN endpoint |
 | `src/routes/pay/[paymentId]/…` | PayFast hand-off form, `return`, `cancel` |
