@@ -150,6 +150,12 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	const drawer = page.locator('dialog[open]');
 	await expect(drawer.getByRole('heading', { name: 'Emergency contact' })).toBeVisible();
 	await expect(drawer.locator('dl > :not(dt, dd, div)')).toHaveCount(0);
+	// In the drawer the name sits under the dialog title (h2); as a full page it is the h1.
+	await expect(drawer.getByRole('heading', { level: 2, name: 'Pat Passenger' })).toBeVisible();
+	await drawer.getByRole('link', { name: 'Open as full page →' }).click();
+	await expect(page.getByRole('heading', { level: 1, name: 'Pat Passenger' })).toBeVisible();
+	await expect(page.getByRole('heading', { level: 2, name: 'Emergency contact' })).toHaveCount(0);
+	await expect(page.getByRole('heading', { level: 3, name: 'Emergency contact' })).toBeVisible();
 
 	// Signed waiver is listed with a PDF.
 	await page.goto('/app/waivers?tab=signed');

@@ -100,4 +100,29 @@ describe('svelte a11y lint', () => {
 		}
 		expect(bad).toEqual([]);
 	});
+
+	test('every page renders an <h1> (itself, through a component, or from a layout above it)', () => {
+		// axe page-has-heading-one: the full-page tandem booking and the /pay hand-off had none.
+		const h1Components = files
+			.filter((f) => f.name.startsWith('lib/') && /<h1\b/.test(f.text))
+			.map((f) => f.name.split('/').pop()!.replace('.svelte', ''));
+		const hasH1 = (text: string) =>
+			/<h1\b|\blevel=\{1\}/.test(text) || h1Components.some((c) => new RegExp(`<${c}\\b`).test(text));
+		const byName = new Map(files.map((f) => [f.name, f.text]));
+		const pages = files.filter((f) => /\+page(@[^/]*)?\.svelte$/.test(f.name) && !f.text.includes('never rendered'));
+		expect(pages.length).toBeGreaterThan(30);
+		const missing = pages
+			.filter((f) => {
+				if (hasH1(f.text)) return false;
+				if (f.name.includes('+page@')) return true; // resets the layouts: must carry its own
+				const dirs = f.name.split('/').slice(0, -1);
+				for (let i = dirs.length; i >= 1; i--) {
+					const layout = byName.get([...dirs.slice(0, i), '+layout.svelte'].join('/'));
+					if (layout && hasH1(layout)) return false;
+				}
+				return true;
+			})
+			.map((f) => f.name);
+		expect(missing).toEqual([]);
+	});
 });

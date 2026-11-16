@@ -28,8 +28,13 @@
 		dz: { slug: string; currency: string };
 		offer: { extras: { code: SlotExtra; priceMinor: number }[] };
 		limits: TandemLimits;
+		/** Heading level of the passenger's name: 1 on the full page, 2 inside the drawer (under its title). */
+		level?: 1 | 2;
 	};
-	let { detail, dz, offer, limits }: Props = $props();
+	let { detail, dz, offer, limits, level = 2 }: Props = $props();
+	const hName = $derived(`h${level}`);
+	const hSection = $derived(`h${level + 1}`);
+	const hSub = $derived(`h${level + 2}`);
 
 	const p = $derived(detail.passenger);
 	const action = (name: string) => `/app/tandems/${p.id}?/${name}`;
@@ -72,7 +77,7 @@
 				{#if p.onlineBooking}<Badge tone="neutral">Online</Badge>{/if}
 				{#if minor}<Badge tone="warning">Under 18</Badge>{/if}
 			</div>
-			<h2 class="mt-2 truncate text-xl font-semibold tracking-tight">{p.name}</h2>
+			<svelte:element this={hName} class="mt-2 truncate text-xl font-semibold tracking-tight">{p.name}</svelte:element>
 			<p class="mt-0.5 text-sm text-muted">
 				{p.jumpDate ? fmtDay(p.jumpDate, { weekday: 'long', day: 'numeric', month: 'long' }) : 'No date'}{p.bookingTime ? ` · ${p.bookingTime}` : ''}
 			</p>
@@ -117,7 +122,7 @@
 
 	<!-- manifest -->
 	<section class="rounded-2xl border border-border bg-surface-2/40 p-4">
-		<h3 class="flex items-center gap-2 text-sm font-semibold"><Icon name="plane" class="size-4 text-primary" /> Manifest</h3>
+		<svelte:element this={hSection} class="flex items-center gap-2 text-sm font-semibold"><Icon name="plane" class="size-4 text-primary" /> Manifest</svelte:element>
 		{#if pax}
 			<p class="mt-2 text-sm">
 				On <span class="font-semibold">Load {pax.loadNumber}</span>
@@ -166,7 +171,7 @@
 
 	<!-- payment -->
 	<section class="rounded-2xl border border-border p-4">
-		<h3 class="flex items-center gap-2 text-sm font-semibold"><Icon name="wallet" class="size-4 text-primary" /> Payment</h3>
+		<svelte:element this={hSection} class="flex items-center gap-2 text-sm font-semibold"><Icon name="wallet" class="size-4 text-primary" /> Payment</svelte:element>
 		<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
 			<dt class="text-muted">Tandem skydive</dt>
 			<dd class="text-right tabular-nums">{money(p.totalMinor)}</dd>
@@ -217,7 +222,7 @@
 
 	<!-- indemnity -->
 	<section class="rounded-2xl border border-border p-4">
-		<h3 class="flex items-center gap-2 text-sm font-semibold"><Icon name="waiver" class="size-4 text-primary" /> Indemnity</h3>
+		<svelte:element this={hSection} class="flex items-center gap-2 text-sm font-semibold"><Icon name="waiver" class="size-4 text-primary" /> Indemnity</svelte:element>
 		{#if detail.signature}
 			<p class="mt-2 text-sm">
 				Signed by <span class="font-medium">{detail.signature.signerName}</span>
@@ -246,7 +251,7 @@
 			{/if}
 		{/snippet}
 		<div class="grid content-start gap-2 rounded-2xl border border-border p-4">
-			<h4 class="text-xs font-semibold tracking-wider text-muted uppercase">Passenger</h4>
+			<svelte:element this={hSub} class="text-xs font-semibold tracking-wider text-muted uppercase">Passenger</svelte:element>
 			<dl class="grid gap-2">
 			{@render item('Email', p.email)}
 			{@render item('Phone', p.phone)}
@@ -260,14 +265,14 @@
 			</dl>
 		</div>
 		<div class="grid content-start gap-2 rounded-2xl border border-border p-4">
-			<h4 class="text-xs font-semibold tracking-wider text-muted uppercase">Emergency contact</h4>
+			<svelte:element this={hSub} class="text-xs font-semibold tracking-wider text-muted uppercase">Emergency contact</svelte:element>
 			<dl class="grid gap-2">
 			{@render item('Name', p.emergencyName ?? '—')}
 			{@render item('Phone', p.emergencyPhone)}
 			{@render item('Email', p.emergencyEmail)}
 			</dl>
 			{#if minor || p.guardianName}
-				<h4 class="mt-2 text-xs font-semibold tracking-wider text-warning uppercase">Guardian</h4>
+				<svelte:element this={hSub} class="mt-2 text-xs font-semibold tracking-wider text-warning uppercase">Guardian</svelte:element>
 				<dl class="grid gap-2">
 				{@render item('Name', p.guardianName ?? 'Missing')}
 				{@render item('Email', p.guardianEmail)}
