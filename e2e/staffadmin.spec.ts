@@ -311,14 +311,39 @@ test('owner runs the back office', async ({ page }) => {
 	await go(page, '/app/jumpers');
 	// Search text and filter chip stay in the URL, so back from a jumper returns to the same list.
 	await page.getByLabel('Search', { exact: true }).fill('Mia');
-	await page.getByRole('button', { name: /^Staff/ }).click();
+	const chipBar = page.getByRole('navigation', { name: 'Filter jumpers' });
+	await chipBar.getByRole('link', { name: /^Staff/ }).click();
 	await expect(page).toHaveURL(/\/app\/jumpers\?q=Mia&show=staff$/);
 	await page.getByRole('link', { name: /Mia Member/ }).click();
 	await expect(page.getByRole('heading', { name: 'Mia Member' })).toBeVisible();
 	await page.goBack();
 	await expect(page.getByLabel('Search', { exact: true })).toHaveValue('Mia');
-	await expect(page.getByRole('button', { name: /^Staff/ })).toHaveAttribute('aria-pressed', 'true');
+	await expect(chipBar.getByRole('link', { name: /^Staff/ })).toHaveAttribute('aria-current', 'true');
 	await expect(page.locator('main').getByRole('link', { name: /Olga Owner/ })).toHaveCount(0);
+	// Without JS (or before hydration) the chips are plain links and the search keeps the chip.
+	{
+		const noJs = await page.context().browser()!.newContext({
+			javaScriptEnabled: false,
+			baseURL: new URL(page.url()).origin,
+			storageState: await page.context().storageState()
+		});
+		const plain = await noJs.newPage();
+		await plain.goto('/app/jumpers');
+		const chips = plain.getByRole('navigation', { name: 'Filter jumpers' });
+		await expect(chips.getByRole('link', { name: /^All/ })).toHaveAttribute('aria-current', 'true');
+		await chips.getByRole('link', { name: /^Staff/ }).click();
+		await expect(plain).toHaveURL(/\/app\/jumpers\?show=staff$/);
+		await expect(chips.getByRole('link', { name: /^Staff/ })).toHaveAttribute('aria-current', 'true');
+		await expect(plain.locator('main').getByRole('link', { name: /Olga Owner/ })).toBeVisible();
+		await plain.getByLabel('Search', { exact: true }).fill('Mia');
+		await plain.getByLabel('Search', { exact: true }).press('Enter');
+		await expect(plain).toHaveURL(/\/app\/jumpers\?q=Mia&show=staff$/);
+		await expect(plain.locator('main').getByRole('link', { name: /Mia Member/ })).toBeVisible();
+		await expect(plain.locator('main').getByRole('link', { name: /Olga Owner/ })).toHaveCount(0);
+		await chips.getByRole('link', { name: /^All/ }).click();
+		await expect(plain).toHaveURL(/\/app\/jumpers\?q=Mia$/);
+		await noJs.close();
+	}
 	await page.getByRole('link', { name: /Mia Member/ }).click();
 	await expect(page.getByRole('heading', { name: 'Mia Member' })).toBeVisible();
 	await page.getByLabel('Amount').fill('300');

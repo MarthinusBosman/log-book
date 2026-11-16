@@ -5,7 +5,8 @@
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
 	import { page } from '$app/state';
 	import SearchBox from '#lib/components/staffadmin/SearchBox.svelte';
-	import { readChoice, readQuery } from '#lib/components/staffadmin/list-view.ts';
+	import { readChoice, readQuery, revealInRow } from '#lib/components/staffadmin/list-view.ts';
+	import { openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import SortTh from '#lib/components/staffadmin/SortTh.svelte';
 	import { Sorter } from '#lib/components/staffadmin/sorter.svelte.ts';
@@ -60,6 +61,15 @@
 			{ id: 'staff' as Filter, label: 'Staff', n: count('staff') }
 		].filter((c) => c.id === '' || c.n > 0 || c.id === filter)
 	);
+	// On a phone the chip row scrolls sideways: keep the active chip in view (deep links such as
+	// ?show=topup otherwise land with it off-screen).
+	let chipBar = $state<HTMLElement>();
+	$effect(() => {
+		void filter;
+		const bar = chipBar;
+		const el = bar?.querySelector<HTMLElement>('[data-active]');
+		if (bar && el) revealInRow(bar, el);
+	});
 	const totalBalance = $derived(data.jumpers.reduce((a, r) => a + r.availableMinor, 0));
 	const memTone = { valid: 'success', expiring: 'warning', expired: 'danger', none: 'neutral' } as const;
 	const memText = (r: Row) =>
@@ -91,24 +101,31 @@
 	{/if}
 </div>
 
+<!-- Without JS, Enter submits the search natively (the server renders the filtered list); the
+     hidden field keeps the active chip. -->
 <form method="GET" class="mt-6" onsubmit={(e) => e.preventDefault()}>
 	<SearchBox bind:value={q} name="q" placeholder="Search name, email, licence or association no." />
+	{#if filter}<input type="hidden" name="show" value={filter} />{/if}
 </form>
-<div class="scrollbar-none -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+<!-- Chips are ?show= links so they work before hydration and without JS; once hydrated they
+     switch the filter in place. -->
+<nav aria-label="Filter jumpers" bind:this={chipBar} class="scrollbar-none -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
 	{#each chips as c (c.id)}
-		<button
-			type="button"
-			onclick={() => (filter = c.id)}
-			aria-pressed={filter === c.id}
+		<a
+			href={viewParamsHref(page.url, { show: c.id || null })}
+			onclick={openInPlace(() => (filter = c.id))}
+			aria-current={filter === c.id ? 'true' : undefined}
+			data-active={filter === c.id ? '' : undefined}
+			data-sveltekit-reset="false"
 			class={cn(
 				'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors',
 				filter === c.id ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-surface text-muted hover:text-fg'
 			)}
 		>
 			{c.label}<span class="font-normal tabular-nums">{c.n}</span>
-		</button>
+		</a>
 	{/each}
-</div>
+</nav>
 
 <div class="mt-3 overflow-x-auto rounded-2xl border border-border bg-surface">
 	<table class="w-full text-sm">

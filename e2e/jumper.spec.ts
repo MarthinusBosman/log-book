@@ -370,7 +370,9 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.goto('/app/jumpers?show=topup');
 	await expect(page.locator('tbody tr')).toHaveCount(1);
 	await expect(page.getByTestId('topup-to-collect')).toHaveText(/R\s?1\s?150,50 to collect/);
-	await expect(page.getByRole('button', { name: /Top-up to collect\s*1/ })).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.getByRole('navigation', { name: 'Filter jumpers' }).getByRole('link', { name: /Top-up to collect\s*1/ })).toHaveAttribute('aria-current', 'true');
+	// On a phone the chip row scrolls sideways; the active chip is scrolled into view.
+	await expect(page.getByRole('navigation', { name: 'Filter jumpers' }).getByRole('link', { name: /Top-up to collect/ })).toBeInViewport({ ratio: 1 });
 
 	// Manifest sees the desk requests on the dashboard and settles them on the jumper's page.
 	await page.goto('/app');
@@ -394,7 +396,7 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await expect(page.getByTestId('topups-to-collect')).toHaveCount(0);
 	await page.goto('/app/jumpers');
 	await expect(page.getByTestId('topup-to-collect')).toHaveCount(0);
-	await expect(page.getByRole('button', { name: /Top-up to collect/ })).toHaveCount(0);
+	await expect(page.getByRole('navigation', { name: 'Filter jumpers' }).getByRole('link', { name: /Top-up to collect/ })).toHaveCount(0);
 	await page.goto('/app/wallet');
 	await page.locator('main a[href^="/app/wallet/"]').first().click();
 	await expect(page.getByTestId('pending-topups')).toHaveCount(0);

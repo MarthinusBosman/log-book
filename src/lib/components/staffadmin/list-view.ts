@@ -16,6 +16,24 @@ export function readChoice<T extends string>(params: Pick<URLSearchParams, 'get'
 	return v && allowed.includes(v) ? v : '';
 }
 
+/**
+ * New `scrollLeft` for a sideways-scrolling row so the item at [left, left + width) (content
+ * coordinates) is fully visible with `pad` px to spare, or null when it already is.
+ */
+export function rowScrollToReveal(scrollLeft: number, viewWidth: number, left: number, width: number, pad = 16): number | null {
+	if (left - pad < scrollLeft) return Math.max(0, left - pad);
+	if (left + width + pad > scrollLeft + viewWidth) return Math.max(0, Math.min(left - pad, left + width + pad - viewWidth));
+	return null;
+}
+
+/** Scroll `row` sideways (no vertical page scroll) so `item` is visible. */
+export function revealInRow(row: HTMLElement, item: HTMLElement): void {
+	if (row.scrollWidth <= row.clientWidth) return;
+	const left = item.getBoundingClientRect().left - row.getBoundingClientRect().left + row.scrollLeft;
+	const next = rowScrollToReveal(row.scrollLeft, row.clientWidth, left, item.offsetWidth);
+	if (next !== null) row.scrollLeft = next;
+}
+
 /** `href` with each key set (or removed when empty/null); other query params are kept. */
 export function listViewHref(href: string, view: Record<string, string | null | undefined>): string {
 	const url = new URL(href);
