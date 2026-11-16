@@ -377,4 +377,8 @@ test('owner runs the back office', async ({ page }) => {
 	await page.setViewportSize({ width: 1280, height: 900 });
 	await go(page, '/app/reports/print');
 	await expect(page.getByRole('heading', { name: 'Jump Report' })).toBeVisible();
+	// Print sheets skip the app shell: they still need a main landmark (skip-link target).
+	await expect(page.getByRole('main').getByRole('heading', { name: 'Jump Report' })).toBeVisible();
+	await go(page, '/app/reports/loadsheet');
+	await expect(page.getByRole('main').getByLabel('Day', { exact: true })).toHaveAttribute('type', 'date');
 });

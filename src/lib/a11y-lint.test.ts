@@ -36,6 +36,19 @@ describe('svelte a11y lint', () => {
 		expect(missing).toEqual([]);
 	});
 
+	test('pages that reset to the root layout (+page@) render a <main> landmark', () => {
+		// The app shell provides <main id="main">; print sheets and the hangar board skip it.
+		const withMain = files
+			.filter((f) => f.name.startsWith('lib/') && /<main\b/.test(f.text))
+			.map((f) => f.name.split('/').pop()!.replace('.svelte', ''));
+		const resets = files.filter((f) => /\+(page|layout)@[^/]*\.svelte$/.test(f.name));
+		expect(resets.length).toBeGreaterThan(0);
+		const missing = resets
+			.filter((f) => !/<main\b/.test(f.text) && !withMain.some((c) => new RegExp(`<${c}\\b`).test(f.text)))
+			.map((f) => f.name);
+		expect(missing).toEqual([]);
+	});
+
 	test('<dl> starts with a term, not a heading or paragraph', () => {
 		const bad: string[] = [];
 		for (const f of files) {

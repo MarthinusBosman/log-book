@@ -11,7 +11,7 @@
 
 <PageHeader title="Add gear" back={{ href: '/app/my-gear', label: 'My gear' }} />
 <div class="mx-auto max-w-2xl">
-	<Card>
+	<Card title="Rig details">
 		<RigForm values={form?.values ?? {}} exitWeightKg={data.ctx.exitWeightKg} intervalDays={data.ctx.intervalDays} today={data.ctx.today} action="" submitLabel="Add to my gear" error={form?.message} />
 	</Card>
 </div>

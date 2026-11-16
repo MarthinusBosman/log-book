@@ -7,7 +7,7 @@
 
 <svelte:head><title>{title}</title></svelte:head>
 
-<div class="min-h-dvh bg-bg px-3 py-6 sm:px-6 print:min-h-0 print:bg-white print:p-0">
+<main id="main" tabindex="-1" class="min-h-dvh bg-bg px-3 py-6 outline-none sm:px-6 print:min-h-0 print:bg-white print:p-0">
 	<div class="mx-auto mb-4 flex max-w-4xl items-center justify-between gap-3 print:hidden">
 		<a href={back} class="text-sm text-muted hover:text-fg">← Back to reports</a>
 		<button
@@ -23,7 +23,7 @@
 	>
 		{@render children()}
 	</article>
-</div>
+</main>
 
 <style>
 	@media print {

@@ -75,6 +75,8 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 
 	// Gear: add a rig, wing loading computed live
 	await page.goto('/app/my-gear/new');
+	// Section headings (h3) sit under a card heading (h2), not straight under the page h1.
+	await expect(page.getByRole('heading', { level: 2, name: 'Rig details' })).toBeVisible();
 	await page.getByLabel('Container make & model *').fill('Javelin Odyssey');
 	await page.getByLabel('Main canopy *').fill('Sabre3');
 	await page.getByLabel('Size (sq ft)').first().fill('170');

@@ -15,7 +15,7 @@
 
 <svelte:head><title>Logbook — {data.owner.name}</title></svelte:head>
 
-<div class="mx-auto max-w-5xl bg-bg px-4 py-6 text-fg print:max-w-none print:bg-white print:p-0 print:text-black">
+<main id="main" tabindex="-1" class="mx-auto max-w-5xl bg-bg px-4 py-6 text-fg outline-none print:max-w-none print:bg-white print:p-0 print:text-black">
 	<div class="mb-6 flex items-center justify-between gap-3 print:hidden">
 		<a href="/app/logbook" class="inline-flex items-center gap-1 text-sm text-muted hover:text-fg"><JIcon name="chevronLeft" class="size-4" /> Logbook</a>
 		<Button onclick={() => print()}><JIcon name="printer" class="size-4" /> Print / save as PDF</Button>
@@ -71,4 +71,4 @@
 		</tbody>
 	</table>
 	<p class="mt-4 text-xs text-muted print:text-neutral-600">Printed {fmtDate(data.printedOn)} from {brand.name}. {data.jumps.length} jumps.</p>
-</div>
+</main>

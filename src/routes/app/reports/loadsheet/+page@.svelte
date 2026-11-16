@@ -26,7 +26,7 @@
 		</div>
 		<form method="GET" class="flex items-center gap-2 text-sm print:hidden">
 			<a href="?day={shift(-1)}" class="rounded-lg border border-zinc-300 px-2 py-1 hover:bg-zinc-100" aria-label="Previous day">←</a>
-			<input type="date" name="day" value={data.day} class="rounded-lg border border-zinc-300 bg-white px-2 py-1" onchange={(e) => e.currentTarget.form?.requestSubmit()} />
+			<input type="date" name="day" value={data.day} aria-label="Day" class="rounded-lg border border-zinc-300 bg-white px-2 py-1" onchange={(e) => e.currentTarget.form?.requestSubmit()} />
 			<a href="?day={shift(1)}" class="rounded-lg border border-zinc-300 px-2 py-1 hover:bg-zinc-100" aria-label="Next day">→</a>
 			<noscript><button class="rounded-lg border border-zinc-300 px-2 py-1">Go</button></noscript>
 		</form>
