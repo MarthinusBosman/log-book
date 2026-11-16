@@ -249,6 +249,12 @@ export function paymentCovers(p: Payment, passengerId: string): boolean {
 	return p.tandemPassengerId === passengerId || !!meta(p).allocations?.some((a) => a.passengerId === passengerId);
 }
 
+/** How many tandem jumpers one payment pays for (a group checkout splits over several). */
+export function paymentJumpers(p: Payment): number {
+	const ids = new Set((meta(p).allocations ?? []).map((a) => a.passengerId));
+	return Math.max(ids.size, 1);
+}
+
 /**
  * The newest online tandem checkout covering this passenger that is still `pending` and not yet
  * old enough for housekeeping to expire. Lets the booking page show "not confirmed yet" with

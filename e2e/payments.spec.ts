@@ -160,6 +160,7 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await expect(page.getByTestId('mock-amount')).toContainText('1000.00');
 	await page.getByTestId('mock-pay').click();
 	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'succeeded');
+	await expect(page.getByTestId('payment-notice')).toContainText('for 2 jumpers');
 	await expect(page).toHaveURL(/[?&]g=/);
 	await expect(page.getByTestId('group-total')).toContainText(/5[\s ]?400/);
 
@@ -189,6 +190,14 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await page.goto(bookingUrl.href);
 	await expect(page.getByTestId('payment-notice')).toHaveCount(0);
 	await expect(page.getByTestId('group-total')).toContainText(/5[\s ]?400/);
+
+	// The whole group's balance: the total line turns into "Paid in full".
+	await page.getByTestId('pay-with-paystack').click();
+	await expect(page.getByTestId('mock-amount')).toContainText('5400.00');
+	await page.getByTestId('mock-pay').click();
+	await expect(page.getByTestId('payment-notice')).toContainText('for 2 jumpers');
+	await expect(page.getByTestId('group-total')).toContainText('Paid in full');
+	await expect(page.getByTestId('pay-online')).toHaveCount(0);
 
 	// Wallet top-up with Paystack (webhook credits the wallet).
 	await page.goto(`/app/wallet/${slug}`);
@@ -229,5 +238,5 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 
 	// Owner sees the payments in Settings → Payments.
 	await page.goto('/app/settings/payments');
-	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(8);
+	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(9);
 });

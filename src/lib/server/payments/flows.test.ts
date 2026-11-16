@@ -9,7 +9,7 @@ import { dropzones, ledgerEntries, payments, tandemPassengers } from '../db/sche
 import { savePaymentConfig } from '../domain/dropzone-admin.ts';
 import { addBookingSlots, createOnlineBooking, getPassenger } from '../domain/tandems.ts';
 import { getAccount } from '../domain/wallet.ts';
-import { ABANDONED_CHECKOUT_MS, cancelPendingOnlinePayment, getPayment, passengersWithPendingCheckout, pendingTandemCheckout } from '../domain/online-payments.ts';
+import { ABANDONED_CHECKOUT_MS, cancelPendingOnlinePayment, getPayment, passengersWithPendingCheckout, paymentJumpers, pendingTandemCheckout } from '../domain/online-payments.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from '../domain/testing.ts';
 import { encryptSecret } from '../staffadmin/secrets.ts';
 import { passengerDetail } from '../tandems/detail.ts';
@@ -229,6 +229,8 @@ describe('tandem booking', () => {
 		const rows = await db.select().from(payments).where(eq(payments.dropzoneId, dz.id));
 		expect(rows.length).toBe(1);
 		expect(rows[0]).toMatchObject({ status: 'succeeded', purpose: 'tandem_deposit' });
+		// The booking page says who the money covered ("for 2 jumpers").
+		expect(paymentJumpers(rows[0])).toBe(2);
 	});
 
 	test('balance payment via Stripe marks the passenger paid', async () => {
@@ -240,6 +242,8 @@ describe('tandem booking', () => {
 		await payOnMock(next);
 		const fresh = (await db.select().from(tandemPassengers).where(eq(tandemPassengers.id, p.id)))[0];
 		expect(fresh).toMatchObject({ paymentStatus: 'paid', amountPaidMinor: p.totalMinor, paymentMethod: 'stripe' });
+		const [row] = await db.select().from(payments).where(eq(payments.dropzoneId, dz.id));
+		expect(paymentJumpers(row)).toBe(1);
 	});
 
 	test('abandoned group checkout is found for every covered passenger until paid, cancelled or expired', async () => {

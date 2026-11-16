@@ -62,8 +62,10 @@
 			<JIcon name={ok ? 'checkCircle' : wait ? 'clock' : 'alert'} class={cn('mt-0.5 size-5 shrink-0', ok ? 'text-success' : wait ? 'text-primary' : 'text-warning')} />
 			<div class="min-w-0 flex-1">
 				{#if ok}
-					<p class="font-medium">Payment received — {formatMoney(notice.amountMinor, notice.currency)} via {notice.provider}</p>
-					<p class="text-muted">Thank you! It’s been added to your booking.</p>
+					<p class="font-medium">
+						Payment received — {formatMoney(notice.amountMinor, notice.currency)} via {notice.provider}{notice.jumpers > 1 ? ` for ${notice.jumpers} jumpers` : ''}
+					</p>
+					<p class="text-muted">Thank you! {notice.jumpers > 1 ? 'It’s been shared across your group’s bookings.' : 'It’s been added to your booking.'}</p>
 				{:else if wait}
 					<p class="font-medium">Not confirmed yet</p>
 					<p class="text-muted">{notice.provider} hasn’t confirmed your {formatMoney(notice.amountMinor, notice.currency)} payment. If you finished paying, check again; if you didn’t, cancel it and pay below or at the dropzone.</p>
@@ -222,9 +224,14 @@
 				{/each}
 			</ul>
 			{#if data.groupDueMinor !== null}
-				<p class="mt-2 flex justify-between border-t border-border pt-3 text-sm font-medium" data-testid="group-total">
-					<span>Group total due · {data.group.length + 1} jumpers</span>
-					<span class="tabular-nums">{money(data.groupDueMinor)}</span>
+				<p class="mt-2 flex justify-between gap-3 border-t border-border pt-3 text-sm font-medium" data-testid="group-total">
+					{#if data.groupDueMinor > 0}
+						<span>Group total due · {data.group.length + 1} jumpers</span>
+						<span class="tabular-nums">{money(data.groupDueMinor)}</span>
+					{:else}
+						<span>Whole group · {data.group.length + 1} jumpers</span>
+						<Badge tone="success">Paid in full</Badge>
+					{/if}
 				</p>
 			{/if}
 		</section>

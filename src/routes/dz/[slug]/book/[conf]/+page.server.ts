@@ -11,7 +11,7 @@ import { failFrom, publicOrigin, str } from '#lib/server/tandems/http.ts';
 import { publicDropzone } from '#lib/server/tandems/public.ts';
 import type { Database } from '#lib/server/db/index.ts';
 import { getPriceMap } from '#lib/server/domain/pricing.ts';
-import { cancelPendingOnlinePayment, getPayment, paymentCovers, pendingTandemCheckout } from '#lib/server/domain/online-payments.ts';
+import { cancelPendingOnlinePayment, getPayment, paymentCovers, paymentJumpers, pendingTandemCheckout } from '#lib/server/domain/online-payments.ts';
 import { PROVIDERS, dropzonePayments, isOnlineProvider, providerChoices, startTandemCheckout } from '#lib/server/payments/index.ts';
 import { paymentsContext, secretsKey } from '#lib/server/payments/runtime.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -44,10 +44,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 					status: pay.status,
 					amountMinor: pay.amountMinor,
 					currency: pay.currency,
-					provider: isOnlineProvider(pay.provider) ? PROVIDERS[pay.provider].label : pay.provider
+					provider: isOnlineProvider(pay.provider) ? PROVIDERS[pay.provider].label : pay.provider,
+					jumpers: paymentJumpers(pay)
 				}
 			: url.searchParams.get('payerror')
-				? { id: null, status: 'error' as const, amountMinor: 0, currency: p.currency, provider: '' }
+				? { id: null, status: 'error' as const, amountMinor: 0, currency: p.currency, provider: '', jumpers: 1 }
 				: null;
 	const { usable } = await dropzonePayments(locals.db, dz, secretsKey());
 	const codes = groupCodes(url.searchParams.get('g'));

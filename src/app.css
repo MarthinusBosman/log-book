@@ -217,6 +217,8 @@
 		@apply bg-bg text-fg antialiased;
 		font-feature-settings: 'cv11', 'ss01', 'ss03';
 		-webkit-tap-highlight-color: transparent;
+		/* reserve the scrollbar's space so pages don't jump sideways when content grows past the fold (booking steps) */
+		scrollbar-gutter: stable;
 	}
 
 	body {
