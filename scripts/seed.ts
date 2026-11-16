@@ -12,7 +12,7 @@ import { createUser } from '../src/lib/server/auth/users.ts';
 import { createDropzone } from '../src/lib/server/dropzones/index.ts';
 import { grantRole } from '../src/lib/server/domain/permissions.ts';
 import { setPrices } from '../src/lib/server/domain/pricing.ts';
-import { createAircraft, updateDropzone, upsertSubscription } from '../src/lib/server/domain/dropzone-admin.ts';
+import { createAircraft, updateDropzone } from '../src/lib/server/domain/dropzone-admin.ts';
 import { updateProfile, setRatings } from '../src/lib/server/domain/profile.ts';
 import { createRig } from '../src/lib/server/domain/gear.ts';
 import { topUp } from '../src/lib/server/domain/wallet.ts';
@@ -104,16 +104,6 @@ await db
 	.update(dropzones)
 	.set({ settings: { units: 'metric', defaultAltitudeFt: 10000, gearWarnDays: 30, defaultCapacity: 16 } })
 	.where(eq(dropzones.id, dz.id));
-await upsertSubscription(db, dz.id, {
-	plan: 'founding',
-	status: 'active',
-	provider: 'stripe',
-	priceMinor: 9900,
-	currency: 'USD',
-	interval: 'month',
-	startedAt: new Date(now - 90 * 86400_000),
-	currentPeriodEnd: new Date(now + 20 * 86400_000)
-});
 
 await setPrices(db, dz.id, {
 	sport_slot: 45000,

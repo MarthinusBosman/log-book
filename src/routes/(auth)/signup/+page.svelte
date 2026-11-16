@@ -9,12 +9,25 @@
 	let submitting = $state(false);
 	const redirectTo = $derived(page.url.searchParams.get('redirectTo'));
 	const err = (field: string) => (form?.field === field ? form.message : null);
+	const NEW_DZ = '/app/dropzones/new';
+	const forDropzone = $derived(redirectTo === NEW_DZ);
 </script>
 
 <svelte:head><title>Create account</title></svelte:head>
 
-<h1 class="text-3xl font-semibold tracking-tight">Create your account</h1>
-<p class="mt-2 text-muted">One {brand.name} account for every dropzone you jump at.</p>
+{#if forDropzone}
+	<h1 class="text-3xl font-semibold tracking-tight">Set up your dropzone</h1>
+	<p class="mt-2 text-muted" data-testid="signup-kind">
+		Step 1 of 2: create your own account. Next you add the dropzone and become its owner.
+	</p>
+{:else}
+	<h1 class="text-3xl font-semibold tracking-tight">Create your account</h1>
+	<p class="mt-2 text-muted" data-testid="signup-kind">
+		One free {brand.name} account for every dropzone you jump at. Running a dropzone?
+		<a href="/signup?redirectTo={encodeURIComponent(NEW_DZ)}" class="font-medium text-primary hover:underline">Set up your dropzone</a>
+		instead.
+	</p>
+{/if}
 
 <form
 	method="POST"
@@ -55,7 +68,7 @@
 		</p>
 	{/if}
 
-	<Button type="submit" size="lg" loading={submitting} class="mt-2 w-full">Create account</Button>
+	<Button type="submit" size="lg" loading={submitting} class="mt-2 w-full">{forDropzone ? 'Create account and continue' : 'Create account'}</Button>
 	<p class="text-center text-xs text-muted" data-testid="signup-legal">
 		By creating an account you agree to the
 		<a href="/terms" class="font-medium text-fg underline underline-offset-2 hover:text-primary">Terms</a>

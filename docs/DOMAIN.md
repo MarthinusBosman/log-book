@@ -44,7 +44,6 @@ leave `0001_domain` as it is.
 | `dropzone_members` | `(dropzoneId, userId)` + `status` active/invited/suspended. |
 | `dropzone_member_roles` | **Many roles per member**: `(dropzoneId, userId, role)` + `colour` (TI colour). Roles: owner, admin, manifest, staff, tandem_instructor, aff_instructor, instructor, coach, videographer, rigger, pilot, jumper. |
 | `dropzone_follows` | Followers / favourites (`favourite`, `notify`). Followers get `new_loads`. |
-| `dropzone_subscriptions` | Unused: the app is free for dropzones (no subscription billing). |
 | `aircraft` | `name, tailNumber, capacity (pax), weightLimitKg, defaultPilotId, active`. |
 | `pricelist_items` | One row per `(dropzoneId, code)`: `amountMinor`, optional `label`, `active`. Codes are in `PRICE_ITEMS`. |
 | `checkins` | `day, checkedInAt/By, checkedOutAt/By, weightKg, gearRental, rentalRigId, verified`. At most one open check-in per (dz, user), enforced by a partial unique index. |
@@ -184,7 +183,7 @@ It uses the original's counting rules: sporties are slots that aren't tandem or 
 ### dropzone-admin.ts
 Dropzone:
 - `getDropzone`, `updateDropzone(db, id, patch)` (validates times and days), `updateDropzoneSettings`.
-- `listPublicDropzones({search, requireSubscription})`, `distanceKm(a, b)`.
+- `listPublicDropzones({search})`, `distanceKm(a, b)`.
 
 Members and followers:
 - `listMembers(db, dzId)` (members with all roles), `setRoleColour`, `removeMember`.
@@ -192,7 +191,7 @@ Members and followers:
 
 Aircraft and payments:
 - `createAircraft`, `updateAircraft`, `deleteAircraft`, `listAircraft`.
-- `getPaymentConfig`, `savePaymentConfig`, `getSubscription`, `upsertSubscription`.
+- `getPaymentConfig`, `savePaymentConfig`.
 
 ### profile.ts, files.ts, imports.ts, time.ts
 - `updateProfile(db, userId, patch)` validates the input. `membershipStatus(user, today)` returns none, valid, expiring (≤30 days) or expired. `listRatings`, `setRatings(db, userId, body, ratings, {verified})`, `searchUsers(db, q)`.

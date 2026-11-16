@@ -64,6 +64,13 @@
       "when": 1794601491628,
       "tag": "0008_email_change",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1794809371896,
+      "tag": "0009_drop_subscriptions",
+      "breakpoints": true
     }
   ]
 }

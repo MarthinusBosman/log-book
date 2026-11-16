@@ -7,7 +7,6 @@ import {
 	dropzoneMembers,
 	dropzonePaymentConfigs,
 	dropzones,
-	dropzoneSubscriptions,
 	users,
 	WEEKDAYS,
 	type Aircraft,
@@ -73,16 +72,14 @@ export async function updateDropzoneSettings(db: Database, id: string, patch: Dr
 	return settings;
 }
 
-/** Public directory: listed dropzones (optionally only with an active/trialing subscription). */
-export async function listPublicDropzones(db: Database, opts: { search?: string; requireSubscription?: boolean } = {}) {
+/** Public directory: listed dropzones. */
+export async function listPublicDropzones(db: Database, opts: { search?: string } = {}) {
 	const q = opts.search?.trim();
-	const rows = await db
-		.select({ dz: dropzones, sub: dropzoneSubscriptions.status })
+	return db
+		.select()
 		.from(dropzones)
-		.leftJoin(dropzoneSubscriptions, eq(dropzoneSubscriptions.dropzoneId, dropzones.id))
 		.where(and(eq(dropzones.listed, true), q ? or(like(dropzones.name, `%${q}%`), like(dropzones.address, `%${q}%`)) : undefined))
 		.orderBy(asc(dropzones.name));
-	return rows.filter((r) => !opts.requireSubscription || r.sub === 'active' || r.sub === 'trialing').map((r) => r.dz);
 }
 
 /** Haversine distance in km (dropzone list "{n} km away"). */
@@ -214,7 +211,7 @@ export async function listAircraft(db: Database, dropzoneId: string, opts: { act
 		.orderBy(asc(aircraft.name));
 }
 
-// ── payment config & subscription ──
+// ── payment config ──
 
 export async function getPaymentConfig(db: Database, dropzoneId: string): Promise<DropzonePaymentConfig | undefined> {
 	return (await db.select().from(dropzonePaymentConfigs).where(eq(dropzonePaymentConfigs.dropzoneId, dropzoneId)).limit(1))[0];
@@ -232,17 +229,3 @@ export async function savePaymentConfig(
 		.onConflictDoUpdate({ target: dropzonePaymentConfigs.dropzoneId, set: { ...patch, updatedAt: new Date() } });
 }
 
-export async function getSubscription(db: Database, dropzoneId: string) {
-	return (await db.select().from(dropzoneSubscriptions).where(eq(dropzoneSubscriptions.dropzoneId, dropzoneId)).limit(1))[0];
-}
-
-export async function upsertSubscription(
-	db: Database,
-	dropzoneId: string,
-	patch: Partial<Omit<typeof dropzoneSubscriptions.$inferInsert, 'dropzoneId'>>
-): Promise<void> {
-	await db
-		.insert(dropzoneSubscriptions)
-		.values({ dropzoneId, ...patch })
-		.onConflictDoUpdate({ target: dropzoneSubscriptions.dropzoneId, set: { ...patch, updatedAt: new Date() } });
-}

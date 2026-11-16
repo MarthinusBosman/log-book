@@ -59,13 +59,15 @@
 		{ k: 'Global logbook', v: brand.domain },
 		{ k: "Jumper's phone", v: 'Jump 412 ✓' }
 	];
-	const plans = [
+	/** Dropzone owners sign up as themselves first, then add the dropzone (they become its owner). */
+	const dzSignup = $derived(data.user ? '/app/dropzones/new' : `/signup?redirectTo=${encodeURIComponent('/app/dropzones/new')}`);
+	const plans = $derived([
 		{
 			who: 'Jumpers',
 			price: 'Free',
 			note: 'always',
 			body: 'Logbook with sign-offs, wallet, gear dates, check-in, self-manifest and teams.',
-			cta: 'Create your account',
+			cta: 'Sign up as a jumper',
 			href: '/signup',
 			main: false
 		},
@@ -74,8 +76,8 @@
 			price: 'Free',
 			note: 'always',
 			body: 'Everything on this page on our servers. No subscription, no per-slot fees and no cut of your payments: online payments go straight to your own PayFast, Paystack, Yoco or Stripe account.',
-			cta: 'Start free',
-			href: '/signup',
+			cta: 'Set up your dropzone',
+			href: dzSignup,
 			main: true
 		},
 		{
@@ -87,12 +89,20 @@
 			href: '/self-host',
 			main: false
 		}
-	];
+	]);
 
 	const faqs = [
 		{
+			q: 'How does Log-Book make money?',
+			a: 'It doesn’t. Log-Book is a passion project to give back to the skydiving community. It is free for jumpers and dropzones, with no paid plans, ads, fees or cut of payments. The code is open source, so anyone can run it for free on their own server too.'
+		},
+		{
+			q: 'How do I sign up as a jumper, or as a dropzone?',
+			a: 'Everyone starts with the same free personal account. Jumpers are done after that: find your dropzone in the app and follow it. To run a dropzone, create your own account, then choose Set up a dropzone (also on your home screen as Create one). You become its owner and can invite your staff.'
+		},
+		{
 			q: 'Do jumpers pay for an account?',
-			a: 'No. Logbook, wallet, gear tracking, check-in and teams are free for jumpers. What you pay for slots is up to each dropzone.'
+			a: 'No. Logbook, wallet, gear tracking, check-in and teams are free. What you pay the dropzone for slots is between you and them: none of it comes to us.'
 		},
 		{
 			q: 'Can we run it on our own server?',
@@ -181,17 +191,20 @@
 						href={data.user ? '/app' : '/signup'}
 						class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-medium text-primary-fg shadow-[0_8px_30px_-8px_rgb(30_107_255/0.6)] transition-colors hover:bg-brand-600"
 					>
-						{data.user ? 'Open the app' : 'Start free'}
+						{data.user ? 'Open the app' : 'Sign up as a jumper'}
 						{@render arrow()}
 					</a>
 					<a
-						href="/self-host"
+						href={dzSignup}
 						class="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-border-strong px-6 font-medium transition-colors hover:bg-surface-2"
 					>
-						Self-host it
+						Set up a dropzone
 					</a>
-					<p class="text-sm text-muted sm:ml-3">Free for jumpers. No card to start.</p>
 				</div>
+				<p class="mt-4 text-sm text-muted">
+					Free for everyone. No card, no catch. Rather run it yourself?
+					<a href="/self-host" class="font-medium text-fg underline underline-offset-2 hover:text-primary">Self-host it</a>.
+				</p>
 			</div>
 			<div class="hidden pt-2 pb-6 lg:block">
 				<AltitudeTape />
@@ -438,7 +451,7 @@
 				</div>
 			</div>
 			<div class="pt-8">
-				<a href="/signup" class="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-primary-fg transition-colors hover:bg-brand-600">Start free</a>
+				<a href={dzSignup} class="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-medium text-primary-fg transition-colors hover:bg-brand-600">Set up your dropzone</a>
 			</div>
 		</article>
 
@@ -507,7 +520,11 @@
 <section id="pricing" class="mx-auto max-w-6xl scroll-mt-20 px-5 py-20 sm:px-8 sm:py-28">
 	<div class="max-w-3xl">
 		{@render eyebrow('Pricing')}
-		<h2 class="mt-4 text-3xl font-[580] tracking-[-0.025em] text-balance sm:text-5xl">Free for dropzones. Free to self-host.</h2>
+		<h2 class="mt-4 text-3xl font-[580] tracking-[-0.025em] text-balance sm:text-5xl">Free for everyone. No catch.</h2>
+		<p class="mt-5 max-w-2xl text-lg text-pretty text-muted">
+			{brand.name} is a passion project, built to give back to the skydiving community. There are no paid plans,
+			ads or fees, we take no cut of your payments, and we don’t make money from it.
+		</p>
 	</div>
 	<div class="mt-12 grid grid-cols-1 overflow-hidden rounded-2xl border border-border md:grid-cols-3">
 		{#each plans as plan, i (plan.who)}
@@ -570,10 +587,10 @@
 		<p class="mt-5 max-w-xl text-lg text-pretty text-muted">Bring your pricelist and aircraft. Your jumpers can sign up on the day.</p>
 		<div class="mt-9 flex flex-col gap-3 sm:flex-row">
 			<a
-				href={data.user ? '/app' : '/signup'}
+				href={dzSignup}
 				class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-primary px-6 font-medium text-primary-fg transition-colors hover:bg-brand-600"
 			>
-				{data.user ? 'Open the app' : 'Start free'}
+				Set up your dropzone
 				{@render arrow()}
 			</a>
 			<a href="/features" class="inline-flex h-12 items-center justify-center rounded-xl border border-border-strong px-6 font-medium transition-colors hover:bg-surface-2">See all features</a>

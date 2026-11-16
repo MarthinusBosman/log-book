@@ -2,6 +2,9 @@
 
 Run the dropzone. Log every jump. Free, open-source (AGPL-3.0) dropzone management + jumper logbook for skydiving. Hosted at [log-book.app](https://log-book.app) or self-hosted with Docker.
 
+Log-Book is a passion project to give back to the skydiving community. It is free for everyone (jumpers and
+dropzones, hosted or self-hosted): no paid plans, no ads, no fees and no cut of payments.
+
 SvelteKit 3 · Svelte 5 · Tailwind v4 · Drizzle/SQLite.
 One codebase, two targets:
 

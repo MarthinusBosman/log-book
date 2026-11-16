@@ -405,30 +405,6 @@ export const dropzoneFollows = sqliteTable(
 	(t) => [primaryKey({ columns: [t.dropzoneId, t.userId] }), index('dropzone_follows_user_idx').on(t.userId)]
 );
 
-export const dropzoneSubscriptions = sqliteTable('dropzone_subscriptions', {
-	dropzoneId: text('dropzone_id')
-		.primaryKey()
-		.references(() => dropzones.id, { onDelete: 'cascade' }),
-	plan: text('plan', { enum: ['trial', 'founding', 'standard', 'lifetime', 'self_hosted'] })
-		.notNull()
-		.default('trial'),
-	status: text('status', { enum: ['trialing', 'active', 'past_due', 'canceled', 'incomplete'] })
-		.notNull()
-		.default('trialing'),
-	provider: text('provider'),
-	providerCustomerId: text('provider_customer_id'),
-	providerSubscriptionId: text('provider_subscription_id'),
-	priceMinor: integer('price_minor'),
-	currency: text('currency'),
-	interval: text('interval', { enum: ['month', 'year', 'once'] }),
-	startedAt: ms('started_at'),
-	currentPeriodEnd: ms('current_period_end'),
-	trialEndsAt: ms('trial_ends_at'),
-	cancelAt: ms('cancel_at'),
-	endedAt: ms('ended_at'),
-	updatedAt: updatedAt()
-});
-
 // ═══ Aircraft & prices ══════════════════════════════════════════════════════
 
 export const aircraft = sqliteTable(
@@ -1196,7 +1172,6 @@ export type Dropzone = typeof dropzones.$inferSelect;
 export type DropzonePaymentConfig = typeof dropzonePaymentConfigs.$inferSelect;
 export type DropzoneMember = typeof dropzoneMembers.$inferSelect;
 export type DropzoneMemberRole = typeof dropzoneMemberRoles.$inferSelect;
-export type DropzoneSubscription = typeof dropzoneSubscriptions.$inferSelect;
 export type Aircraft = typeof aircraft.$inferSelect;
 export type PricelistItem = typeof pricelistItems.$inferSelect;
 export type Checkin = typeof checkins.$inferSelect;

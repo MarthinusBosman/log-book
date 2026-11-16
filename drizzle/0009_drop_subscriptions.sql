@@ -1,0 +1,1 @@
+DROP TABLE `dropzone_subscriptions`;

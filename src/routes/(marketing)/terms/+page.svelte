@@ -47,7 +47,8 @@
 	<section id="service">
 		<h2>The service</h2>
 		<p>
-			{brand.name} is free for jumpers and dropzones. There are no subscriptions and we take no cut of payments. We
+			{brand.name} is free for jumpers and dropzones. It is a passion project run to give back to the skydiving
+			community: there are no paid plans, subscriptions, ads or fees, and we take no cut of payments. We
 			provide it <strong>as is and as available</strong>: we work to keep it running and accurate, but we don’t promise
 			it will always be available, error-free or suitable for a particular purpose, and we may change, add or remove
 			features. Export your logbook regularly if it matters to you (Profile → Export your data).

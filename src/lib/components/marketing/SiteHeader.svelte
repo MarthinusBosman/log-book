@@ -47,7 +47,7 @@
 				<a
 					href="/signup"
 					class="inline-flex h-9 items-center rounded-lg bg-primary px-3.5 text-sm font-medium text-primary-fg transition-colors hover:bg-brand-600"
-					>Start free</a
+					>Sign up</a
 				>
 			{/if}
 			<details class="group relative md:hidden">

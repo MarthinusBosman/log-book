@@ -39,6 +39,9 @@
 		<div>
 			<Logo />
 			<p class="mt-4 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>
+			<p class="mt-2 max-w-xs text-sm leading-relaxed text-muted">
+				Free for everyone. A passion project to give back to the skydiving community.
+			</p>
 		</div>
 		{#each columns as col (col.title)}
 			<div>

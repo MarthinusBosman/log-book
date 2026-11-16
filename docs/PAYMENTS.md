@@ -72,8 +72,8 @@ customer abandons ──► jumper wallet lists it under "Pending top-ups" with 
 (`payfast_merchant_id`, `payfast_merchant_key_enc`, `payfast_passphrase_enc`, `payfast_sandbox`).
 Secrets are AES-256-GCM encrypted with `SECRETS_KEY` (`staffadmin/secrets.ts`), never sent to the
 browser (the UI shows `••••••1234`), and a key that can't be decrypted (changed `SECRETS_KEY`) marks
-the provider "Re-enter keys" instead of failing payments. The old `stripe_*` Connect columns and
-`dropzone_subscriptions` are unused.
+the provider "Re-enter keys" instead of failing payments. The old `stripe_*` Connect columns are
+unused. (The old `dropzone_subscriptions` table was dropped in `0009_drop_subscriptions`: there is no billing.)
 
 `payments.provider` now also accepts `paystack` and `yoco` (text column, no DB constraint).
 

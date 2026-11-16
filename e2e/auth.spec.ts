@@ -8,6 +8,33 @@ test('landing renders', async ({ page }) => {
 	await page.screenshot({ path: `test-results/landing-${test.info().project.name}.png`, fullPage: false });
 });
 
+test('landing: jumper and dropzone sign-up paths are separate; dropzone path lands on "Set up a dropzone"', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByRole('link', { name: 'Sign up as a jumper' }).first()).toHaveAttribute('href', '/signup');
+	await page.getByRole('link', { name: 'Set up a dropzone' }).first().click();
+	await expect(page).toHaveURL(/\/signup\?redirectTo=%2Fapp%2Fdropzones%2Fnew$/);
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Set up your dropzone');
+	await expect(page.getByTestId('signup-kind')).toContainText('Step 1 of 2');
+	await page.getByLabel('Full name').fill('Owen Owner');
+	await page.getByLabel('Email').fill(`e2e-dz-${Date.now()}-${test.info().project.name}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account and continue' }).click();
+	await expect(page).toHaveURL(/\/app\/dropzones\/new$/);
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Set up a dropzone');
+	// Plain signup offers the dropzone path too.
+	await page.context().clearCookies();
+	await page.goto('/signup');
+	await expect(page.getByTestId('signup-kind').getByRole('link', { name: 'Set up your dropzone' })).toHaveAttribute('href', '/signup?redirectTo=%2Fapp%2Fdropzones%2Fnew');
+});
+
+test('landing says it is free for everyone and a passion project', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.getByText('Free for everyone. No card, no catch.')).toBeVisible();
+	await expect(page.locator('#pricing')).toContainText('passion project');
+	await expect(page.locator('#pricing')).toContainText('don’t make money from it');
+	await expect(page.locator('footer')).toContainText('give back to the skydiving community');
+});
+
 test('privacy policy + terms: linked from footer and signup, no JS', async ({ page }) => {
 	await page.goto('/');
 	await page.locator('footer').getByRole('link', { name: 'Privacy policy' }).click();

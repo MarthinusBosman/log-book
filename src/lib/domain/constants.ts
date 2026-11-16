@@ -44,7 +44,7 @@ export const ROLE_PRECEDENCE: readonly DropzoneRole[] = DROPZONE_ROLES;
 export const STAFF_ROLES: readonly DropzoneRole[] = DROPZONE_ROLES.filter((r) => r !== 'jumper');
 
 export const CAPABILITIES = [
-	'dz.settings', // dropzone details, payment setup, subscription
+	'dz.settings', // dropzone details, payment setup
 	'staff.manage', // add/remove members and roles, staff pay prices
 	'pricing.manage',
 	'manifest', // create/edit loads and slots, call loads, complete loads
@@ -348,7 +348,7 @@ export function paymentMethodLabel(id: string | null | undefined): string {
 	if (!id) return '';
 	return PAYMENT_METHOD_LABELS[id as PaymentProvider] ?? id;
 }
-export const PAYMENT_PURPOSES = ['wallet_topup', 'slots', 'tandem', 'tandem_deposit', 'subscription'] as const;
+export const PAYMENT_PURPOSES = ['wallet_topup', 'slots', 'tandem', 'tandem_deposit'] as const;
 export type PaymentPurpose = (typeof PAYMENT_PURPOSES)[number];
 export const PAYMENT_RECORD_STATUSES = ['pending', 'succeeded', 'failed', 'refunded', 'cancelled'] as const;
 export type PaymentRecordStatus = (typeof PAYMENT_RECORD_STATUSES)[number];

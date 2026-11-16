@@ -7,7 +7,7 @@ export const brand = {
 	name: 'Log-Book',
 	tagline: 'Run the dropzone. Log every jump.',
 	description:
-		'Manifest, tandem bookings, waivers, staff pay and gear for dropzones. A free logbook, wallet and self-manifest for every jumper. Hosted, or on your own server.',
+		'Free dropzone management and jumper logbook: manifest, tandems, waivers, staff pay, gear and wallets. A passion project for the skydiving community. Hosted or self-hosted.',
 	/** Public domain of the hosted instance. log-book.io 301s here (CANONICAL_HOST, see docs/DEPLOY.md). */
 	domain: 'log-book.app',
 	supportEmail: 'hello@log-book.app',
