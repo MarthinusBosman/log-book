@@ -18,15 +18,21 @@
 	};
 	let { slot = $bindable(null), currency, otherLoads, canPay, editable }: Props = $props();
 
-	let open = $state(false);
-	let jumpType = $state<JumpType>('belly');
-	let extras = $state<SlotExtra[]>([]);
-	let colour = $state('');
+	// Start from the slot passed in (a `?slot=` URL opens the editor on the server render too:
+	// `$effect` doesn't run during SSR).
+	const initial = () => untrack(() => slot);
+	let open = $state(!!initial());
+	let jumpType = $state<JumpType>(initial()?.jumpType ?? 'belly');
+	let extras = $state<SlotExtra[]>([...(initial()?.extras ?? [])]);
+	let colour = $state(initial()?.colour ?? '');
 	let busy = $state(false);
 
+	// Re-initialise only when a different slot is opened: the page hands in a fresh object
+	// for the same slot after every reload, which must not reset what is being edited.
 	$effect(() => {
-		const s = slot;
+		void slot?.id;
 		untrack(() => {
+			const s = slot;
 			open = !!s;
 			if (s) {
 				jumpType = s.jumpType;

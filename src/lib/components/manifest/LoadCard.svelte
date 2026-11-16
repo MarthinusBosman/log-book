@@ -24,6 +24,8 @@
 		hideSlots?: boolean;
 		/** A slot is being dragged from another load. */
 		dropTarget?: boolean;
+		/** Each slot row links to the slot editor on the load's page (staff who can edit slots). */
+		slotLinks?: boolean;
 		onslotdragstart?: (e: DragEvent, slot: SlotVM, load: LoadVM) => void;
 		onslotdragend?: () => void;
 		ondropslot?: (e: DragEvent, load: LoadVM) => void;
@@ -38,6 +40,7 @@
 		detail = false,
 		hideSlots = false,
 		dropTarget = false,
+		slotLinks = false,
 		onslotdragstart,
 		onslotdragend,
 		ondropslot,
@@ -213,6 +216,7 @@
 					<SlotRow
 						{slot}
 						{currency}
+						href={slotLinks ? `/app/manifest/${load.id}?slot=${slot.id}` : undefined}
 						draggable={canManifest && editable && !!onslotdragstart}
 						ondragstart={(e, s) => onslotdragstart?.(e, s, load)}
 						ondragend={onslotdragend}

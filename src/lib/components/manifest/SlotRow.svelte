@@ -10,13 +10,15 @@
 	type Props = {
 		slot: SlotVM;
 		currency: string;
+		/** Makes the whole row a link (stretched over the row from the name). */
+		href?: string;
 		draggable?: boolean;
 		showMoney?: boolean;
 		ondragstart?: (e: DragEvent, slot: SlotVM) => void;
 		ondragend?: () => void;
 		class?: string;
 	};
-	let { slot, currency, draggable = false, showMoney = true, ondragstart, ondragend, class: className }: Props = $props();
+	let { slot, currency, href, draggable = false, showMoney = true, ondragstart, ondragend, class: className }: Props = $props();
 
 	const stripe = $derived(slot.colour ?? (slot.groupId ? `hsl(${groupHue(slot.groupId)} 70% 55%)` : (slot.tiColour ?? 'transparent')));
 </script>
@@ -37,7 +39,12 @@
 	<Avatar name={slot.displayName} src={slot.avatar} size="xs" />
 	<span class="min-w-0 flex-1">
 		<span class="flex min-w-0 items-center gap-1.5">
-			<span class="truncate font-medium text-fg">{slot.displayName}</span>
+			{#if href}
+				<!-- draggable=false: dragging the row (between loads) must move the slot, not the link -->
+				<a {href} draggable="false" class="truncate font-medium text-fg outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-2 focus-visible:after:ring-primary" data-testid="slot-link">{slot.displayName}</a>
+			{:else}
+				<span class="truncate font-medium text-fg">{slot.displayName}</span>
+			{/if}
 			<SlotTags staffRole={slot.staffRole} isLoadMaster={slot.isLoadMaster} tandemPassenger={!!slot.tandemPassengerId} extras={slot.extras} colour={slot.tiColour} warning={slot.membershipWarning} />
 		</span>
 		<span class="block truncate text-xs text-muted">

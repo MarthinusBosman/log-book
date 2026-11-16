@@ -120,8 +120,10 @@ export function shiftDay(day: string, days: number): string {
 function queryWithoutAction(search: string): string {
 	const q = new URLSearchParams(search);
 	for (const k of [...q.keys()]) if (k.startsWith('/')) q.delete(k);
-	// `?new=1` only opens the "New load" dialog: a no-JS post must not land with it open again.
+	// `?new=1` only opens the "New load" dialog and `?slot=` the slot editor: a no-JS post must
+	// not land with them open again.
 	q.delete('new');
+	q.delete('slot');
 	return q.toString();
 }
 

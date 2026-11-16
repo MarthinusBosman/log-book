@@ -67,6 +67,11 @@ describe('manifest time helpers', () => {
 		expect(formAction({ search: '?new=1' }, 'createLoad')).toBe('?/createLoad');
 		expect(pageWithoutAction({ pathname: '/app/manifest', search: '?/createLoad&new=1' })).toBe('/app/manifest');
 	});
+	test('formAction drops the ?slot= that opened the slot editor', () => {
+		expect(formAction({ search: '?slot=abc' }, 'moveSlot')).toBe('?/moveSlot');
+		expect(formAction({ search: '?day=2026-11-20&slot=abc' }, 'updateSlot')).toBe('?/updateSlot&day=2026-11-20');
+		expect(pageWithoutAction({ pathname: '/app/manifest/l1', search: '?/removeSlot&slot=abc' })).toBe('/app/manifest/l1');
+	});
 
 	test('shiftDay crosses month ends', () => {
 		expect(shiftDay('2026-11-30', 1)).toBe('2026-12-01');

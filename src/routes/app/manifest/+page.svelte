@@ -135,6 +135,7 @@
 					timezone={data.dz.timezone}
 					currency={data.dz.currency}
 					canManifest={data.canManifest}
+					slotLinks={data.canManifest}
 					dropTarget={!!drag && drag.from !== load.id}
 					onslotdragstart={data.canManifest ? onDragStart : undefined}
 					onslotdragend={() => setTimeout(() => (drag = null), 50)}
@@ -155,7 +156,7 @@
 			</summary>
 			<div class="mt-4 grid grid-cols-1 items-start gap-4 md:grid-cols-2 2xl:grid-cols-3">
 				{#each finished as load (load.id)}
-					<LoadCard {load} timezone={data.dz.timezone} currency={data.dz.currency} canManifest={data.canManifest} />
+					<LoadCard {load} timezone={data.dz.timezone} currency={data.dz.currency} canManifest={data.canManifest} slotLinks={data.canManifest} />
 				{/each}
 			</div>
 		</details>

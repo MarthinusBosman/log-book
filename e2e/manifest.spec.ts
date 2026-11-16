@@ -221,6 +221,73 @@ test('manifest without JS: actions on another day stay on that day', async ({ pa
 	await ctx.close();
 });
 
+test('board slot rows open the slot editor (?slot=), also before hydration / without JS', async ({ page, browser }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Sally SlotLink');
+	await page.getByLabel('Email').fill(`slotlink-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`SlotLink E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// two loads, a walk-in jumper on load 1
+	await page.goto('/app/manifest?new=1');
+	const dialog = page.locator('dialog[open]');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-SLT');
+	await dialog.getByLabel('Slots (pax)').fill('8');
+	await dialog.getByLabel('Weight limit (kg)').fill('900');
+	await dialog.getByLabel('Number of loads').fill('2');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.getByTestId('load-card')).toHaveCount(2);
+	const load1 = page.locator('[data-testid=load-card][data-load-number="1"]');
+	await load1.getByRole('link', { name: 'Add slots' }).click();
+	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+$/);
+	await page.getByRole('tab', { name: 'Custom' }).click();
+	await page.getByLabel('Jumper name').fill('Sam Slot');
+	await page.getByLabel('Slot weight (kg)').fill('80');
+	await page.getByRole('button', { name: 'Create jumper slot' }).click();
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Sam Slot"]')).toBeVisible();
+
+	// JS: the board's slot row is a link to the load page with the editor open; closing drops ?slot=
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await load1.getByTestId('slot-link').filter({ hasText: 'Sam Slot' }).click();
+	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+\?slot=[\w-]+$/);
+	const editor = page.locator('dialog[open]').filter({ has: page.getByTestId('slot-editor') });
+	await expect(editor.getByRole('heading', { name: 'Sam Slot' })).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	await editor.getByRole('button', { name: 'Close' }).click();
+	await expect(page.getByTestId('slot-editor')).toHaveCount(0);
+	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+$/);
+	// the edit button on the load page is a ?slot= link too
+	await page.getByRole('link', { name: 'Edit Sam Slot' }).click();
+	await expect(page).toHaveURL(/\?slot=[\w-]+$/);
+	await expect(editor.getByRole('heading', { name: 'Sam Slot' })).toBeVisible();
+
+	// No JS (= a tap before hydration): the link opens the editor server-rendered; Move works natively
+	const ctx = await browser.newContext({ javaScriptEnabled: false, storageState: await page.context().storageState(), viewport: page.viewportSize() ?? undefined });
+	const nojs = await ctx.newPage();
+	await nojs.goto('/app/manifest');
+	await nojs.getByTestId('slot-link').filter({ hasText: 'Sam Slot' }).click();
+	await expect(nojs).toHaveURL(/\?slot=[\w-]+$/);
+	const nojsEditor = nojs.locator('dialog[open]').filter({ has: nojs.getByTestId('slot-editor') });
+	await expect(nojsEditor).toContainText('Sam Slot');
+	const moveForm = nojsEditor.locator('form[method=POST]').filter({ has: nojs.getByLabel('Move to load') });
+	await expect(moveForm).toHaveAttribute('action', '?/moveSlot');
+	await moveForm.getByLabel('Move to load').selectOption({ label: 'Load 2 · 8 free' });
+	await moveForm.getByRole('button', { name: 'Move' }).click();
+	// lands with the editor closed and Sam gone from load 1
+	await expect(nojs.getByTestId('slot-editor')).toHaveCount(0);
+	await expect(nojs.locator('[data-testid=detail-slot][data-slot-name="Sam Slot"]')).toHaveCount(0);
+	await nojs.goto('/app/manifest');
+	await expect(nojs.locator('[data-testid=load-card][data-load-number="2"]').getByTestId('slot-link')).toHaveText('Sam Slot');
+	await ctx.close();
+});
+
 test('public display needs a valid token', async ({ page }) => {
 	const res = await page.goto('/dz/no-such-dz/display?token=nope-nope-nope-nope');
 	expect(res?.status()).toBe(404);

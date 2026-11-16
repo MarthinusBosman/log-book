@@ -13,12 +13,20 @@
 	import { act } from '#lib/components/manifest/forms.ts';
 	import { clock, poll } from '#lib/components/manifest/live.svelte.ts';
 	import { clockTime, groupHue, prettyDay, slotMoney } from '#lib/components/manifest/manifest.ts';
-	import type { CompleteSummary, SlotVM } from '#lib/components/manifest/types.ts';
+	import type { CompleteSummary } from '#lib/components/manifest/types.ts';
+	import { page } from '$app/state';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
+	import { openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
-	let editing = $state<SlotVM | null>(null);
+	// The slot editor follows the URL (?slot=<id>): the board's slot rows and the edit buttons
+	// here are links, so they open it before hydration and without JS; once hydrated they open
+	// in place and the URL follows (reload / back keep it).
+	let editingId = $state<string | null>(page.url.searchParams.get('slot'));
+	const editing = $derived((data.canManifest || data.canPay ? data.load.slots.find((s) => s.id === editingId) : null) ?? null);
+	syncViewToUrl(() => ({ slot: editing?.id ?? null }));
 	let summary = $state<CompleteSummary | null>(null);
 	let selected = $state<string[]>([]);
 	let settingsOpen = $state(false);
@@ -30,14 +38,6 @@
 	});
 
 	const load = $derived(data.load);
-	// keep the open editor in sync with fresh data after polling/actions
-	$effect(() => {
-		const id = editing?.id;
-		if (id) {
-			const fresh = load.slots.find((s) => s.id === id);
-			if (!fresh) editing = null;
-		}
-	});
 	const unpaid = $derived(load.slots.filter((s) => !s.paid && s.totalMinor > 0));
 	const money = $derived(slotMoney(load.slots));
 	/** Picking a listed pilot fills in their profile weight (still editable). */
@@ -124,15 +124,15 @@
 								{/if}
 							</div>
 							{#if data.canManifest || data.canPay}
-								<button
-									type="button"
+								<a
+									href={viewParamsHref(page.url, { slot: s.id })}
 									class="grid size-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg"
 									aria-label="Edit {s.displayName}"
 									data-testid="edit-slot"
-									onclick={() => (editing = s)}
+									onclick={openInPlace(() => (editingId = s.id))}
 								>
 									<MIcon name="edit" />
-								</button>
+								</a>
 							{/if}
 						</li>
 					{/each}
@@ -194,5 +194,5 @@
 	</aside>
 </div>
 
-<SlotEditor bind:slot={editing} currency={data.dz.currency} otherLoads={data.otherLoads} canPay={data.canPay} editable={data.editable && data.canManifest} />
+<SlotEditor bind:slot={() => editing, (v) => (editingId = v?.id ?? null)} currency={data.dz.currency} otherLoads={data.otherLoads} canPay={data.canPay} editable={data.editable && data.canManifest} />
 <CompleteSummaryDialog bind:summary />
