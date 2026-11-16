@@ -5,6 +5,7 @@
 	import Logo from '#lib/components/Logo.svelte';
 	import ThemeToggle from '#lib/components/ThemeToggle.svelte';
 	import SkipLink from '#lib/components/SkipLink.svelte';
+	import NoJsSuccess from '#lib/components/staffadmin/NoJsSuccess.svelte';
 	import DropzoneSwitcher from '#lib/components/DropzoneSwitcher.svelte';
 	import NotificationBell from '#lib/components/jumper/NotificationBell.svelte';
 	import { jumperNav, mobileTabs, visibleStaffNav, type NavItem } from '#lib/nav.ts';
@@ -165,6 +166,7 @@
 	</Dialog>
 
 	<main id="main" tabindex="-1" class="mx-auto w-full max-w-7xl scroll-mt-14 px-4 pt-6 pb-28 outline-none sm:px-6 lg:scroll-mt-0 lg:px-10 lg:pt-10 lg:pb-12">
+		<NoJsSuccess />
 		{@render children()}
 	</main>
 

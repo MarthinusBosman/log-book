@@ -14,3 +14,17 @@ export function formOutcome(form: unknown, status: number): FormOutcome | null {
 	if (text) return { ok, text };
 	return ok ? null : { ok, text: 'Please check the form and try again.' };
 }
+
+/**
+ * Jumper-side actions answer `{ success: '…' }` (shown as a toast with JS) and render their
+ * errors inline. Without JS that success line would be lost: this returns it so the /app layout
+ * can show it (`NoJsSuccess.svelte`). Actions whose page already renders it (logbook
+ * sign-off, `ImageUpload`'s `success` prop) also return `successShownInline: true`.
+ */
+export function successNotice(form: unknown, status: number): string | null {
+	if (!form || typeof form !== 'object' || status >= 400) return null;
+	const f = form as { success?: unknown; successShownInline?: unknown };
+	if (f.successShownInline) return null;
+	const text = typeof f.success === 'string' ? f.success.trim() : '';
+	return text || null;
+}

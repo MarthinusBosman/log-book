@@ -1,5 +1,18 @@
 import { describe, expect, test } from 'bun:test';
-import { formOutcome } from './no-js-outcome.ts';
+import { formOutcome, successNotice } from './no-js-outcome.ts';
+
+describe('successNotice', () => {
+	test('success line on an ok answer', () => {
+		expect(successNotice({ action: 'update', success: ' Check-in updated ' }, 200)).toBe('Check-in updated');
+	});
+	test('nothing without a string success, on failures, or when the page shows it inline', () => {
+		expect(successNotice(null, 200)).toBeNull();
+		expect(successNotice({ success: true, message: 'x' }, 200)).toBeNull();
+		expect(successNotice({ success: '  ' }, 200)).toBeNull();
+		expect(successNotice({ success: 'Saved' }, 400)).toBeNull();
+		expect(successNotice({ success: 'Jump has been signed', successShownInline: true }, 200)).toBeNull();
+	});
+});
 
 describe('formOutcome', () => {
 	test('no form → nothing', () => {

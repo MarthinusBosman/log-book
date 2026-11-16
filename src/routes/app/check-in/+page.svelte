@@ -1,6 +1,8 @@
 <script lang="ts">
 	import MembershipWarning from '#lib/components/memberships/MembershipWarning.svelte';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { openInPlace } from '#lib/components/staffadmin/open-dialog.ts';
 	import { formatMoney } from '#lib/domain/constants.ts';
 	import { Badge, Button, Card, ConfirmAction, EmptyState, Icon, Input, Select, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
@@ -13,12 +15,15 @@
 
 	let { data, form }: PageProps = $props();
 	let busy = $state<string | null>(null);
-	let editing = $state(false);
+	/** The check-in Edit panel: open for `?edit=1` (a link, so it works before hydration / without JS) or a failed update. */
+	// svelte-ignore state_referenced_locally
+	let editing = $state(page.url.searchParams.get('edit') === '1' || (!!form && 'message' in form && (form as { action?: string }).action === 'update'));
 
 	const initialDz = $derived(data.choices.find((c) => c.slug === data.preferred)?.id ?? data.choices[0]?.id ?? '');
 	const err = $derived(form && 'message' in form ? (form as { action?: string; message?: string; loadId?: string }) : null);
 	const errFor = (loadId: string) => (err && err.loadId === loadId ? err : null);
-	const generalError = $derived(err && !err.loadId ? err.message : null);
+	const generalError = $derived(err && !err.loadId && err.action !== 'update' ? err.message : null);
+	const updateError = $derived(err?.action === 'update' ? err.message : null);
 
 	const submit = (name: string) => () => {
 		busy = name;
@@ -123,13 +128,19 @@
 					<form method="POST" action="?/update" class="mt-4 space-y-3" use:enhance={submit('update')}>
 						<Input label="Exit weight (kg)" name="weightKg" type="number" inputmode="decimal" step="0.5" value={c.weightKg ?? ''} />
 						<Toggle name="gearRental" label="Rental gear" checked={c.gearRental} />
+						<FormAlert message={updateError} />
 						<div class="flex gap-2">
 							<Button type="submit" size="sm" loading={busy === 'update'}>Save</Button>
-							<Button size="sm" variant="ghost" onclick={() => (editing = false)}>Cancel</Button>
+							<Button size="sm" variant="ghost" href="/app/check-in" onclick={openInPlace(() => (editing = false))} data-testid="checkin-edit-cancel">Cancel</Button>
 						</div>
 					</form>
 				{/if}
-				{#if !editing}<div class="mt-4"><Button size="sm" variant="secondary" onclick={() => (editing = true)}><JIcon name="edit" class="size-4" /> Edit</Button></div>{/if}
+				{#if !editing}
+					<!-- a link so it works before hydration / without JS (?edit=1 opens the form server-side) -->
+					<div class="mt-4">
+						<Button size="sm" variant="secondary" href="?edit=1" onclick={openInPlace(() => (editing = true))} data-testid="checkin-edit"><JIcon name="edit" class="size-4" /> Edit</Button>
+					</div>
+				{/if}
 				<ConfirmAction tone="neutral" class="mt-4 border-t border-border pt-3" lead="Done for the day?" question="Check out of {c.dropzone.name}? You can check in again any time." testid="checkout">
 					{#snippet trigger()}<JIcon name="logOut" class="size-4" /> Check out{/snippet}
 					<form method="POST" action="?/checkout" use:enhance={submit('checkout')}>

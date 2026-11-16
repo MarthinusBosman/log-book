@@ -154,7 +154,7 @@ export const actions: Actions = {
 		} catch (e) {
 			return domainFail(e, { action: 'avatar' });
 		}
-		return { action: 'avatar', success: 'Profile picture has been updated' };
+		return { action: 'avatar', success: 'Profile picture has been updated', successShownInline: true };
 	},
 
 	removeAvatar: async ({ locals }) => {
@@ -162,7 +162,7 @@ export const actions: Actions = {
 		const old = (await locals.db.select({ f: users.avatarFileId }).from(users).where(eq(users.id, user.id)).limit(1))[0]?.f;
 		await updateProfile(locals.db, user.id, { avatarFileId: null, avatar: null });
 		if (old) await deleteFile(locals.db, await getStorage(), old).catch(() => {});
-		return { action: 'avatar', success: 'Profile picture removed' };
+		return { action: 'avatar', success: 'Profile picture removed', successShownInline: true };
 	},
 
 	password: async ({ locals, request }) => {

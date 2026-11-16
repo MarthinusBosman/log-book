@@ -599,6 +599,62 @@ test('paying from the wallet, checking out, leaving a team and removing a teamma
 	await noJs.close();
 });
 
+test('check-in Edit works before hydration / without JS, and no-JS posts show their success line', async ({ page, browser }) => {
+	await signup(page, 'Edgy Editor');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Editor DZ ${test.info().project.name} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// Without JS: checking in shows the success line the toast would have shown
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto('/app/check-in');
+	await plain.getByLabel('Exit weight (kg)').fill('80');
+	await plain.getByTestId('checkin-submit').click();
+	await expect(plain.getByTestId('checked-in')).toBeVisible();
+	await expect(plain.getByTestId('no-js-success')).toHaveText(/You’re checked in/);
+
+	// Edit is a ?edit=1 link that renders the form server-side; errors show inside the form
+	const card = plain.getByTestId('checked-in');
+	await expect(card.getByTestId('checkin-edit')).toHaveAttribute('href', '?edit=1');
+	await card.getByTestId('checkin-edit').click();
+	await expect(plain).toHaveURL(/\?edit=1$/);
+	await card.getByLabel('Exit weight (kg)').fill('20');
+	await card.getByRole('button', { name: 'Save' }).click();
+	await expect(card.getByRole('alert')).toHaveText(/30–200/);
+	await expect(plain.getByTestId('no-js-success')).toHaveCount(0);
+	await card.getByLabel('Exit weight (kg)').fill('82.5');
+	await card.getByRole('button', { name: 'Save' }).click();
+	await expect(plain.getByTestId('no-js-success')).toHaveText(/Check-in updated/);
+	await expect(card).toContainText('82.5 kg');
+	await expect(card.getByRole('button', { name: 'Save' })).toHaveCount(0);
+	// Cancel is a link back to the plain page
+	await card.getByTestId('checkin-edit').click();
+	await card.getByTestId('checkin-edit-cancel').click();
+	await expect(plain).toHaveURL(/\/app\/check-in$/);
+	await expect(card.getByRole('button', { name: 'Save' })).toHaveCount(0);
+	await noJs.close();
+
+	// With JS: Edit/Cancel toggle in place, Save toasts (no inline success line)
+	await page.goto('/app/check-in');
+	await page.waitForLoadState('networkidle');
+	const live = page.getByTestId('checked-in');
+	const url = page.url();
+	await live.getByTestId('checkin-edit').click();
+	await expect(live.getByRole('button', { name: 'Save' })).toBeVisible();
+	expect(page.url()).toBe(url);
+	await live.getByTestId('checkin-edit-cancel').click();
+	await expect(live.getByRole('button', { name: 'Save' })).toHaveCount(0);
+	expect(page.url()).toBe(url);
+	await live.getByTestId('checkin-edit').click();
+	await live.getByLabel('Exit weight (kg)').fill('84');
+	await live.getByRole('button', { name: 'Save' }).click();
+	await expect(page.getByText('Check-in updated')).toBeVisible();
+	await expect(live).toContainText('84 kg');
+	await expect(page.getByTestId('no-js-success')).toHaveCount(0);
+});
+
 test('changing or leaving a load works before hydration / without JS, and leaving asks first', async ({ page, browser }) => {
 	await signup(page, 'Lofty Leaver');
 	await page.goto('/app/dropzones/new');

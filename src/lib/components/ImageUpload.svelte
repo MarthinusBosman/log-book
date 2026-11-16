@@ -25,7 +25,7 @@
 		resize: ResizeOptions;
 		accept?: string;
 		hint?: string;
-		/** Server message for this form (error) and success text (no-JS feedback). */
+		/** Server message for this form (error) and success text (no-JS feedback; the action returns `successShownInline: true` so the layout doesn't repeat it). */
 		error?: string | null;
 		success?: string | null;
 		testid?: string;

@@ -35,12 +35,12 @@ export const actions: Actions = {
 			const f = await event.request.formData();
 			const image = await readImageUpload(f.get('logo'), { maxBytes: maxBytesFor('image/png', 'dz_logo'), label: 'Logo' });
 			await setLogo(event.locals.db, await getStorage(), dz.id, image, user.id);
-			return { action: 'logo', success: 'Logo updated' };
+			return { action: 'logo', success: 'Logo updated', successShownInline: true };
 		}),
 	removeLogo: (event) =>
 		runAction(event, 'dz.settings', async ({ dz }) => {
 			await removeLogo(event.locals.db, await getStorage(), dz.id);
-			return { action: 'logo', success: 'Logo removed' };
+			return { action: 'logo', success: 'Logo removed', successShownInline: true };
 		}),
 	reset: (event) =>
 		runAction(event, 'dz.settings', async ({ dz }) => {

@@ -48,7 +48,7 @@ export const actions: Actions = {
 			if (r.jump.signedAt) {
 				// already signed: the domain returns it unchanged for the same signer, refuses anyone else (no file saved)
 				await signJump(locals.db, { jumpId: r.jump.id, signerUserId: user.id });
-				return { success: 'Jump has been signed' };
+				return { success: 'Jump has been signed', successShownInline: true };
 			}
 			let signatureFileId: string | null = null;
 			const sig = str(form, 'signature');
@@ -61,6 +61,6 @@ export const actions: Actions = {
 		} catch (e) {
 			return domainFail(e);
 		}
-		return { success: 'Jump has been signed' };
+		return { success: 'Jump has been signed', successShownInline: true };
 	}
 };
