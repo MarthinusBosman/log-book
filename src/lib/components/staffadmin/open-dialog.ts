@@ -15,6 +15,8 @@ export function newDialogHref(url: { search: string }, drop: readonly string[] =
 /** Href for the current URL with `set` applied (`null` removes a param); other params are kept. */
 export function viewParamsHref(url: { pathname: string; search: string }, set: Record<string, string | null>): string {
 	const params = new URLSearchParams(url.search);
+	// After a no-JS form post the URL still names the action (`?/create`): don't carry it on.
+	for (const k of [...params.keys()]) if (k.startsWith('/')) params.delete(k);
 	for (const [k, v] of Object.entries(set)) {
 		if (v === null) params.delete(k);
 		else params.set(k, v);

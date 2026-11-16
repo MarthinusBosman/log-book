@@ -169,7 +169,7 @@
 	</div>
 
 	<div class="mx-auto max-w-6xl px-5 pt-14 sm:px-8 sm:pt-20 lg:pt-24">
-		<div class="grid items-stretch gap-10 lg:grid-cols-[1fr_auto]">
+		<div class="grid grid-cols-1 items-stretch gap-10 lg:grid-cols-[1fr_auto]">
 			<div>
 				<a
 					href="#import"
@@ -231,7 +231,7 @@
 
 <!-- ───────────────────────── Dropzones ───────────────────────── -->
 <section id="dropzones" class="mx-auto max-w-6xl scroll-mt-20 px-5 py-20 sm:px-8 sm:py-28">
-	<div class="grid gap-6 lg:grid-cols-2 lg:items-end">
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-end">
 		<div>
 			{@render eyebrow('For dropzones')}
 			<h2 class="mt-4 text-3xl font-[580] tracking-[-0.025em] text-balance sm:text-5xl">Everything manifest touches, on one screen.</h2>
@@ -347,7 +347,7 @@
 		</article>
 
 		<!-- Reports -->
-		<article class="grid gap-8 rounded-2xl border border-border bg-surface p-6 sm:p-8 md:col-span-6 md:grid-cols-[1fr_2fr] md:items-end">
+		<article class="grid grid-cols-1 gap-8 rounded-2xl border border-border bg-surface p-6 sm:p-8 md:col-span-6 md:grid-cols-[1fr_2fr] md:items-end">
 			<div>
 				<h3 class="text-lg font-semibold tracking-tight">Reports you'll actually open</h3>
 				<p class="mt-2 text-[15px] leading-relaxed text-muted">
@@ -383,7 +383,7 @@
 
 <!-- ───────────────────────── Jumpers ───────────────────────── -->
 <section id="jumpers" class="relative scroll-mt-20 border-y border-border bg-surface/50">
-	<div class="mx-auto grid max-w-6xl items-center gap-16 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1.05fr_1fr]">
+	<div class="mx-auto grid grid-cols-1 max-w-6xl items-center gap-16 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1.05fr_1fr]">
 		<div class="relative order-2 mx-auto flex justify-center lg:order-1">
 			<div class="absolute inset-0 m-auto size-80 rounded-full bg-primary/20 blur-[90px]" aria-hidden="true"></div>
 			<PhoneLogbook class="relative sm:w-[18.5rem] lg:w-[19.5rem]" />
@@ -475,7 +475,7 @@
 	</div>
 
 	<!-- federation -->
-	<div class="mt-4 grid items-center gap-8 rounded-2xl border border-border bg-surface/50 p-6 sm:p-8 lg:grid-cols-[1fr_1.25fr]">
+	<div class="mt-4 grid grid-cols-1 items-center gap-8 rounded-2xl border border-border bg-surface/50 p-6 sm:p-8 lg:grid-cols-[1fr_1.25fr]">
 		<div>
 			<h3 class="text-lg font-semibold tracking-tight">Self-hosted doesn't mean cut off.</h3>
 			<p class="mt-2 text-[15px] leading-relaxed text-muted">
@@ -499,7 +499,7 @@
 
 <!-- ───────────────────────── Import ───────────────────────── -->
 <section id="import" class="scroll-mt-20 border-y border-border bg-surface/50">
-	<div class="mx-auto grid max-w-6xl items-center gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1fr_1.1fr]">
+	<div class="mx-auto grid grid-cols-1 max-w-6xl items-center gap-14 px-5 py-20 sm:px-8 sm:py-28 lg:grid-cols-[1fr_1.1fr]">
 		<div>
 			{@render eyebrow('Switching from Jump Master?')}
 			<h2 class="mt-4 text-3xl font-[580] tracking-[-0.025em] text-balance sm:text-5xl">Import in one click.</h2>
@@ -554,7 +554,7 @@
 
 <!-- ───────────────────────── FAQ ───────────────────────── -->
 <section id="faq" class="mx-auto max-w-6xl scroll-mt-20 px-5 pb-20 sm:px-8 sm:pb-28">
-	<div class="grid gap-10 lg:grid-cols-[1fr_2fr]">
+	<div class="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_2fr]">
 		<div>
 			{@render eyebrow('FAQ')}
 			<h2 class="mt-4 text-3xl font-[580] tracking-[-0.025em] sm:text-4xl">Questions from the hangar.</h2>
@@ -581,7 +581,7 @@
 <!-- ───────────────────────── CTA ───────────────────────── -->
 <section class="relative isolate overflow-hidden border-t border-border">
 	<div class="hero-glow pointer-events-none absolute -bottom-96 left-1/2 -z-10 h-[40rem] w-[80rem] -translate-x-1/2" aria-hidden="true"></div>
-	<div class="mx-auto grid max-w-6xl items-center gap-10 px-5 py-24 sm:px-8 sm:py-32 lg:grid-cols-[1fr_22rem]">
+	<div class="mx-auto grid grid-cols-1 max-w-6xl items-center gap-10 px-5 py-24 sm:px-8 sm:py-32 lg:grid-cols-[1fr_22rem]">
 		<div>
 		<h2 class="max-w-3xl text-4xl font-[580] tracking-[-0.03em] text-balance sm:text-6xl">Set it up before the first load.</h2>
 		<p class="mt-5 max-w-xl text-lg text-pretty text-muted">Bring your pricelist and aircraft. Your jumpers can sign up on the day.</p>

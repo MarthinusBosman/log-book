@@ -15,7 +15,7 @@
 <svelte:head><title>Settings · Features</title></svelte:head>
 
 <NoJsOutcome class="mb-4" />
-<form method="POST" action="?/save" use:enhance={toastEnhance({ pending: (v) => (saving = v) })} class="grid gap-6 lg:grid-cols-2">
+<form method="POST" action="?/save" use:enhance={toastEnhance({ pending: (v) => (saving = v) })} class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 	<Card title="Payments & wallet" description="How jumpers pay for slots and tandems.">
 		<div class="divide-y divide-border">
 			<Switch name="paymentsOn" label="In-app payments" description="Card payments for sport jumpers and tandem bookings." checked={data.f.paymentsOn} />
@@ -60,7 +60,7 @@
 	</Card>
 
 	<Card title="Operations" description="Defaults for loads, logbooks and gear." class="lg:col-span-2">
-		<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
 			<Select
 				label="Units"
 				name="units"

@@ -66,7 +66,7 @@
 			</Card>
 		{/if}
 
-		<div class="mt-6 grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+		<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.4fr]">
 			<Card title="Register an instance" description="One per self-hosted dropzone server.">
 				<form method="POST" action="?/register" class="flex flex-col gap-4" use:enhance={submit('register')}>
 					<Input label="Name" name="name" required placeholder="Skydive Robertson (self-hosted)" value={form && 'name' in form ? form.name : ''} />
@@ -128,7 +128,7 @@
 			</Card>
 		</div>
 	{:else}
-		<div class="mt-6 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+		<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1.3fr_1fr]">
 			<Card>
 				<div class="flex items-start gap-3">
 					<span

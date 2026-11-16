@@ -181,7 +181,7 @@
 				<form
 					method="POST"
 					action="?/wallet"
-					class="mt-4 grid gap-3 sm:grid-cols-[10rem_9rem_1fr_auto] sm:items-end"
+					class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[10rem_9rem_1fr_auto] sm:items-end"
 					use:enhance={toastEnhance({ pending: (v) => (pending = v), reset: true, onSuccess: () => (amount = '') })}
 				>
 					<input type="hidden" name="kind" value={kind} />

@@ -36,7 +36,7 @@
 </div>
 <NoJsOutcome />
 
-<div class="mt-6 grid gap-6 lg:grid-cols-[22rem_1fr]">
+<div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr]">
 	<!-- add -->
 	<aside class="flex flex-col gap-4">
 		<section class="rounded-2xl border border-border bg-surface p-5">
@@ -97,7 +97,7 @@
 		<section>
 			<h2 class="mb-2 flex items-center gap-2 text-xs font-semibold tracking-wider text-subtle uppercase">Every week</h2>
 			{#if data.recurring.length}
-				<div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+				<div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
 					{#each byWeekday.filter((d) => d.slots.length) as d (d.label)}
 						<div class="rounded-2xl border border-border bg-surface p-3">
 							<p class="text-sm font-medium">{d.label}</p>
@@ -127,7 +127,7 @@
 			{#if data.dated.length}
 				<ul class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
 					{#each visible as d (d.date)}
-						<li class="grid gap-2 px-4 py-3 sm:grid-cols-[9rem_1fr] sm:items-center" data-testid="slot-day">
+						<li class="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[9rem_1fr] sm:items-center" data-testid="slot-day">
 							<p class="text-sm font-medium">
 								{fmtDay(d.date, { weekday: 'short', day: 'numeric', month: 'short' })}
 								{#if d.date === data.today}<Badge tone="brand" class="ml-1">Today</Badge>{/if}

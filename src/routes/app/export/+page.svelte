@@ -27,7 +27,7 @@
 
 	<section class="mt-8">
 		<h2 class="text-xs font-medium tracking-wider text-subtle uppercase">Personal</h2>
-		<div class="mt-3 grid gap-4 md:grid-cols-2">
+		<div class="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
 			<Card class="flex flex-col">
 				<div class="flex items-start gap-3">
 					<span class="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Icon name="book" class="size-5" /></span>

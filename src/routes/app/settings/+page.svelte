@@ -44,10 +44,10 @@
 <svelte:head><title>Settings · Dropzone</title></svelte:head>
 
 <NoJsOutcome class="mb-4" />
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
 	<form method="POST" action="?/save" use:enhance={toastEnhance({ pending: (v) => (saving = v) })} class="space-y-6">
 		<Card title="Profile" description="Shown on your public dropzone page and booking widget.">
-			<div class="grid gap-4 sm:grid-cols-2">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Input label="Dropzone name" name="name" required value={data.dz.name} class="sm:col-span-2" />
 				<Input
 					label="Link name"
@@ -62,7 +62,7 @@
 		</Card>
 
 		<Card title="Location" description="Used for distance in the dropzone list and for local dates.">
-			<div class="grid gap-4 sm:grid-cols-2">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Input label="Address" name="address" value={data.dz.address ?? ''} class="sm:col-span-2" autocomplete="street-address" />
 				<Input label="Latitude" name="lat" inputmode="decimal" value={data.dz.lat ?? ''} placeholder="-33.0286" />
 				<Input label="Longitude" name="lng" inputmode="decimal" value={data.dz.lng ?? ''} placeholder="18.1667" />
@@ -79,7 +79,7 @@
 		</Card>
 
 		<Card title="Contact & hours">
-			<div class="grid gap-4 sm:grid-cols-2">
+			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Input label="Email" name="contactEmail" type="email" value={data.dz.contactEmail ?? ''} />
 				<Input label="Phone" name="contactPhone" type="tel" value={data.dz.contactPhone ?? ''} />
 				<Input label="Website" name="website" type="url" value={data.dz.website ?? ''} placeholder="https://" class="sm:col-span-2" />

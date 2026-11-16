@@ -57,7 +57,7 @@
 	</div>
 </section>
 
-<div class="mx-auto grid max-w-5xl gap-4 px-4 py-8 sm:px-6 md:grid-cols-3">
+<div class="mx-auto grid grid-cols-1 max-w-5xl gap-4 px-4 py-8 sm:px-6 md:grid-cols-3">
 	<!-- next dates -->
 	<section class="rounded-2xl border border-border bg-surface p-5 md:col-span-2">
 		<h2 class="flex items-center gap-2 font-semibold"><Icon name="calendar" class="size-4 text-primary" /> Next available days</h2>

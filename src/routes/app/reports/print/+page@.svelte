@@ -38,7 +38,7 @@
 			</tbody>
 		</table>
 
-		<div class="mt-8 grid gap-8 sm:grid-cols-2 print:grid-cols-2">
+		<div class="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 print:grid-cols-2">
 			<section class="break-inside-avoid">
 				<h2 class="text-sm font-bold tracking-wide uppercase">Per day</h2>
 				<table class="mt-2 w-full text-sm">

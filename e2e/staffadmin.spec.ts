@@ -131,7 +131,8 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(gearCard.getByText(/jumpers’ rigs? due/)).toHaveCount(0);
 	await gearCard.getByRole('link', { name: /1 DZ rig needs attention/ }).click();
 	await expect(page).toHaveURL(/\/app\/gear\?show=attention$/);
-	await expect(page.getByLabel('Filter rigs')).toHaveValue('attention');
+	const rigChips = page.getByRole('navigation', { name: 'Filter rigs' });
+	await expect(rigChips.getByRole('link', { name: /Needs attention/ })).toHaveAttribute('aria-current', 'true');
 	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
 	// Tab and filter changes stay in the URL, so a reload returns to the same view.
 	await page.getByRole('tab', { name: /Jumpers.? gear/ }).click();
@@ -144,7 +145,14 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members$/);
 	await expect(page.getByRole('tab', { name: /Jumpers.? gear/ })).toHaveAttribute('aria-selected', 'true');
 	await page.getByRole('tab', { name: /DZ rigs/ }).click();
-	await page.getByLabel('Filter rigs').selectOption('');
+	// With JS the chips switch the filter in place (no navigation) and the URL follows.
+	await rigChips.getByRole('link', { name: /All rigs/ }).click();
+	await expect(page).toHaveURL(/\/app\/gear$/);
+	await expect(rigChips.getByRole('link', { name: /All rigs/ })).toHaveAttribute('aria-current', 'true');
+	await rigChips.getByRole('link', { name: /Grounded/ }).click();
+	await expect(page).toHaveURL(/\/app\/gear\?show=grounded$/);
+	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	await rigChips.getByRole('link', { name: /All rigs/ }).click();
 	await expect(page).toHaveURL(/\/app\/gear$/);
 	// ?new=1 opens the Add rig form; closing it drops the param.
 	await go(page, '/app/gear?new=1');
@@ -174,6 +182,19 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(plain).getByLabel('Last reserve repack').fill('2026-11-01');
 	await dialog(plain).getByRole('button', { name: 'Add to register' }).click();
 	await expect(plain.getByRole('cell', { name: /Student 2/ })).toBeVisible();
+	// The rig filter chips are links too, and a native search keeps the active chip.
+	const plainChips = plain.getByRole('navigation', { name: 'Filter rigs' });
+	await plainChips.getByRole('link', { name: /Available/ }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?show=available$/);
+	await expect(plain.getByRole('cell', { name: /Student 2/ })).toBeVisible();
+	await expect(plain.getByRole('cell', { name: /Student 1/ })).toHaveCount(0);
+	await plain.getByRole('searchbox').fill('Student');
+	await plain.getByRole('searchbox').press('Enter');
+	await expect(plain).toHaveURL(/\/app\/gear\?q=Student&show=available$/);
+	await expect(plainChips.getByRole('link', { name: /Available/ })).toHaveAttribute('aria-current', 'true');
+	await plainChips.getByRole('link', { name: /All rigs/ }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?q=Student$/);
+	await expect(plain.getByRole('cell', { name: /Student 1/ })).toBeVisible();
 	await noJs.close();
 
 	// Waivers: Add section / Edit are links (?new=1 / ?edit=<id>) that work before hydration and

@@ -35,7 +35,7 @@
 </script>
 
 <footer class="border-t border-border">
-	<div class="mx-auto grid max-w-6xl gap-12 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+	<div class="mx-auto grid grid-cols-1 max-w-6xl gap-12 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_repeat(3,1fr)]">
 		<div>
 			<Logo />
 			<p class="mt-4 max-w-xs text-sm leading-relaxed text-muted">{brand.tagline}</p>

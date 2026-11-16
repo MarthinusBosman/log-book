@@ -128,7 +128,7 @@ LOG_BOOK_VERSION=0.1`;
 
 <section class="relative isolate border-b border-border">
 	<div class="bg-chart absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,black,transparent)]" aria-hidden="true"></div>
-	<div class="mx-auto grid max-w-6xl gap-10 px-5 pt-16 pb-14 sm:px-8 sm:pt-24 sm:pb-20 lg:grid-cols-[1fr_24rem] lg:items-end">
+	<div class="mx-auto grid grid-cols-1 max-w-6xl gap-10 px-5 pt-16 pb-14 sm:px-8 sm:pt-24 sm:pb-20 lg:grid-cols-[1fr_24rem] lg:items-end">
 		<div>
 			<p class="font-mono text-xs font-medium tracking-[0.16em] text-primary uppercase">Self-host guide</p>
 			<h1 class="mt-4 max-w-3xl text-4xl font-[580] tracking-[-0.03em] text-balance sm:text-6xl">Run it on your own server.</h1>
@@ -305,7 +305,7 @@ LOG_BOOK_VERSION=0.1`;
 			<p class="mt-4 text-muted">Everything goes in {@render c('.env')} next to the compose file.</p>
 			<dl class="mt-6 divide-y divide-border overflow-hidden rounded-2xl border border-border">
 				{#each env as [k, v] (k)}
-					<div class="grid gap-1 bg-surface p-4 sm:grid-cols-[15rem_1fr] sm:gap-6">
+					<div class="grid grid-cols-1 gap-1 bg-surface p-4 sm:grid-cols-[15rem_1fr] sm:gap-6">
 						<dt class="font-mono text-[13px] break-words text-fg">{k}</dt>
 						<dd class="text-[15px] text-muted">{v}</dd>
 					</div>

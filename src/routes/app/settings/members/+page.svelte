@@ -69,7 +69,7 @@
 	<fieldset>
 		<legend class="text-sm font-medium">Roles</legend>
 		<p class="text-xs text-muted">People can hold several roles.</p>
-		<div class="mt-3 grid gap-2 sm:grid-cols-2">
+		<div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
 			{#each DROPZONE_ROLES as role (role)}
 				<label
 					class="flex cursor-pointer items-start gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors has-[:checked]:border-primary/50 has-[:checked]:bg-primary/5 hover:border-border-strong {canPick(role) ? '' : 'cursor-not-allowed opacity-50'}"

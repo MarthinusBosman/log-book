@@ -21,6 +21,11 @@ describe('viewParamsHref', () => {
 	test('falls back to the bare path when nothing is left', () => {
 		expect(viewParamsHref(new URL('https://x.test/app/waivers?new=1'), { new: null })).toBe('/app/waivers');
 	});
+	test('drops a form action left in the URL by a no-JS post', () => {
+		expect(viewParamsHref(new URL('https://x.test/app/gear?/create'), { show: 'available' })).toBe('?show=available');
+		expect(viewParamsHref(new URL('https://x.test/app/gear?q=a&/ground'), { show: null })).toBe('?q=a');
+		expect(viewParamsHref(new URL('https://x.test/app/gear?/create'), { show: null })).toBe('/app/gear');
+	});
 });
 
 describe('wantsNewDialog', () => {

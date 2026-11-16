@@ -7,7 +7,7 @@
 	let { children }: LayoutProps = $props();
 </script>
 
-<div class="grid min-h-dvh lg:grid-cols-[1fr_1.05fr]">
+<div class="grid grid-cols-1 min-h-dvh lg:grid-cols-[1fr_1.05fr]">
 	<!-- Form side -->
 	<div class="relative flex flex-col px-5 py-6 sm:px-10">
 		<header class="flex items-center justify-between">

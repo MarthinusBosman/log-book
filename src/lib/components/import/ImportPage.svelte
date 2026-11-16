@@ -77,7 +77,7 @@
 		{:else if data.preview}
 			<PreviewPanel preview={data.preview} />
 		{:else}
-			<div class="grid gap-6 lg:grid-cols-2">
+			<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<ConnectorCard {mode} config={data.connector} {timezone} {currency} />
 				<UploadCard {mode} {templateHref} />
 			</div>

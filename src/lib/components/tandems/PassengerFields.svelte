@@ -55,7 +55,7 @@
 </script>
 
 <div class="grid gap-4">
-	<fieldset class="grid gap-3 sm:grid-cols-2">
+	<fieldset class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 		<legend class="mb-2 text-xs font-semibold tracking-wider text-subtle uppercase">Passenger</legend>
 		<Input label="Full name" name="name" value={v(values.name)} required class="sm:col-span-2" autocomplete="off" />
 		<Input label="Email" name="email" type="email" value={v(values.email)} inputmode="email" autocomplete="off" />
@@ -90,7 +90,7 @@
 	</fieldset>
 
 	{#if mode === 'edit' && minor}
-		<fieldset class="grid gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 sm:grid-cols-2">
+		<fieldset class="grid grid-cols-1 gap-3 rounded-2xl border border-warning/30 bg-warning/5 p-4 sm:grid-cols-2">
 			<legend class="px-1 text-xs font-semibold tracking-wider text-warning uppercase">Parent / guardian (under 18)</legend>
 			<Input label="Guardian name" name="guardianName" value={v(values.guardianName)} required />
 			<Input label="Guardian email" name="guardianEmail" type="email" value={v(values.guardianEmail)} required />
@@ -99,7 +99,7 @@
 	{/if}
 
 	{#if mode === 'edit'}
-		<fieldset class="grid gap-3 sm:grid-cols-2">
+		<fieldset class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 			<legend class="mb-2 text-xs font-semibold tracking-wider text-subtle uppercase">Emergency contact</legend>
 			<Input label="Name" name="emergencyName" value={v(values.emergencyName)} />
 			<Input label="Phone" name="emergencyPhone" type="tel" value={v(values.emergencyPhone)} />
@@ -107,7 +107,7 @@
 		</fieldset>
 	{/if}
 
-	<fieldset class="grid gap-3 sm:grid-cols-2">
+	<fieldset class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 		<legend class="mb-2 text-xs font-semibold tracking-wider text-subtle uppercase">Jump</legend>
 		<Input label="Jump date" name="jumpDate" type="date" bind:value={date} />
 		<Input label="Time" name="bookingTime" type="time" value={v(values.bookingTime)} />

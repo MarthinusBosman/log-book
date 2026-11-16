@@ -49,6 +49,22 @@ describe('svelte a11y lint', () => {
 		expect(missing).toEqual([]);
 	});
 
+	test('responsive grids set a base column (grid-cols-1), so long text cannot widen phones', () => {
+		// A bare `grid sm:grid-cols-2` sizes its one implicit column to min-content: a `truncate`
+		// child (a long dropzone or jumper name) then pushes the card past the viewport.
+		const bad: string[] = [];
+		for (const f of files) {
+			for (const m of f.text.matchAll(/(?:class="|['`])([^"'`{}\n]*)["'`]/g)) {
+				const toks = m[1].split(/\s+/);
+				if (!toks.includes('grid')) continue;
+				if (!toks.some((t) => /^[@\w[\]-]+:grid-cols-/.test(t))) continue;
+				if (toks.some((t) => t.startsWith('grid-cols-'))) continue;
+				bad.push(`${f.name}:${lineOf(f.text, m.index)}`);
+			}
+		}
+		expect(bad).toEqual([]);
+	});
+
 	test('<dl> starts with a term, not a heading or paragraph', () => {
 		const bad: string[] = [];
 		for (const f of files) {

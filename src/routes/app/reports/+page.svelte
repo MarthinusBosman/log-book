@@ -77,7 +77,7 @@
 	<p class="mt-6 rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">No loads found in that range. Try a wider date range.</p>
 {/if}
 
-<div class="mt-4 grid gap-4 lg:grid-cols-3">
+<div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
 	<Card class="lg:col-span-2">
 		{@render head('Jumps per ' + bucketWord, 'Slots on completed loads', 'daily')}
 		<ColumnChart class="mt-5" label="Slots per {bucketWord}" points={jumpsSeries.points} series={[{ name: 'Slots', color: 'var(--color-primary)' }]} />
@@ -155,7 +155,7 @@
 	{#if data.walletEnabled || data.wallet.days.length}
 		<Card class="lg:col-span-3">
 			{@render head('Wallet top-ups vs charges', `Net ${net >= 0 ? '+' : ''}${money(net)} · refunds ${money(data.wallet.totals.refundMinor)} · staff pay ${money(data.wallet.totals.staffPayMinor)}`, 'wallet')}
-			<div class="mt-5 grid gap-6 lg:grid-cols-[1fr_16rem]">
+			<div class="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_16rem]">
 				<ColumnChart
 					label="Wallet top-ups vs charges per {bucketWord}"
 					points={walletSeries.points}

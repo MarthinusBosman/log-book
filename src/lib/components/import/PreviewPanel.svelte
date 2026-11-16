@@ -70,7 +70,7 @@
 			</div>
 		{/if}
 		{#if preview.mode === 'dropzone' && preview.samples.people.length}
-			<div class="grid gap-5 lg:grid-cols-2">
+			<div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
 				<div>
 					<p class="mb-2 text-sm font-medium">People</p>
 					<ul class="divide-y divide-border rounded-xl border border-border text-sm">

@@ -162,14 +162,14 @@
 				await update({ reset: false });
 			};
 		}}
-		class="mt-6 grid gap-6 lg:grid-cols-[1fr_20rem]"
+		class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem]"
 	>
 		<input type="hidden" name="slot" value={date && time ? `${date}|${time}` : ''} />
 		<input type="hidden" name="count" value={count} />
 
 		<div class="min-w-0">
 			<!-- 1. date + time -->
-			<fieldset data-step="0" hidden={step !== 0} class="grid gap-5 md:grid-cols-[minmax(0,22rem)_1fr]">
+			<fieldset data-step="0" hidden={step !== 0} class="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,22rem)_1fr]">
 				<legend class="sr-only">Date and time</legend>
 				<div class="rounded-2xl border border-border bg-surface p-4">
 					<MonthCalendar available={available} min={data.today} max={data.horizon} bind:value={date} onselect={() => (time = null)} />
@@ -229,7 +229,7 @@
 							<span class="grid size-7 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">{i + 1}</span>
 							{count > 1 ? (i === 0 ? 'Lead jumper' : `Jumper ${i + 1}`) : 'Your details'}
 						</h2>
-						<div class="mt-4 grid gap-3 sm:grid-cols-2">
+						<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<Input label="Full name" name="j{i}_name" bind:value={j.name} required autocomplete={i === 0 ? 'name' : 'off'} class="sm:col-span-2" />
 							<Input label="Email" name="j{i}_email" type="email" bind:value={j.email} required inputmode="email" autocomplete={i === 0 ? 'email' : 'off'} />
 							<Input label="Mobile number" name="j{i}_phone" type="tel" bind:value={j.phone} required inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
@@ -245,7 +245,7 @@
 							</p>
 						{/if}
 						{#if isMinor(j)}
-							<div class="mt-4 grid gap-3 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-2">
+							<div class="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-2">
 								<p class="text-sm font-medium text-warning sm:col-span-2">Under 18 — a parent or guardian must sign too</p>
 								<Input label="Guardian full name" name="j{i}_guardianName" bind:value={j.guardianName} required />
 								<Input label="Guardian email" name="j{i}_guardianEmail" type="email" bind:value={j.guardianEmail} required />
@@ -257,7 +257,7 @@
 								Emergency contact{i > 0 ? ' (defaults to the lead jumper’s)' : ''}
 								<span class="text-subtle group-open:hidden">+</span>
 							</summary>
-							<div class="mt-3 grid gap-3 sm:grid-cols-2">
+							<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
 								<Input label="Name" name="j{i}_emergencyName" bind:value={j.emergencyName} required={i === 0} />
 								<Input label="Phone" name="j{i}_emergencyPhone" type="tel" bind:value={j.emergencyPhone} required={i === 0} />
 							</div>
@@ -274,7 +274,7 @@
 					{#each j.extras as e (e)}<input type="hidden" name="j{i}_extras" value={e} />{/each}
 				{/each}
 				{#if data.offer.extras.length}
-					<div class="grid gap-3 sm:grid-cols-2">
+					<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 						{#each data.offer.extras as e (e.code)}
 							{@const on = jumpers.filter((j) => j.extras.includes(e.code)).length}
 							<div class={cn('flex flex-col rounded-2xl border p-4 transition-colors', on ? 'border-primary/50 bg-primary/5' : 'border-border bg-surface')}>
@@ -347,7 +347,7 @@
 					{/if}
 				</section>
 
-				<section class="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2 sm:p-5">
+				<section class="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2 sm:p-5">
 					<Select label="How did you hear about us?" name="j0_heardFrom" value="" options={[{ value: '', label: 'Choose…' }, ...data.heardFrom.map((h) => ({ value: h, label: h }))]} />
 					<div class="flex flex-col gap-1.5 sm:col-span-2">
 						<label for="note" class="text-sm font-medium">Anything we should know? <span class="font-normal text-subtle">(optional)</span></label>

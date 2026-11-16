@@ -123,7 +123,7 @@
 				On <span class="font-semibold">Load {pax.loadNumber}</span>
 				<span class="text-muted">· {fmtDay(pax.day)} · {pax.loadStatus}</span>
 			</p>
-			<div class="mt-3 grid gap-3 sm:grid-cols-2">
+			<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<form method="POST" action={action('staff')} use:enhance={tracked('ti')} class="flex items-end gap-2">
 					<input type="hidden" name="role" value="tandem_instructor" />
 					<Select label="Tandem instructor" name="userId" value={ti?.userId ?? ''} options={staffOptions(detail.instructors)} class="flex-1" />
@@ -146,7 +146,7 @@
 			<p class="mt-2 text-sm text-muted">No open loads on {fmtDay(detail.loadsDay)}. Create loads in Manifest first.</p>
 			<Button size="sm" variant="secondary" href="/app/manifest" class="mt-3">Open manifest</Button>
 		{:else}
-			<form method="POST" action={action('manifest')} use:enhance={tracked('manifest')} class="mt-3 grid gap-3 sm:grid-cols-2">
+			<form method="POST" action={action('manifest')} use:enhance={tracked('manifest')} class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
 				<Select
 					label="Load ({fmtDay(detail.loadsDay)})"
 					name="loadId"
@@ -236,7 +236,7 @@
 	</section>
 
 	<!-- people -->
-	<section class="grid gap-3 text-sm sm:grid-cols-2">
+	<section class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
 		{#snippet item(label: string, value: string | number | null | undefined)}
 			{#if value !== null && value !== undefined && value !== ''}
 				<div>

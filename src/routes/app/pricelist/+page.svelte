@@ -58,8 +58,8 @@
 		</p>
 	{/if}
 
-	<div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
-		<div class="grid gap-4 md:grid-cols-2">
+	<div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+		<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 			{#each PRICE_GROUPS as g (g.id)}
 				<Card title={g.title} description={g.description} class={g.id === 'staff_pay' ? 'md:col-span-2' : ''}>
 					<div class="grid gap-3 {g.id === 'staff_pay' ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'}">

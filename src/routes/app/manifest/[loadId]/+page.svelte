@@ -62,7 +62,7 @@
 	<p role="alert" class="mt-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">{form.message}</p>
 {/if}
 
-<div class="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+<div class="mt-4 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
 	<div class="flex min-w-0 flex-col gap-6">
 		<LoadCard {load} timezone={data.dz.timezone} currency={data.dz.currency} canManifest={data.canManifest} detail hideSlots oncomplete={(s) => (summary = s)} />
 
@@ -148,7 +148,7 @@
 					Plane, pilot & time
 					<MIcon name="chevronRight" class="size-4 text-muted transition-transform group-open:rotate-90" />
 				</summary>
-				<form method="POST" action="?/updateLoad" class="grid gap-3 border-t border-border p-4 sm:grid-cols-2" use:enhance={act({ success: 'Load updated', onSuccess: () => (settingsOpen = false) })}>
+				<form method="POST" action="?/updateLoad" class="grid grid-cols-1 gap-3 border-t border-border p-4 sm:grid-cols-2" use:enhance={act({ success: 'Load updated', onSuccess: () => (settingsOpen = false) })}>
 					<input type="hidden" name="loadId" value={load.id} />
 					<Select label="Aircraft" name="aircraftId" value={load.aircraftId ?? ''} options={[{ value: '', label: load.aircraftId ? 'Keep / custom' : (load.aircraftName ?? 'Custom') }, ...data.aircraft.map((a) => ({ value: a.id, label: a.name }))]} />
 					<Input label="Slots (pax)" name="capacity" type="number" min="1" value={load.capacity} />

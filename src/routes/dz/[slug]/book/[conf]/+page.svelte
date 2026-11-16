@@ -105,7 +105,7 @@
 				</div>
 			</div>
 
-			<div class="mt-5 grid gap-4 rounded-2xl border border-dashed border-border-strong bg-surface-2/40 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
+			<div class="mt-5 grid grid-cols-1 gap-4 rounded-2xl border border-dashed border-border-strong bg-surface-2/40 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
 				<div>
 					<p class="text-[11px] font-semibold tracking-wider text-subtle uppercase">Confirmation number</p>
 					<button type="button" class="mt-1 font-mono text-2xl font-semibold tracking-[0.15em] text-primary" onclick={() => copy(b.confirmationNumber)} data-testid="conf">
@@ -266,7 +266,7 @@
 		</section>
 	{/if}
 
-	<section class="mt-8 grid gap-3 text-sm sm:grid-cols-3">
+	<section class="mt-8 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
 		{#each [['sun', 'Dress comfortably', 'Closed shoes and clothes you can move in. We provide the jumpsuit.'], ['wind', 'Weather dependent', 'If the sky says no, we’ll move you to the next good day.'], ['shield', 'Bring ID', 'And plan for 3–4 hours on site including the briefing.']] as [icon, t, d] (t)}
 			<div class="rounded-2xl border border-border bg-surface p-4">
 				<Icon name={icon as 'sun'} class="size-4 text-primary" />

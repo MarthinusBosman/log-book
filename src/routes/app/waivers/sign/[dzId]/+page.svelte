@@ -62,7 +62,7 @@
 			onSigned={() => (resign = false)}
 		>
 			{#snippet header()}
-				<div class="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2">
+				<div class="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2">
 					<Input label="Full name" name="signer_name" bind:value={signerName} required autocomplete="name" />
 					<Input label="Email" value={data.me.email} disabled />
 					<p class="text-xs text-muted sm:col-span-2">

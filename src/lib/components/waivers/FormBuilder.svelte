@@ -82,7 +82,7 @@
 						class="grid gap-3 p-4"
 					>
 						<input type="hidden" name="id" value={s.id} />
-						<div class="grid gap-3 sm:grid-cols-[1fr_16rem]">
+						<div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_16rem]">
 							<Input label="Heading" name="title" value={s.title} required />
 							<Select label="Type" name="type" value={s.type} options={typeOptions} />
 						</div>
@@ -161,7 +161,7 @@
 				class="grid gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4"
 			>
 				<input type="hidden" name="audience" value={audience} />
-				<div class="grid gap-3 sm:grid-cols-[1fr_16rem]">
+				<div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_16rem]">
 					<Input label="Heading" name="title" required placeholder="e.g. Assumption of risk" />
 					<Select label="Type" name="type" bind:value={newType} options={typeOptions} />
 				</div>

@@ -41,7 +41,7 @@
 			{#snippet action()}<Button href={newDialogHref(page.url)} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>{/snippet}
 		</EmptyState>
 	{:else}
-		<div class="mt-3 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+		<div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
 			{#each data.fleet as a (a.id)}
 				<Card class={a.active ? '' : 'opacity-70'}>
 					<div class="flex items-start justify-between gap-3">

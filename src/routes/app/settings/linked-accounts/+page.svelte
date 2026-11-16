@@ -115,7 +115,7 @@
 				{/if}
 			</div>
 		</Card>
-		<ul class="mt-6 grid gap-3 text-sm text-muted sm:grid-cols-3">
+		<ul class="mt-6 grid grid-cols-1 gap-3 text-sm text-muted sm:grid-cols-3">
 			<li class="rounded-xl border border-border p-4"><span class="font-medium text-fg">One logbook.</span> Jumps from every dropzone in one place.</li>
 			<li class="rounded-xl border border-border p-4"><span class="font-medium text-fg">Verified.</span> Synced jumps are marked with this dropzone.</li>
 			<li class="rounded-xl border border-border p-4"><span class="font-medium text-fg">Your call.</span> Unlink here or on the global site any time.</li>

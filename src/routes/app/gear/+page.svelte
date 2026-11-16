@@ -3,8 +3,9 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { gearViewParams, readGearView, type GearOnly } from '#lib/components/staffadmin/gear-view.ts';
-	import { readQuery } from '#lib/components/staffadmin/list-view.ts';
-	import { newDialogHref, openInPlace } from '#lib/components/staffadmin/open-dialog.ts';
+	import { readQuery, revealInRow } from '#lib/components/staffadmin/list-view.ts';
+	import { newDialogHref, openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
+	import { cn } from '#lib/ui/index.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input, Select, Stat, Tabs } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
@@ -50,6 +51,23 @@
 		inUse: data.register.filter((r) => r.availability === 'in_use').length,
 		grounded: data.register.filter((r) => r.availability === 'grounded').length,
 		attention: data.register.filter(needsAttention).length
+	});
+	const chips = $derived(
+		[
+			{ id: '' as GearOnly, label: 'All rigs', n: data.register.length },
+			{ id: 'attention' as GearOnly, label: 'Needs attention', n: counts.attention },
+			{ id: 'available' as GearOnly, label: 'Available', n: counts.available },
+			{ id: 'in_use' as GearOnly, label: 'In use', n: counts.inUse },
+			{ id: 'grounded' as GearOnly, label: 'Grounded', n: counts.grounded }
+		].filter((c) => c.id === '' || c.n > 0 || c.id === only)
+	);
+	// On a phone the chip row scrolls sideways: keep the active chip in view.
+	let chipBar = $state<HTMLElement>();
+	$effect(() => {
+		void only;
+		const bar = chipBar;
+		const el = bar?.querySelector<HTMLElement>('[data-active]');
+		if (bar && el) revealInRow(bar, el);
 	});
 	const memberAlerts = $derived(data.members.filter((m) => [m.repack.status, m.aad_.status].some((s) => s === 'due_soon' || s === 'overdue')));
 	let showAllMembers = $state(false);
@@ -98,16 +116,31 @@
 />
 
 {#if tab === 'dz'}
-	<div class="mt-4 flex flex-col gap-3 sm:flex-row">
-		<SearchBox bind:value={q} placeholder="Search rigs, canopies, AAD serial" class="flex-1" />
-		<select bind:value={only} aria-label="Filter rigs" class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary">
-			<option value="">All rigs</option>
-			<option value="attention">Needs attention ({counts.attention})</option>
-			<option value="available">Available</option>
-			<option value="in_use">In use</option>
-			<option value="grounded">Grounded</option>
-		</select>
-	</div>
+	<!-- Without JS, Enter submits the search natively (the server renders the filtered list); the
+	     hidden field keeps the active chip. -->
+	<form method="GET" class="mt-4" onsubmit={(e) => e.preventDefault()}>
+		<SearchBox bind:value={q} name="q" placeholder="Search rigs, canopies, AAD serial" />
+		{#if only}<input type="hidden" name="show" value={only} />{/if}
+	</form>
+	<!-- Chips are ?show= links so they work before hydration and without JS; once hydrated they
+	     switch the filter in place. -->
+	<nav aria-label="Filter rigs" bind:this={chipBar} class="scrollbar-none -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+		{#each chips as c (c.id)}
+			<a
+				href={viewParamsHref(page.url, { show: c.id || null, new: null })}
+				onclick={openInPlace(() => (only = c.id))}
+				aria-current={only === c.id ? 'true' : undefined}
+				data-active={only === c.id ? '' : undefined}
+				data-sveltekit-reset="false"
+				class={cn(
+					'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors',
+					only === c.id ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-surface text-muted hover:text-fg'
+				)}
+			>
+				{c.label}<span class="font-normal tabular-nums">{c.n}</span>
+			</a>
+		{/each}
+	</nav>
 
 	{#if data.register.length === 0}
 		<EmptyState class="mt-4" title="No DZ rigs yet" description="Add your rental, student and tandem rigs to track repacks and AAD service.">
