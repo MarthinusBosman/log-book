@@ -107,7 +107,8 @@ LOG_BOOK_VERSION=0.1`;
 {#snippet code(text: string, label: string)}
 	<figure class="mt-5 overflow-hidden rounded-xl border border-[#1b2742] bg-[#050a15]">
 		<figcaption class="border-b border-white/10 px-4 py-2 font-mono text-[11px] tracking-[0.12em] text-white/50 uppercase">{label}</figcaption>
-		<pre class="overflow-x-auto p-4 font-mono text-[13px] leading-relaxed text-white/85"><code>{text}</code></pre>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex (scrollable: keyboard users need focus to scroll it) -->
+		<pre tabindex="0" aria-label={label} class="overflow-x-auto p-4 outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-inset font-mono text-[13px] leading-relaxed text-white/85"><code>{text}</code></pre>
 	</figure>
 {/snippet}
 

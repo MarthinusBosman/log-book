@@ -33,7 +33,7 @@
 		{ who: 'Thando Khumalo', role: 'Packer', jumps: 22, amt: 'R1 320' }
 	];
 	const gear = [
-		{ rig: 'Student rig S-04', what: 'Reserve repack', when: 'in 9 days', tone: 'text-amber-700 bg-amber-500/12 dark:text-amber-300' },
+		{ rig: 'Student rig S-04', what: 'Reserve repack', when: 'in 9 days', tone: 'text-amber-800 bg-amber-500/12 dark:text-amber-300' },
 		{ rig: 'Tandem T-02', what: 'AAD service', when: 'Mar 2027', tone: 'text-muted bg-surface-2' },
 		{ rig: 'Rental R-11', what: 'Reserve repack', when: 'overdue', tone: 'text-red-700 bg-red-500/12 dark:text-red-300' }
 	];

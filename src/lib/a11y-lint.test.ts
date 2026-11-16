@@ -65,6 +65,34 @@ describe('svelte a11y lint', () => {
 		expect(bad).toEqual([]);
 	});
 
+	test('light-mode chips on a pale colour tint use a dark enough text shade (WCAG 4.5:1)', () => {
+		// `bg-amber-500/12 text-amber-700` measures 4.2–4.6:1 on the light page/surface-2
+		// colours; sky-600 on a sky tint is 3.4:1. Warm hues need -800, cool hues -700.
+		const minShade: Record<string, number> = { amber: 800, yellow: 800, orange: 800, lime: 800, sky: 700, cyan: 700, teal: 700, emerald: 700, green: 700 };
+		const bad: string[] = [];
+		for (const f of files) {
+			for (const m of f.text.matchAll(/(?:class="|['`])([^"'`{}\n]*)["'`]/g)) {
+				const toks = m[1].split(/\s+/);
+				if (!toks.some((t) => /^bg-\w+-[1-5]00\/\d+$/.test(t))) continue;
+				for (const t of toks) {
+					const c = /^text-(\w+)-(\d+)$/.exec(t);
+					if (c && minShade[c[1]] && Number(c[2]) < minShade[c[1]]) bad.push(`${f.name}:${lineOf(f.text, m.index)} ${t}`);
+				}
+			}
+		}
+		expect(bad).toEqual([]);
+	});
+
+	test('horizontally scrollable <pre> blocks can take keyboard focus', () => {
+		const bad: string[] = [];
+		for (const f of files) {
+			for (const m of f.text.matchAll(/<pre\b([^>]*)>/g)) {
+				if (/overflow-(x-)?auto/.test(m[1]) && !/tabindex="0"/.test(m[1])) bad.push(`${f.name}:${lineOf(f.text, m.index)}`);
+			}
+		}
+		expect(bad).toEqual([]);
+	});
+
 	test('<dl> starts with a term, not a heading or paragraph', () => {
 		const bad: string[] = [];
 		for (const f of files) {

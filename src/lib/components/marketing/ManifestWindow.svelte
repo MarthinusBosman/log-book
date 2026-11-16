@@ -22,7 +22,7 @@
 
 	const payTone = {
 		ok: 'text-emerald-700 bg-emerald-500/10 dark:text-emerald-300',
-		warn: 'text-amber-700 bg-amber-500/12 dark:text-amber-300',
+		warn: 'text-amber-800 bg-amber-500/12 dark:text-amber-300',
 		info: 'text-muted bg-surface-2'
 	};
 </script>

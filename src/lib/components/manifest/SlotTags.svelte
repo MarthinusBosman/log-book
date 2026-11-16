@@ -36,7 +36,7 @@
 		tandem_instructor: 'bg-violet-500/15 text-violet-600 dark:text-violet-300 border-violet-500/30',
 		videographer: 'bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30',
 		coach: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30',
-		aff_instructor: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+		aff_instructor: 'bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/30',
 		jumpmaster: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
 	};
 	// The instructor's own colour tints the chip; its text is lightened/darkened per theme to stay readable.

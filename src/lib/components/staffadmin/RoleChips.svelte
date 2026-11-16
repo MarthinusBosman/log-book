@@ -8,8 +8,8 @@
 	const tone: Partial<Record<DropzoneRole, string>> = {
 		owner: 'border-primary/30 bg-primary/10 text-primary',
 		admin: 'border-primary/30 bg-primary/10 text-primary',
-		manifest: 'border-sky-500/30 bg-sky-500/10 text-sky-600 dark:text-sky-300',
-		rigger: 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300',
+		manifest: 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300',
+		rigger: 'border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300',
 		pilot: 'border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-300',
 		jumper: 'border-border bg-surface-2 text-muted'
 	};

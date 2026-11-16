@@ -38,7 +38,7 @@
 		none: { label: '', tone: '' },
 		call20: { label: '20 min call', tone: 'bg-warning/15 text-warning border-warning/40' },
 		call10: { label: '10 min call', tone: 'bg-warning/25 text-warning border-warning/60' },
-		call5: { label: '5 min call', tone: 'bg-orange-500/25 text-orange-600 dark:text-orange-300 border-orange-500/60' },
+		call5: { label: '5 min call', tone: 'bg-orange-500/25 text-orange-800 dark:text-orange-300 border-orange-500/60' },
 		gearup: { label: 'Gear up', tone: 'gear-up bg-red-600 text-white border-red-600' },
 		boarding: { label: 'Gear up · boarding', tone: 'gear-up bg-red-600 text-white border-red-600' },
 		airborne: { label: 'In the air', tone: 'bg-primary/15 text-primary border-primary/40' }
