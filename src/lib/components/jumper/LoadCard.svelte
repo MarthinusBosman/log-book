@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import { JUMP_TYPE_LABELS, LOAD_STATUS_LABELS, SELF_SERVICE_LOAD_STATUSES, formatMoney, type JumpType, type LoadStatus } from '#lib/domain/constants.ts';
 	import { Badge, Button, cn, toast } from '#lib/ui/index.ts';
+	import ConfirmAction from '#lib/ui/ConfirmAction.svelte';
 	import type { LoadCard, PriceTable } from '#lib/server/jumper/manifest.ts';
 	import JIcon from './JIcon.svelte';
 	import JoinForm from './JoinForm.svelte';
@@ -34,8 +35,18 @@
 
 	// svelte-ignore state_referenced_locally
 	let panel = $state<'none' | 'solo' | 'team' | 'change'>(
-		page.url.searchParams.get('join') === load.id ? 'solo' : page.url.searchParams.get('team') === load.id ? 'team' : 'none'
+		page.url.searchParams.get('join') === load.id
+			? 'solo'
+			: page.url.searchParams.get('team') === load.id
+				? 'team'
+				: page.url.searchParams.get('change') === load.id
+					? 'change'
+					: 'none'
 	);
+	function toggleChange(e: MouseEvent) {
+		e.preventDefault();
+		panel = panel === 'change' ? 'none' : 'change';
+	}
 	function open(e: MouseEvent, p: 'solo' | 'team') {
 		e.preventDefault();
 		panel = p;
@@ -130,27 +141,17 @@
 					{/if}
 				</div>
 				{#if editable && !load.mine.staffRole}
-					<div class="flex gap-2">
-						<Button size="sm" variant="secondary" onclick={() => (panel = panel === 'change' ? 'none' : 'change')}>
-							<JIcon name="edit" class="size-4" /> Change
-						</Button>
-						<form
-							method="POST"
-							action="?/leave"
-							use:enhance={({ cancel }) => {
-								if (!confirm('Are you sure you want to leave this load?')) return cancel();
-								leaving = true;
-								return async ({ result, update }) => {
-									await update();
-									leaving = false;
-									if (result.type === 'success') toast.success('You left the load');
-								};
-							}}
-						>
-							<input type="hidden" name="loadId" value={load.id} />
-							<Button type="submit" size="sm" variant="ghost" class="text-danger hover:text-danger" loading={leaving}>Leave</Button>
-						</form>
-					</div>
+					<!-- a link so it works before hydration / without JS (?change= opens the panel server-side) -->
+					<Button
+						size="sm"
+						variant="secondary"
+						href="?change={load.id}"
+						onclick={toggleChange}
+						aria-expanded={panel === 'change'}
+						data-testid="change-slot"
+					>
+						<JIcon name="edit" class="size-4" /> Change
+					</Button>
 				{/if}
 				{#if boarding && !load.mine.staffRole}
 					<p class="text-sm text-muted" data-testid="boarding-note">Boarding: ask manifest to make changes</p>
@@ -174,6 +175,31 @@
 						ondone={() => (panel = 'none')}
 					/>
 				</div>
+			{/if}
+			{#if editable && !load.mine.staffRole}
+				<ConfirmAction
+					class="mt-4 border-t border-primary/20 pt-3"
+					lead="Can’t make this one?"
+					question="Leave load {load.loadNumber}? Your slot goes back to the load, so someone else can take it."
+					testid="leave-load"
+				>
+					{#snippet trigger()}<JIcon name="x" class="size-4" /> Leave load{/snippet}
+					<form
+						method="POST"
+						action="?/leave"
+						use:enhance={() => {
+							leaving = true;
+							return async ({ result, update }) => {
+								await update();
+								leaving = false;
+								if (result.type === 'success') toast.success('You left the load');
+							};
+						}}
+					>
+						<input type="hidden" name="loadId" value={load.id} />
+						<Button type="submit" size="sm" variant="danger" loading={leaving}>Leave load</Button>
+					</form>
+				</ConfirmAction>
 			{/if}
 		</div>
 	{:else}

@@ -568,6 +568,78 @@ test('paying from the wallet, checking out and leaving a team ask first — also
 	await noJs.close();
 });
 
+test('changing or leaving a load works before hydration / without JS, and leaving asks first', async ({ page, browser }) => {
+	await signup(page, 'Lofty Leaver');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Leaver DZ ${test.info().project.name} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-LVE');
+	await dialog.getByLabel('Slots (pax)').fill('6');
+	await dialog.getByLabel('Weight limit (kg)').fill('600');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.locator('[data-testid=load-card][data-load-number="1"]')).toBeVisible();
+	await page.goto('/app/check-in');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toBeVisible();
+	const load = page.locator('[data-testid=load-card][data-load="1"]');
+	await page.goto(`/app/check-in${(await load.getByTestId('join-solo').getAttribute('href'))!}`);
+	await page.waitForLoadState('networkidle');
+	await load.getByRole('button', { name: 'Join this load' }).click();
+	await expect(load.getByText('You’re on this load')).toBeVisible();
+
+	// Without JS: Change is a ?change= link that opens the panel server-side
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto('/app/check-in');
+	const plainLoad = plain.locator('[data-testid=load-card][data-load="1"]');
+	await expect(plainLoad.getByTestId('change-slot')).toHaveAttribute('href', /^\?change=[0-9a-f-]+$/);
+	await plainLoad.getByTestId('change-slot').click();
+	await expect(plain).toHaveURL(/\?change=/);
+	await plainLoad.locator('label', { hasText: 'Freeflying' }).click();
+	await plainLoad.getByRole('button', { name: 'Save changes' }).click();
+	await expect(plainLoad.getByRole('button', { name: 'Save changes' })).toHaveCount(0);
+	await expect(plainLoad).toContainText('Freeflying');
+
+	// Without JS: Leave only asks; Cancel keeps the slot, the confirm button leaves
+	const plainLeave = plainLoad.getByTestId('leave-load');
+	await expect(plainLeave.getByRole('button', { name: 'Leave load' })).toBeHidden();
+	await plainLeave.locator('summary').click();
+	await expect(plainLeave).toContainText('Leave load 1? Your slot goes back to the load');
+	await plainLeave.getByRole('link', { name: 'Cancel' }).click();
+	await expect(plainLoad.getByText('You’re on this load')).toBeVisible();
+	await plainLoad.getByTestId('leave-load').locator('summary').click();
+	await plainLoad.getByTestId('leave-load').getByRole('button', { name: 'Leave load' }).click();
+	await expect(plainLoad.getByTestId('join-solo')).toBeVisible();
+	await expect(plainLoad.getByText('You’re on this load')).toHaveCount(0);
+	await noJs.close();
+
+	// With JS: Change toggles in place; Leave → Cancel keeps it, confirm leaves
+	await page.goto('/app/check-in');
+	await page.goto(`/app/check-in${(await load.getByTestId('join-solo').getAttribute('href'))!}`);
+	await page.waitForLoadState('networkidle');
+	await load.getByRole('button', { name: 'Join this load' }).click();
+	await expect(load.getByText('You’re on this load')).toBeVisible();
+	const url = page.url();
+	await load.getByTestId('change-slot').click();
+	await expect(load.getByRole('button', { name: 'Save changes' })).toBeVisible();
+	expect(page.url()).toBe(url);
+	await load.getByTestId('change-slot').click();
+	await expect(load.getByRole('button', { name: 'Save changes' })).toHaveCount(0);
+	const leave = load.getByTestId('leave-load');
+	await leave.locator('summary').click();
+	await leave.getByRole('link', { name: 'Cancel' }).click();
+	await expect(leave.getByRole('button', { name: 'Leave load' })).toBeHidden();
+	await leave.locator('summary').click();
+	await leave.getByRole('button', { name: 'Leave load' }).click();
+	await expect(load.getByTestId('join-solo')).toBeVisible();
+});
+
 test('two dropzones: checking in makes that one active; with no dz cookie the check-in decides', async ({ page, context }) => {
 	const project = test.info().project.name;
 	await signup(page, 'Tess Twodz');
