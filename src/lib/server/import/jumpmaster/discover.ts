@@ -14,6 +14,8 @@ import type { Database } from '../../db/index.ts';
 import { cacheGet, cachePut } from '../../memberships/cache.ts';
 
 export const JUMPMASTER_APP_URL = 'https://jumpmaster.flutterflow.app';
+/** Give up on the main.dart.js fetch after this long (the miss is cached briefly, see TTL_MISS). */
+export const DISCOVERY_TIMEOUT_MS = 5000;
 const CACHE_KEY = 'jumpmaster:webconfig';
 const TTL_OK = 7 * 24 * 3_600_000;
 const TTL_MISS = 3_600_000; // retry discovery at most hourly after a failure
@@ -32,7 +34,7 @@ export function extractWebConfig(js: string): JumpMasterWebConfig | null {
 
 export async function discoverWebConfig(
 	db: Database,
-	opts: { fetch?: typeof fetch; now?: number; appUrl?: string } = {}
+	opts: { fetch?: typeof fetch; now?: number; appUrl?: string; timeoutMs?: number } = {}
 ): Promise<JumpMasterWebConfig | null> {
 	const now = opts.now ?? Date.now();
 	const cached = await cacheGet<JumpMasterWebConfig | { miss: true }>(db, CACHE_KEY, now);
@@ -42,7 +44,9 @@ export async function discoverWebConfig(
 	let config: JumpMasterWebConfig | null = null;
 	try {
 		const res = await f(`${opts.appUrl ?? JUMPMASTER_APP_URL}/main.dart.js`, {
-			headers: { 'User-Agent': 'Log-Book/1.0 (+https://log-book.app; Jump Master import)' }
+			headers: { 'User-Agent': 'Log-Book/1.0 (+https://log-book.app; Jump Master import)' },
+			// /app/import awaits this: a hanging host must not hang the page (it did, for 30 s+).
+			signal: AbortSignal.timeout(opts.timeoutMs ?? DISCOVERY_TIMEOUT_MS)
 		});
 		if (res.ok) config = extractWebConfig(await res.text());
 	} catch (e) {

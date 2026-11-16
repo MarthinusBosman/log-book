@@ -29,4 +29,20 @@ describe('Jump Master web config discovery', () => {
 		expect(calls2).toBe(1); // miss cached
 		expect(await discoverWebConfig(db2, { fetch: ok, now: now + 2 * 3_600_000 })).not.toBeNull();
 	});
+
+	test('a host that never answers times out instead of hanging the import page', async () => {
+		const db = freshDb();
+		// Only settles when the request is aborted, like a black-holed connection.
+		const hang = ((_url: string, init?: RequestInit) =>
+			new Promise<Response>((_, reject) => init?.signal?.addEventListener('abort', () => reject(init.signal!.reason)))) as unknown as typeof fetch;
+		const now = 1_800_000_000_000;
+		const t0 = Date.now();
+		expect(await discoverWebConfig(db, { fetch: hang, now, timeoutMs: 50 })).toBeNull();
+		expect(Date.now() - t0).toBeLessThan(2000);
+		// The miss is cached, so the next page load doesn't wait again.
+		let calls = 0;
+		const ok = (async () => (calls++, new Response(JS))) as unknown as typeof fetch;
+		expect(await discoverWebConfig(db, { fetch: ok, now: now + 60_000 })).toBeNull();
+		expect(calls).toBe(0);
+	});
 });

@@ -31,7 +31,9 @@
 		u.searchParams.delete('new');
 		untrack(() => {
 			toast.success('Booking confirmed');
-			goto(u, { replace: true, shallow: true });
+			// Not shallow: Kit's popstate goes back to a shallow entry's underlying URL (?new=1),
+			// so the toast fired again every time the customer came back to this page.
+			goto(u, { replace: true, reset: false });
 		});
 	});
 

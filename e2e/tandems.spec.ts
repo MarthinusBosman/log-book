@@ -78,6 +78,8 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await page.getByTestId('terms').check();
 	await clickVisible(page, ['confirm', 'confirm-mobile']);
 	await expect(page).toHaveURL(new RegExp(`/dz/${slug}/book/[A-Z0-9]{4}-[A-Z0-9]{4}`));
+	await expect(page.locator('[role=status]').filter({ hasText: 'Booking confirmed' }).first()).toBeVisible();
+	await expect(page).toHaveURL(new RegExp(`/dz/${slug}/book/[A-Z0-9]{4}-[A-Z0-9]{4}$`)); // ?new=1 dropped
 	const conf = (await page.getByTestId('conf').textContent())!.trim();
 	expect(conf).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
 
@@ -95,6 +97,19 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	const pdf = await request.get(`/dz/${slug}/book/${conf}/pdf`);
 	expect(pdf.status()).toBe(200);
 	expect(pdf.headers()['content-type']).toContain('application/pdf');
+
+	// "Booking confirmed" toasts once: leaving the page in-app and coming BACK must not repeat it
+	// (a shallow URL clean-up used to restore ?new=1 on back, firing the toast every visit).
+	const confirmed = page.locator('[role=status], [aria-live]').filter({ hasText: 'Booking confirmed' });
+	await expect(confirmed).toHaveCount(0, { timeout: 8000 });
+	await page.waitForLoadState('networkidle');
+	await page.locator(`header a[href="/dz/${slug}"]`).first().click();
+	await expect(page).toHaveURL(new RegExp(`/dz/${slug}$`));
+	await page.goBack();
+	await expect(page).toHaveURL(new RegExp(`/dz/${slug}/book/${conf}$`));
+	await expect(page.getByTestId('conf')).toBeVisible();
+	await page.waitForTimeout(500);
+	await expect(confirmed).toHaveCount(0);
 
 	// A group booking: the lead's page lists the other jumper and what the group owes.
 	await page.goto('/app/pricelist');
