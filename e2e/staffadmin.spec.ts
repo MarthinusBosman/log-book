@@ -139,6 +139,13 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members$/);
 	await page.reload();
 	await expect(page.getByRole('tab', { name: /Jumpers.? gear/ })).toHaveAttribute('aria-selected', 'true');
+	// The "Due soon / All rigs" switch on that tab follows the URL too.
+	const memberSwitch = page.getByRole('navigation', { name: "Jumpers' gear shown" });
+	await memberSwitch.getByRole('link', { name: /All rigs/ }).click();
+	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members&all=1$/);
+	await expect(memberSwitch.getByRole('link', { name: /All rigs/ })).toHaveAttribute('aria-current', 'true');
+	await memberSwitch.getByRole('link', { name: /Due soon/ }).click();
+	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members$/);
 	// …and so does back from another page (a shallow URL would be lost on back).
 	await go(page, '/app');
 	await page.goBack();
@@ -193,6 +200,17 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(plain).toHaveURL(/\/app\/gear\?q=Student&show=available$/);
 	await expect(plainChips.getByRole('link', { name: /Available/ })).toHaveAttribute('aria-current', 'true');
 	await plainChips.getByRole('link', { name: /All rigs/ }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?q=Student$/);
+	await expect(plain.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	// The tabs and the members' "All rigs" switch are links as well.
+	await plain.getByRole('tab', { name: /Jumpers.? gear/ }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?q=Student&tab=members$/);
+	await expect(plain.getByRole('tab', { name: /Jumpers.? gear/ })).toHaveAttribute('aria-selected', 'true');
+	const plainSwitch = plain.getByRole('navigation', { name: "Jumpers' gear shown" });
+	await plainSwitch.getByRole('link', { name: /All rigs/ }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?q=Student&tab=members&all=1$/);
+	await expect(plainSwitch.getByRole('link', { name: /All rigs/ })).toHaveAttribute('aria-current', 'true');
+	await plain.getByRole('tab', { name: /DZ rigs/ }).click();
 	await expect(plain).toHaveURL(/\/app\/gear\?q=Student$/);
 	await expect(plain.getByRole('cell', { name: /Student 1/ })).toBeVisible();
 	await noJs.close();

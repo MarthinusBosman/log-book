@@ -442,6 +442,27 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await list.getByRole('button', { name: /Wallet topped up/ }).click();
 	await expect(page).toHaveURL(/\/app\/wallet\/[^/]+$/);
 	await expect(page.getByTestId('topup-form')).toBeVisible();
+
+	// Statement tabs follow ?tab= (History is the default with nothing owed): reload keeps the tab…
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('tab', { name: /^Paid/ }).click();
+	await expect(page).toHaveURL(/\/app\/wallet\/[^/?]+\?tab=paid$/);
+	await page.reload();
+	await expect(page.getByRole('tab', { name: /^Paid/ })).toHaveAttribute('aria-selected', 'true');
+	await page.getByRole('tab', { name: 'History' }).click();
+	await expect(page).toHaveURL(/\/app\/wallet\/[^/?]+$/);
+	// …and the tabs are links that work without JS.
+	const noJs = await page.context().browser()!.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto(new URL(page.url()).pathname);
+	await plain.getByRole('tab', { name: /^Unpaid/ }).click();
+	await expect(plain).toHaveURL(/\?tab=unpaid$/);
+	await expect(plain.getByRole('tab', { name: /^Unpaid/ })).toHaveAttribute('aria-selected', 'true');
+	await expect(plain.getByRole('tabpanel')).toContainText('All paid up');
+	await plain.getByRole('tab', { name: 'History' }).click();
+	await expect(plain).toHaveURL(/\/app\/wallet\/[^/?]+$/);
+	await expect(plain.getByRole('tabpanel')).toContainText(/Top-up/);
+	await noJs.close();
 });
 
 test('join form with an empty wallet: "not enough" + Top up link, but not at a DZ that allows a negative balance', async ({ page }) => {

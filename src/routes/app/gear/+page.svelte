@@ -2,7 +2,7 @@
 	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { gearViewParams, readGearView, type GearOnly } from '#lib/components/staffadmin/gear-view.ts';
+	import { gearViewParams, readGearView, type GearOnly, type GearTab, type GearView } from '#lib/components/staffadmin/gear-view.ts';
 	import { readQuery, revealInRow } from '#lib/components/staffadmin/list-view.ts';
 	import { newDialogHref, openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
 	import { cn } from '#lib/ui/index.ts';
@@ -26,7 +26,13 @@
 	let q = $state(readQuery(page.url.searchParams));
 	let only = $state<GearOnly>(initial().only);
 	let editing = $state<Rig | 'new' | null>(initial().adding ? 'new' : null);
-	syncViewToUrl(() => ({ q: q.trim(), ...gearViewParams({ tab: tab === 'members' ? 'members' : 'dz', only, adding: editing === 'new' }) }));
+	// svelte-ignore state_referenced_locally
+	let showAllMembers = $state(initial().allMembers);
+	const view = (): GearView => ({ tab: (tab === 'members' ? 'members' : 'dz') as GearTab, only, adding: editing === 'new', allMembers: showAllMembers });
+	syncViewToUrl(() => ({ q: q.trim(), ...gearViewParams(view()) }));
+	// Tabs and the "Due soon / All" switch are links to the view they show (work without JS);
+	// hydrated clicks switch in place and syncViewToUrl writes the same URL.
+	const viewHref = (set: Partial<GearView>) => viewParamsHref(page.url, gearViewParams({ ...view(), adding: false, ...set }));
 	let servicing = $state<Rig | null>(null);
 	let deleting = $state<Rig | null>(null);
 	let pending = $state(false);
@@ -70,7 +76,6 @@
 		if (bar && el) revealInRow(bar, el);
 	});
 	const memberAlerts = $derived(data.members.filter((m) => [m.repack.status, m.aad_.status].some((s) => s === 'due_soon' || s === 'overdue')));
-	let showAllMembers = $state(false);
 	const memberRows = $derived(showAllMembers ? data.members : memberAlerts);
 
 	const availTone = { available: 'success', in_use: 'brand', grounded: 'danger' } as const;
@@ -109,6 +114,7 @@
 <Tabs
 	class="mt-6"
 	bind:value={tab}
+	href={(id) => viewHref({ tab: id === 'members' ? 'members' : 'dz' })}
 	tabs={[
 		{ id: 'dz', label: 'DZ rigs', count: data.register.length },
 		{ id: 'members', label: "Jumpers' gear", count: memberAlerts.length }
@@ -210,9 +216,22 @@
 {:else}
 	<div class="mt-4 flex flex-wrap items-center justify-between gap-3">
 		<p class="text-sm text-muted">Personal rigs of members at this dropzone. Contact owners before their reserve or AAD lapses.</p>
-		<label class="inline-flex items-center gap-2 text-sm text-muted">
-			<input type="checkbox" bind:checked={showAllMembers} class="size-4 accent-[var(--color-primary)]" /> Show all ({data.members.length})
-		</label>
+		<nav aria-label="Jumpers' gear shown" class="inline-flex gap-1.5">
+			{#each [{ all: false, label: 'Due soon', n: memberAlerts.length }, { all: true, label: 'All rigs', n: data.members.length }] as c (c.label)}
+				<a
+					href={viewHref({ tab: 'members', allMembers: c.all })}
+					onclick={openInPlace(() => (showAllMembers = c.all))}
+					aria-current={showAllMembers === c.all ? 'true' : undefined}
+					data-sveltekit-reset="false"
+					class={cn(
+						'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors',
+						showAllMembers === c.all ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-surface text-muted hover:text-fg'
+					)}
+				>
+					{c.label}<span class="font-normal tabular-nums">{c.n}</span>
+				</a>
+			{/each}
+		</nav>
 	</div>
 	<div class="relative mt-3 overflow-x-auto rounded-2xl border border-border bg-surface">
 		<table class="table-stack w-full text-sm [--stack-col:9rem] md:min-w-[44rem]">

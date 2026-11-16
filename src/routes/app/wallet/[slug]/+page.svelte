@@ -8,13 +8,24 @@
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
 	import { fmtDate, fmtDateTime, relativeTime } from '#lib/components/jumper/format.ts';
 	import type { PageProps } from './$types';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
+	import { viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
 
 	let { data, form }: PageProps = $props();
 	const f = $derived(form as { action?: string; message?: string; success?: string; redirect?: string } | null);
 	const cur = $derived(data.account?.currency ?? data.dz.currency);
 	const money = (m: number) => formatMoney(m, cur);
-	// svelte-ignore state_referenced_locally
-	let tab = $state(data.unpaid.length ? 'unpaid' : 'history');
+	// The tab follows ?tab= (links work without JS; reload/back keep it). The default (Unpaid when
+	// something is owed, else History) is left out of the URL.
+	const WALLET_TABS = ['unpaid', 'paid', 'history'];
+	const defaultTab = () => (data.unpaid.length ? 'unpaid' : 'history');
+	const urlTab = () => {
+		const t = page.url.searchParams.get('tab');
+		return t && WALLET_TABS.includes(t) ? t : defaultTab();
+	};
+	let tab = $state(urlTab());
+	syncViewToUrl(() => ({ tab: tab === defaultTab() ? null : tab }));
+	const tabHref = (id: string) => viewParamsHref(page.url, { tab: id === defaultTab() ? null : id });
 	let amount = $state('');
 	const firstProvider = () => data.providers[0]?.id ?? 'manual';
 	let provider = $state<string>(firstProvider());
@@ -136,7 +147,7 @@
 	</div>
 
 	<div class="lg:col-span-3">
-		<Tabs bind:value={tab} tabs={[{ id: 'unpaid', label: 'Unpaid', count: data.unpaid.length }, { id: 'paid', label: 'Paid', count: data.paid.length }, { id: 'history', label: 'History' }]}>
+		<Tabs bind:value={tab} href={tabHref} tabs={[{ id: 'unpaid', label: 'Unpaid', count: data.unpaid.length }, { id: 'paid', label: 'Paid', count: data.paid.length }, { id: 'history', label: 'History' }]}>
 			{#snippet children(active)}
 				{#if active === 'unpaid'}
 					{#if data.unpaid.length === 0}
