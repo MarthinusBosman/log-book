@@ -467,7 +467,7 @@ test('join form with an empty wallet: "not enough" + Top up link, but not at a D
 	await expect(load.getByText('You’re on this load')).toBeVisible();
 });
 
-test('paying from the wallet, checking out and leaving a team ask first — also before hydration / without JS', async ({ page, browser }) => {
+test('paying from the wallet, checking out, leaving a team and removing a teammate or buddy ask first — also before hydration / without JS', async ({ page, browser }) => {
 	await signup(page, 'Prudent Payer');
 	await page.goto('/app/dropzones/new');
 	await page.getByLabel('Dropzone name').fill(`Prudent DZ ${test.info().project.name} ${Date.now()}`);
@@ -566,6 +566,35 @@ test('paying from the wallet, checking out and leaving a team ask first — also
 	await leave.getByRole('button', { name: 'Leave team' }).click();
 	await expect(matePage).toHaveURL(/\/app\/team$/);
 	await expect(matePage.getByText('Prudent 2-way')).toHaveCount(0);
+
+	// Remove a member (JS): the x only asks; Cancel keeps them; Remove removes
+	await page.goto(`${teamUrl}?q=${encodeURIComponent(mateName)}`);
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('member-results').getByRole('button', { name: 'Add to team' }).click();
+	const removeMate = page.getByTestId('remove-member');
+	await expect(removeMate).toHaveCount(1);
+	await removeMate.locator('summary').click();
+	await expect(removeMate).toContainText(`Remove ${mateName} from the team?`);
+	await removeMate.getByRole('link', { name: 'Cancel' }).click();
+	await expect(removeMate.getByRole('button', { name: 'Remove' })).toBeHidden();
+	await expect(page.getByTestId('team-members')).toContainText(mateName);
+	await removeMate.locator('summary').click();
+	await removeMate.getByRole('button', { name: 'Remove' }).click();
+	await expect(page.getByTestId('team-members')).not.toContainText(mateName);
+
+	// Remove a jump buddy without JS: one tap only asks, the confirm removes
+	await page.goto(`/app/team?q=${encodeURIComponent(mateName)}`);
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('buddy-results').getByRole('button', { name: 'Add' }).click();
+	await expect(page.getByTestId('remove-buddy')).toHaveCount(1);
+	await plain.goto('/app/team');
+	const buddy = plain.getByTestId('remove-buddy');
+	await expect(buddy.getByRole('button', { name: 'Remove' })).toBeHidden();
+	await buddy.locator('summary').click();
+	await expect(buddy).toContainText(`Remove ${mateName} from your jump buddies?`);
+	await buddy.getByRole('button', { name: 'Remove' }).click();
+	await expect(plain.getByTestId('remove-buddy')).toHaveCount(0);
+	await expect(plain.getByText('No buddies yet.')).toBeVisible();
 	await mate.close();
 	await noJs.close();
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { Avatar, Badge, Button, Card, EmptyState, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
+	import { Avatar, Badge, Button, Card, ConfirmAction, EmptyState, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -106,13 +106,16 @@
 			{/if}
 			<ul class="divide-y divide-border">
 				{#each data.buddies as b (b.id)}
-					<li class="flex items-center gap-3 px-4 py-2.5">
+					<li class="flex flex-wrap items-center gap-x-3 px-4 py-2.5">
 						<Avatar name={b.name} src={b.avatar} size="sm" />
 						<span class="min-w-0 flex-1 text-sm"><span class="block truncate font-medium">{b.name}</span>{#if b.licence}<span class="text-xs text-muted">{b.licence}</span>{/if}</span>
-						<form method="POST" action="?/unbuddy" use:enhance={(e) => { if (!confirm(`Remove ${b.name} from your friend list?`)) return e.cancel(); return quiet(); }}>
-							<input type="hidden" name="userId" value={b.id} />
-							<button type="submit" class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-fg" aria-label="Remove {b.name}"><JIcon name="x" class="size-4" /></button>
-						</form>
+						<ConfirmAction tone="neutral" class="open:basis-full" triggerClass="ml-auto size-8 px-0" question="Remove {b.name} from your jump buddies?" testid="remove-buddy">
+							{#snippet trigger()}<JIcon name="x" class="size-4" /><span class="sr-only">Remove {b.name}</span>{/snippet}
+							<form method="POST" action="?/unbuddy" use:enhance={quiet}>
+								<input type="hidden" name="userId" value={b.id} />
+								<Button type="submit" variant="danger" size="sm">Remove</Button>
+							</form>
+						</ConfirmAction>
 					</li>
 				{:else}
 					<li class={cn('px-4 py-4 text-sm text-muted')}>No buddies yet. Search for someone you jump with.</li>

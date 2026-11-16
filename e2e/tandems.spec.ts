@@ -154,4 +154,20 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	// Signed waiver is listed with a PDF.
 	await page.goto('/app/waivers?tab=signed');
 	await expect(page.getByTestId('signed-row').filter({ hasText: 'Pat Passenger' })).toBeVisible();
+
+	// Cancelling a booking asks first: Cancel keeps it, the confirm cancels it.
+	await page.goto(`/app/tandems?day=${tomorrow}`);
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('tandem-row').filter({ hasText: 'Pat Passenger' }).click();
+	const cancel = page.locator('dialog[open]').getByTestId('cancel-booking');
+	await expect(cancel.getByRole('button', { name: 'Cancel booking' })).toBeHidden();
+	await cancel.locator('summary').click();
+	await expect(cancel).toContainText('Cancel Pat Passenger’s booking?');
+	await cancel.getByRole('link', { name: 'Cancel' }).click();
+	await expect(cancel.getByRole('button', { name: 'Cancel booking' })).toBeHidden();
+	await expect(page.locator('dialog[open]').getByRole('button', { name: 'Reset tandem' })).toHaveCount(0);
+	await cancel.locator('summary').click();
+	await cancel.getByRole('button', { name: 'Cancel booking' }).click();
+	await expect(page.locator('dialog[open]').getByRole('button', { name: 'Reset tandem' })).toBeVisible();
+	await expect(page.locator('dialog[open]').getByTestId('cancel-booking')).toHaveCount(0);
 });

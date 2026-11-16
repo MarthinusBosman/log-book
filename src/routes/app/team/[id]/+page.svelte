@@ -121,17 +121,20 @@
 		<Card title="Members" padded={false}>
 			<ul class="divide-y divide-border" data-testid="team-members">
 				{#each t.members as m (m.id)}
-					<li class="flex items-center gap-3 px-5 py-3">
+					<li class="flex flex-wrap items-center gap-x-3 px-5 py-3">
 						<Avatar name={m.name} src={m.avatar} size="sm" />
 						<span class="min-w-0 flex-1 text-sm">
 							<span class="block truncate font-medium">{m.name}{m.me ? ' (you)' : ''}</span>
 							<span class="text-xs text-muted">{[m.licence, m.id === t.coachUserId ? 'Coach' : null, m.id === t.videoUserId ? 'Video' : null].filter(Boolean).join(' · ') || 'Jumper'}</span>
 						</span>
 						{#if data.canEdit && !m.me}
-							<form method="POST" action="?/remove" use:enhance={(e) => { if (!confirm(`Remove ${m.name} from the team?`)) return e.cancel(); return quiet()(); }}>
-								<input type="hidden" name="userId" value={m.id} />
-								<button type="submit" class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-danger" aria-label="Remove {m.name}"><JIcon name="x" class="size-4" /></button>
-							</form>
+							<ConfirmAction tone="neutral" class="open:basis-full" triggerClass="ml-auto size-8 px-0 hover:text-danger" question="Remove {m.name} from the team?" testid="remove-member">
+								{#snippet trigger()}<JIcon name="x" class="size-4" /><span class="sr-only">Remove {m.name}</span>{/snippet}
+								<form method="POST" action="?/remove" use:enhance={quiet()}>
+									<input type="hidden" name="userId" value={m.id} />
+									<Button type="submit" variant="danger" size="sm">Remove</Button>
+								</form>
+							</ConfirmAction>
 						{/if}
 					</li>
 				{/each}

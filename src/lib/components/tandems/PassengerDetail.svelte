@@ -2,7 +2,7 @@
 	/** Staff tandem detail (drawer on /app/tandems and full page /app/tandems/[id]). */
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { Badge, Button, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, ConfirmAction, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
 	import { SLOT_EXTRA_LABELS, formatMoney, paymentMethodLabel, type SlotExtra } from '#lib/domain/constants.ts';
 	import { relativeTime } from '#lib/components/jumper/format.ts';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -309,13 +309,12 @@
 			</form>
 		{/if}
 		{#if p.status !== 'cancelled' && p.status !== 'completed' && !p.manifested}
-			<form
-				method="POST"
-				action={action('cancel')}
-				use:enhance={tracked('cancel', { before: () => (confirm(`Cancel ${p.name}'s booking?`) ? null : false) })}
-			>
-				<Button size="sm" variant="ghost" type="submit" loading={busy === 'cancel'} class="text-danger">Cancel booking</Button>
-			</form>
+			<ConfirmAction class="open:basis-full" triggerClass="mr-auto" question="Cancel {p.name}’s booking? You can reset the tandem later if they still jump." testid="cancel-booking">
+				{#snippet trigger()}Cancel booking{/snippet}
+				<form method="POST" action={action('cancel')} use:enhance={tracked('cancel')}>
+					<Button size="sm" variant="danger" type="submit" loading={busy === 'cancel'}>Cancel booking</Button>
+				</form>
+			</ConfirmAction>
 		{/if}
 	</section>
 </div>
