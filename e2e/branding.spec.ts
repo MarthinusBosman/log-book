@@ -84,7 +84,7 @@ test('dropzone branding: colour with contrast warning, logo, public theme, reset
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 	await page.goto('/app/settings');
-	const slug = await page.locator('input[name=slug]').inputValue();
+	const slug = await page.locator('main input[name=slug]').inputValue();
 
 	await page.goto('/app/settings/branding');
 	await page.waitForLoadState('networkidle');

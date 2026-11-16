@@ -17,6 +17,15 @@
 
 	afterNavigate(() => (mobileNav = false));
 
+	/** The menu links go to /app/menu (works before hydration / without JS); once hydrated a plain tap opens the drawer in place. */
+	const MENU_HREF = '/app/menu';
+	const onMenuPage = $derived(page.url.pathname === MENU_HREF);
+	function openMenu(e: MouseEvent) {
+		if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+		e.preventDefault();
+		mobileNav = true;
+	}
+
 	const href = (item: NavItem) => (item.slug ? `/app/${item.slug}` : '/app');
 	const isActive = (item: NavItem) =>
 		item.slug ? page.url.pathname.startsWith(`/app/${item.slug}`) : page.url.pathname === '/app';
@@ -28,7 +37,7 @@
 	/** Feedback remembers the page it was opened from (kept when already on the feedback page). */
 	const feedbackHref = $derived.by(() => {
 		const from = page.url.pathname === '/app/feedback' ? page.url.searchParams.get('from') : page.url.pathname;
-		return from ? `/app/feedback?from=${encodeURIComponent(from)}` : '/app/feedback';
+		return from && from !== MENU_HREF ? `/app/feedback?from=${encodeURIComponent(from)}` : '/app/feedback';
 	});
 </script>
 
@@ -145,16 +154,16 @@
 			{#if data.branding?.logoUrl}<img src={data.branding.logoUrl} alt="" class="h-8 max-w-20 object-contain" />{:else}<Logo showName={false} />{/if}
 		</a>
 		<!-- the dropzone switcher lives in the menu -->
-		<button
-			type="button"
+		<a
+			href={MENU_HREF}
 			class="flex min-w-0 items-center gap-1 rounded-lg px-2 py-1 text-sm font-semibold hover:bg-surface-2"
 			aria-haspopup="dialog"
 			aria-label="Open menu · {data.current?.dropzone.name ?? 'no dropzone'}"
-			onclick={() => (mobileNav = true)}
+			onclick={openMenu}
 		>
 			<span class="truncate">{data.current?.dropzone.name ?? brand.name}</span>
 			<Icon name="chevronsUpDown" class="size-4 shrink-0 text-subtle" />
-		</button>
+		</a>
 		<div class="-mr-2 flex items-center gap-1">
 			<NotificationBell count={data.unread} />
 			<a href="/app/profile" class="grid size-10 place-items-center" aria-label="Profile"><Avatar name={data.user.name} src={data.user.avatar} size="sm" /></a>
@@ -168,6 +177,12 @@
 	<main id="main" tabindex="-1" class="mx-auto w-full max-w-7xl scroll-mt-14 px-4 pt-6 pb-28 outline-none sm:px-6 lg:scroll-mt-0 lg:px-10 lg:pt-10 lg:pb-12">
 		<NoJsSuccess />
 		{@render children()}
+		{#if onMenuPage}
+			<!-- /app/menu (src/routes/app/menu): the full menu as a page, for phones before hydration / without JS -->
+			<div class="mx-auto max-w-md overflow-hidden rounded-2xl border border-border bg-surface lg:hidden" data-testid="menu-page">
+				{@render sidebar()}
+			</div>
+		{/if}
 	</main>
 
 	<!-- Mobile bottom tabs: the four most-used destinations for this role + the full menu -->
@@ -189,14 +204,15 @@
 				{item.short ?? item.label}
 			</a>
 		{/each}
-		<button
-			type="button"
+		<a
+			href={MENU_HREF}
+			aria-current={onMenuPage ? 'page' : undefined}
 			class={cn('flex flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors', !onTab ? 'text-primary' : 'text-subtle hover:text-fg')}
 			aria-haspopup="dialog"
-			onclick={() => (mobileNav = true)}
+			onclick={openMenu}
 		>
 			<Icon name="menu" class="size-5" />
 			More
-		</button>
+		</a>
 	</nav>
 </div>

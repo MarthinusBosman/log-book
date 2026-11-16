@@ -23,17 +23,26 @@
 		document.cookie = `${THEME_COOKIE}=${theme}; path=/; max-age=31536000; samesite=lax`;
 		requestAnimationFrame(() => root.classList.remove('[&_*]:!transition-none'));
 	}
+
+	function onsubmit(e: SubmitEvent) {
+		e.preventDefault();
+		toggle();
+	}
 </script>
 
-<button
-	type="button"
-	onclick={toggle}
-	class={cn(
-		'grid size-9 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-2 hover:text-fg',
-		className
-	)}
-	aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-	title="Toggle theme"
->
-	<Icon name={theme === 'dark' ? 'sun' : 'moon'} class="size-[18px]" />
-</button>
+<!-- Works before hydration / without JS: POST /theme sets the cookie and comes back; with JS it flips in place. -->
+<form method="POST" action="/theme" class="contents" {onsubmit}>
+	<input type="hidden" name="current" value={theme} />
+	<input type="hidden" name="redirect" value={page.url.pathname + page.url.search} />
+	<button
+		type="submit"
+		class={cn(
+			'grid size-9 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-2 hover:text-fg',
+			className
+		)}
+		aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+		title="Toggle theme"
+	>
+		<Icon name={theme === 'dark' ? 'sun' : 'moon'} class="size-[18px]" />
+	</button>
+</form>

@@ -28,7 +28,7 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	await page.goto('/app/dropzones');
 	await page.getByTestId('dz-search').fill(dzName);
 	await page.getByTestId('dz-search').press('Enter');
-	await page.getByRole('link', { name: dzName }).click();
+	await page.locator('main').getByRole('link', { name: dzName }).click();
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText(dzName);
 	await page.getByTestId('follow').click();
 	await expect(page.getByTestId('follow')).toContainText('Following');

@@ -17,3 +17,12 @@ export const THEME_COLORS: Record<Theme, string> = {
 export function themeClass(t: PageTheme): string {
 	return t === 'dark' ? 'dark' : t === 'system' ? 'system' : '';
 }
+
+/**
+ * The theme the no-JS switch (POST /theme) picks: the opposite of what the page showed (`current`,
+ * sent by the app's toggle, which knows a dropzone default the cookie lacks), else of the cookie.
+ */
+export function nextTheme(cookie: string | undefined | null, current?: string | null): Theme {
+	const shown = current === 'light' || current === 'dark' ? current : parseTheme(cookie);
+	return shown === 'dark' ? 'light' : 'dark';
+}

@@ -73,14 +73,14 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 		const tabs = page.getByRole('navigation', { name: 'Quick' });
 		await expect(tabs.getByRole('link', { name: 'Check-in' })).toBeVisible();
 		await expect(tabs.getByRole('link', { name: 'Logbook' })).toBeVisible();
-		await expect(tabs.getByRole('button', { name: 'More' })).toBeVisible();
+		await expect(tabs.getByRole('link', { name: 'More' })).toBeVisible();
 	}
 
 	// The dropzone page asks for the waiver; after checking in, so does the dashboard
 	await page.goto('/app/dropzones');
 	await page.getByTestId('dz-search').fill(dzName);
 	await page.getByTestId('dz-search').press('Enter');
-	await page.getByRole('link', { name: dzName }).click();
+	await page.locator('main').getByRole('link', { name: dzName }).click();
 	await expect(page.getByTestId('dz-waiver')).toBeVisible();
 	await page.getByTestId('dz-checkin').click();
 	await page.getByTestId('checkin-submit').click();

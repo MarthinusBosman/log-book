@@ -22,7 +22,7 @@ test.describe('without JavaScript', () => {
 		if (test.info().project.name === 'desktop') {
 			await page.locator('aside').getByTestId('feedback-link').click();
 		} else {
-			// The mobile "More" menu needs JavaScript; the page itself works without it.
+			// No-JS "More" goes to the /app/menu page (feedback from there has no page context): use the URL.
 			await page.goto('/app/feedback?from=%2Fapp%2Flogbook%3Ftab%3Dx');
 		}
 		await expect(page).toHaveURL(/\/app\/feedback\?from=%2Fapp%2Flogbook/);
@@ -92,7 +92,7 @@ test('feedback entry in the app shell (desktop sidebar, mobile More menu)', asyn
 	await page.goto('/app/wallet');
 	await page.waitForLoadState('networkidle');
 	if (test.info().project.name === 'mobile') {
-		await page.getByRole('navigation', { name: 'Quick' }).getByRole('button', { name: 'More' }).click();
+		await page.getByRole('navigation', { name: 'Quick' }).getByRole('link', { name: 'More' }).click();
 		await page.locator('dialog[open]').getByTestId('feedback-link').click();
 	} else {
 		await page.locator('aside').getByTestId('feedback-link').click();
