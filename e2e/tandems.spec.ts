@@ -16,7 +16,7 @@ async function drawSignature(page: Page, canvasIndex = 0) {
 	await page.mouse.up();
 }
 
-test('tandems: slots + waiver setup → public booking → indemnity → staff view', async ({ page, request }) => {
+test('tandems: slots + waiver setup → public booking → indemnity → staff view', async ({ page, request, browser }) => {
 	const project = test.info().project.name;
 	const stamp = `${project}-${Date.now()}`;
 	const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
@@ -170,4 +170,43 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await cancel.getByRole('button', { name: 'Cancel booking' }).click();
 	await expect(page.locator('dialog[open]').getByRole('button', { name: 'Reset tandem' })).toBeVisible();
 	await expect(page.locator('dialog[open]').getByTestId('cancel-booking')).toHaveCount(0);
+
+	// Booking slots page: tabs + remove-a-booked-slot question live in the URL (with JS).
+	await page.goto('/app/tandems/slots');
+	await page.waitForLoadState('networkidle');
+	const tabs = page.getByRole('navigation', { name: 'Add slots by' });
+	await tabs.getByRole('link', { name: 'Every week' }).click();
+	await expect(page.getByRole('button', { name: 'Add weekly slot' })).toBeVisible();
+	await expect(page).toHaveURL(/[?&]mode=weekly/);
+	await page.reload();
+	await expect(page.getByRole('button', { name: 'Add weekly slot' })).toBeVisible();
+	await tabs.getByRole('link', { name: 'By date' }).click();
+	await expect(page.getByRole('button', { name: 'Add slots' })).toBeVisible();
+	await expect(page).not.toHaveURL(/mode=/);
+	const removeX = page.getByRole('link', { name: `Remove ${tomorrow} 10:00` });
+	await removeX.click();
+	const ask = page.getByTestId('remove-slot-confirm');
+	await expect(ask).toContainText(/bookings? at 10:00 will keep/);
+	await expect(page).toHaveURL(/[?&]remove=/);
+	await ask.getByRole('link', { name: 'Cancel' }).click();
+	await expect(ask).toHaveCount(0);
+	await expect(page).not.toHaveURL(/remove=/);
+
+	// Without JS: tab link, then the booked slot's x asks first and Remove slot removes it.
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const p2 = await noJs.newPage();
+	await p2.goto('/app/tandems/slots');
+	await p2.getByRole('navigation', { name: 'Add slots by' }).getByRole('link', { name: 'Every week' }).click();
+	await expect(p2.getByRole('button', { name: 'Add weekly slot' })).toBeVisible();
+	await p2.getByRole('navigation', { name: 'Add slots by' }).getByRole('link', { name: 'By date' }).click();
+	await p2.getByRole('link', { name: `Remove ${tomorrow} 10:00` }).click();
+	await expect(p2.getByTestId('remove-slot-confirm')).toBeVisible();
+	await p2.getByTestId('remove-slot-confirm').getByRole('link', { name: 'Cancel' }).click();
+	await expect(p2.getByTestId('remove-slot-confirm')).toHaveCount(0);
+	await expect(p2.locator('[data-testid="slot-day"]').filter({ hasText: '10:00' })).toHaveCount(1);
+	await p2.getByRole('link', { name: `Remove ${tomorrow} 10:00` }).click();
+	await p2.getByRole('button', { name: 'Remove slot' }).click();
+	await expect(p2.getByText('Slot removed')).toBeVisible();
+	await expect(p2.getByRole('link', { name: `Remove ${tomorrow} 10:00` })).toHaveCount(0);
+	await noJs.close();
 });

@@ -1,6 +1,9 @@
 <script lang="ts">
 	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
+	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Badge, Button, EmptyState, Icon, Input, Select, cn } from '#lib/ui/index.ts';
 	import { toastEnhance } from '#lib/components/tandems/enhance.ts';
 	import { WEEKDAY_LABELS, fmtDay } from '#lib/components/tandems/model.ts';
@@ -8,9 +11,28 @@
 
 	let { data }: PageProps = $props();
 
-	let mode = $state<'dated' | 'weekly'>('dated');
+	// View state lives in the URL (?mode=weekly, ?all=1, ?remove=<slot id>) so the tabs, "Show all"
+	// and the remove-a-booked-slot question work before hydration and without JS.
+	const params = page.url.searchParams;
+	let mode = $state<'dated' | 'weekly'>(params.get('mode') === 'weekly' ? 'weekly' : 'dated');
 	let busy = $state(false);
-	let showAll = $state(false);
+	let showAll = $state(params.get('all') === '1');
+	let removingId = $state<string | null>(params.get('remove'));
+	const removing = $derived.by(() => {
+		for (const d of data.dated) for (const s of d.slots) if (s.id === removingId && s.booked) return { date: d.date, ...s };
+		return null;
+	});
+	syncViewToUrl(() => ({ mode: mode === 'weekly' ? 'weekly' : null, all: showAll ? '1' : null, remove: removing?.id ?? null }));
+	const viewHref = (set: Record<string, string | null>) => viewParamsHref(page.url, { remove: null, ...set });
+	/** Action URL that keeps the view (`?/delete&all=1`) for no-JS posts. */
+	const actionHref = (name: string) => {
+		const keep = new URLSearchParams();
+		if (mode === 'weekly') keep.set('mode', 'weekly');
+		if (showAll) keep.set('all', '1');
+		const qs = keep.toString();
+		return `?/${name}${qs ? `&${qs}` : ''}`;
+	};
+	const removeDone = () => (removingId = null);
 
 	const visible = $derived(showAll ? data.dated : data.dated.slice(0, 14));
 	const totals = $derived.by(() => {
@@ -41,19 +63,18 @@
 	<aside class="flex flex-col gap-4">
 		<section class="rounded-2xl border border-border bg-surface p-5">
 			<h2 class="font-semibold">Add booking slots</h2>
-			<div class="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1 text-sm" role="tablist">
-				{#each [['dated', 'By date'], ['weekly', 'Every week']] as [m, label] (m)}
-					<button
-						type="button"
-						role="tab"
-						aria-selected={mode === m}
-						class={cn('rounded-lg py-1.5 font-medium transition-colors', mode === m ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg')}
-						onclick={() => (mode = m as 'dated' | 'weekly')}>{label}</button
+			<nav class="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1 text-sm" aria-label="Add slots by">
+				{#each [['dated', 'By date'], ['weekly', 'Every week']] as const as [m, label] (m)}
+					<a
+						href={viewHref({ mode: m === 'weekly' ? 'weekly' : null })}
+						aria-current={mode === m ? 'page' : undefined}
+						class={cn('rounded-lg py-1.5 text-center font-medium transition-colors', mode === m ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg')}
+						onclick={openInPlace(() => ((mode = m), (removingId = null)))}>{label}</a
 					>
 				{/each}
-			</div>
+			</nav>
 			{#if mode === 'dated'}
-				<form method="POST" action="?/add" use:enhance={toastEnhance({ pending: (on) => (busy = on) })} class="mt-4 grid grid-cols-2 gap-3">
+				<form method="POST" action={actionHref('add')} use:enhance={toastEnhance({ pending: (on) => (busy = on) })} class="mt-4 grid grid-cols-2 gap-3">
 					<Input label="Date" name="date" type="date" min={data.today} value={data.today} required class="col-span-2" />
 					<Input label="Time" name="time" type="time" value="09:00" required />
 					<Input label="Places" name="capacity" type="number" min="1" max="99" value="4" required />
@@ -71,7 +92,7 @@
 					<Button type="submit" loading={busy} class="col-span-2"><Icon name="plus" class="size-4" /> Add slots</Button>
 				</form>
 			{:else}
-				<form method="POST" action="?/weekly" use:enhance={toastEnhance({ pending: (on) => (busy = on) })} class="mt-4 grid grid-cols-2 gap-3">
+				<form method="POST" action={actionHref('weekly')} use:enhance={toastEnhance({ pending: (on) => (busy = on) })} class="mt-4 grid grid-cols-2 gap-3">
 					<Select label="Weekday" name="weekday" value="5" options={weekdayOptions} class="col-span-2" />
 					<Input label="Time" name="time" type="time" value="09:00" required />
 					<Input label="Places" name="capacity" type="number" min="1" max="99" value="4" required />
@@ -106,7 +127,7 @@
 									<li class="flex items-center gap-1 rounded-lg border border-border bg-surface-2/60 py-1 pr-1 pl-2.5 text-sm">
 										<span class="font-mono tabular-nums">{s.time}</span>
 										<span class="text-xs text-muted">· {s.capacity}</span>
-										<form method="POST" action="?/delete" use:enhance={toastEnhance()}>
+										<form method="POST" action={actionHref('delete')} use:enhance={toastEnhance()}>
 											<input type="hidden" name="id" value={s.id} />
 											<button type="submit" class="grid size-6 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger" aria-label="Remove {d.label} {s.time}"><Icon name="x" class="size-3.5" /></button>
 										</form>
@@ -142,7 +163,7 @@
 										)}
 									>
 										<span class="font-mono font-medium tabular-nums">{s.time}</span>
-										<form method="POST" action="?/capacity" use:enhance={toastEnhance()} class="flex items-center gap-1">
+										<form method="POST" action={actionHref('capacity')} use:enhance={toastEnhance()} class="flex items-center gap-1">
 											<input type="hidden" name="id" value={s.id} />
 											<span class="text-xs text-muted tabular-nums" title="booked / places">{s.booked} /</span>
 											<input
@@ -156,18 +177,42 @@
 												onchange={(e) => e.currentTarget.form?.requestSubmit()}
 											/>
 										</form>
-										<form method="POST" action="?/delete" use:enhance={toastEnhance({ before: () => (s.booked && !confirm(`${s.booked} booking(s) at ${s.time} will keep their time. Remove the slot?`) ? false : null) })}>
-											<input type="hidden" name="id" value={s.id} />
-											<button type="submit" class="grid size-7 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger" aria-label="Remove {d.date} {s.time}"><Icon name="x" class="size-4" /></button>
-										</form>
+										{#if s.booked}
+											<!-- Booked: ask first (a link, so the question also works before hydration / without JS). -->
+											<a
+												href={viewHref({ remove: s.id })}
+												class={cn('grid size-7 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger', removing?.id === s.id && 'bg-danger/10 text-danger')}
+												aria-label="Remove {d.date} {s.time}"
+												onclick={openInPlace(() => (removingId = s.id))}><Icon name="x" class="size-4" /></a
+											>
+										{:else}
+											<form method="POST" action={actionHref('delete')} use:enhance={toastEnhance()}>
+												<input type="hidden" name="id" value={s.id} />
+												<button type="submit" class="grid size-7 place-items-center rounded-md text-subtle hover:bg-danger/10 hover:text-danger" aria-label="Remove {d.date} {s.time}"><Icon name="x" class="size-4" /></button>
+											</form>
+										{/if}
 									</li>
 								{/each}
 							</ul>
+							{#if removing && removing.date === d.date}
+								<div class="rounded-xl border border-danger/30 bg-danger/5 p-3 sm:col-start-2" role="group" aria-label="Confirm" data-testid="remove-slot-confirm">
+									<p class="text-sm">
+										{removing.booked} booking{removing.booked === 1 ? '' : 's'} at {removing.time} will keep {removing.booked === 1 ? 'its' : 'their'} date and time. Remove the slot?
+									</p>
+									<div class="mt-3 flex flex-wrap items-center justify-end gap-2">
+										<Button variant="secondary" size="sm" href={viewHref({})} onclick={openInPlace(removeDone)}>Cancel</Button>
+										<form method="POST" action={actionHref('delete')} use:enhance={toastEnhance({ onSuccess: removeDone })}>
+											<input type="hidden" name="id" value={removing.id} />
+											<Button type="submit" variant="danger" size="sm">Remove slot</Button>
+										</form>
+									</div>
+								</div>
+							{/if}
 						</li>
 					{/each}
 				</ul>
 				{#if data.dated.length > visible.length}
-					<Button variant="ghost" size="sm" class="mt-2" onclick={() => (showAll = true)}>Show all {data.dated.length} days</Button>
+					<Button variant="ghost" size="sm" class="mt-2" href={viewHref({ all: '1' })} onclick={openInPlace(() => (showAll = true))}>Show all {data.dated.length} days</Button>
 				{/if}
 			{:else}
 				<EmptyState title="No dated booking slots" description="Add slots on the left so customers can book online.">
