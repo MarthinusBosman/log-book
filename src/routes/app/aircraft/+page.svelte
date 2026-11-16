@@ -2,7 +2,7 @@
 	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
+	import { openInPlace, viewParamsHref, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Avatar, Badge, Button, Card, Dialog, EmptyState, Icon, Input, Select } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/staffadmin/PageHeader.svelte';
@@ -13,13 +13,28 @@
 	let { data }: PageProps = $props();
 	type Plane = (typeof data.fleet)[number];
 
-	// "Add plane" is a link to ?new=1 (works before hydration / without JS); the URL follows the dialog.
-	let editing = $state<Plane | 'new' | null>(wantsNewDialog(page.url.searchParams) ? 'new' : null);
-	syncViewToUrl(() => ({ new: editing === 'new' ? '1' : null }));
-	const addPlane = openInPlace(() => (editing = 'new'));
-	let deleting = $state<Plane | null>(null);
+	// "Add plane" is a link to ?new=1 and a card's Edit / Delete link to ?edit=<id> / ?delete=<id>:
+	// the server renders that dialog open, so they work before hydration and without JS; once
+	// hydrated they open in place and the URL follows the dialog.
+	const planeParam = (key: string) => {
+		const id = page.url.searchParams.get(key);
+		return id && data.fleet.some((a) => a.id === id) ? id : null;
+	};
+	const findPlane = (id: string | null): Plane | null => (id ? (data.fleet.find((a) => a.id === id) ?? null) : null);
+	let editingId = $state<string | null>(wantsNewDialog(page.url.searchParams) ? 'new' : planeParam('edit'));
+	let deletingId = $state<string | null>(planeParam('delete'));
+	const plane = $derived<Plane | null>(editingId === 'new' ? null : findPlane(editingId));
+	const deleting = $derived<Plane | null>(findPlane(deletingId));
+	syncViewToUrl(() => ({ new: editingId === 'new' ? '1' : null, edit: plane?.id ?? null, delete: deleting?.id ?? null }));
+	const noDialog = { new: null, edit: null, delete: null };
+	const dialogHref = (set: Record<string, string>) => viewParamsHref(page.url, { ...noDialog, ...set });
+	const openDialog = (set: { edit?: string; delete?: string }) =>
+		openInPlace(() => {
+			editingId = set.edit ?? null;
+			deletingId = set.delete ?? null;
+		});
+	const addPlane = openInPlace(() => ((editingId = 'new'), (deletingId = null)));
 	let pending = $state(false);
-	const plane = $derived(editing && editing !== 'new' ? editing : null);
 	const pilotOptions = $derived([{ value: '', label: 'No default pilot' }, ...data.pilots.map((p) => ({ value: p.id, label: p.name }))]);
 	const pilotName = (id: string | null) => data.pilots.find((p) => p.id === id)?.name ?? null;
 </script>
@@ -28,7 +43,7 @@
 
 <PageHeader icon="plane" title="Aircraft" description="Fleet, capacity, weight limits and pilots.">
 	{#snippet actions()}
-		<Button href={newDialogHref(page.url)} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>
+		<Button href={dialogHref({ new: '1' })} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>
 	{/snippet}
 </PageHeader>
 <NoJsOutcome />
@@ -38,7 +53,7 @@
 	{#if data.fleet.length === 0}
 		<EmptyState class="mt-3" title="No planes yet" description="Add your aircraft so loads get the right capacity and weight limit.">
 			{#snippet icon()}<Icon name="plane" class="size-6" />{/snippet}
-			{#snippet action()}<Button href={newDialogHref(page.url)} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>{/snippet}
+			{#snippet action()}<Button href={dialogHref({ new: '1' })} onclick={addPlane}><Icon name="plus" class="size-4" /> Add plane</Button>{/snippet}
 		</EmptyState>
 	{:else}
 		<div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -70,8 +85,12 @@
 							<Icon name="user" class="mr-1 inline size-4 align-[-3px]" />{pilotName(a.defaultPilotId) ?? 'No default pilot'}
 						</p>
 						<div class="flex gap-1">
-							<Button size="sm" variant="secondary" onclick={() => (editing = a)}>Edit</Button>
-							<Button size="sm" variant="ghost" onclick={() => (deleting = a)} aria-label="Delete {a.name}">Delete</Button>
+							<Button size="sm" variant="secondary" href={dialogHref({ edit: a.id })} onclick={openDialog({ edit: a.id })} aria-label="Edit {a.name}"
+								>Edit</Button
+							>
+							<Button size="sm" variant="ghost" href={dialogHref({ delete: a.id })} onclick={openDialog({ delete: a.id })} aria-label="Delete {a.name}"
+								>Delete</Button
+							>
 						</div>
 					</div>
 				</Card>
@@ -119,14 +138,14 @@
 	</div>
 </section>
 
-<Dialog open={!!editing} onclose={() => (editing = null)} title={plane ? `Edit ${plane.name}` : 'Add plane'} variant="right">
-	{#if editing}
+<Dialog open={editingId === 'new' || !!plane} onclose={() => (editingId = null)} title={plane ? `Edit ${plane.name}` : 'Add plane'} variant="right">
+	{#if editingId === 'new' || plane}
 		{#key plane?.id ?? 'new'}
 			<form
 				method="POST"
 				action={plane ? '?/update' : '?/create'}
 				class="space-y-4"
-				use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (editing = null) })}
+				use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (editingId = null) })}
 			>
 				{#if plane}<input type="hidden" name="id" value={plane.id} />{/if}
 				<Input label="Plane name" name="name" required value={plane?.name ?? ''} placeholder="Cessna Caravan" />
@@ -148,12 +167,12 @@
 	{/if}
 </Dialog>
 
-<Dialog open={!!deleting} onclose={() => (deleting = null)} title="Delete plane?">
+<Dialog open={!!deleting} onclose={() => (deletingId = null)} title="Delete plane?">
 	{#if deleting}
 		<p class="text-sm text-muted">Delete {deleting.name}? Past loads keep the plane name; you can't undo this.</p>
-		<form method="POST" action="?/delete" class="mt-5 flex justify-end gap-2" use:enhance={toastEnhance({ onSuccess: () => (deleting = null) })}>
+		<form method="POST" action="?/delete" class="mt-5 flex justify-end gap-2" use:enhance={toastEnhance({ onSuccess: () => (deletingId = null) })}>
 			<input type="hidden" name="id" value={deleting.id} />
-			<Button variant="ghost" onclick={() => (deleting = null)}>Cancel</Button>
+			<Button variant="ghost" href={dialogHref({})} onclick={openDialog({})} data-sveltekit-reset="false">Cancel</Button>
 			<Button type="submit" variant="danger">Delete</Button>
 		</form>
 	{/if}

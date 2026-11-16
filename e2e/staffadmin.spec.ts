@@ -53,6 +53,20 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page.getByText('Caravan added to the fleet')).toBeVisible();
 	await expect(page.getByTestId('no-js-outcome')).toHaveCount(0); // with JS: toast only
 	await expect(page).toHaveURL(/\/app\/aircraft$/);
+	// With JS Edit opens in place, the URL follows (reload keeps it) and Escape drops it.
+	await page.getByRole('link', { name: 'Edit Caravan' }).click();
+	await expect(dialog(page).getByRole('heading', { name: 'Edit Caravan' })).toBeVisible();
+	await expect(page).toHaveURL(/\/app\/aircraft\?edit=[\w-]+$/);
+	await page.reload();
+	await page.waitForLoadState('networkidle');
+	await expect(dialog(page).getByRole('heading', { name: 'Edit Caravan' })).toBeVisible();
+	await page.keyboard.press('Escape');
+	await expect(page).toHaveURL(/\/app\/aircraft$/);
+	await page.getByRole('link', { name: 'Delete Caravan' }).click();
+	await expect(dialog(page).getByText('Delete Caravan? Past loads keep the plane name')).toBeVisible();
+	await dialog(page).getByRole('link', { name: 'Cancel' }).click();
+	await expect(page.locator('dialog[open]')).toHaveCount(0);
+	await expect(page).toHaveURL(/\/app\/aircraft$/);
 	// Without JS (or before hydration) Add plane is a link that opens the form, and it posts.
 	{
 		const noJs = await page.context().browser()!.newContext({
@@ -76,6 +90,22 @@ test('owner runs the back office', async ({ page }) => {
 		await expect(plain.getByText('Cessna 182', { exact: true })).toBeVisible();
 		// …and a success.
 		await expect(plain.getByTestId('no-js-outcome').getByRole('status')).toHaveText('Cessna 182 added to the fleet');
+		// A plane's Edit / Delete are links (?edit=<id> / ?delete=<id>) that render the dialog open.
+		await plain.getByRole('link', { name: 'Edit Cessna 182' }).click();
+		await expect(plain).toHaveURL(/\/app\/aircraft\?edit=[\w-]+$/);
+		await expect(dialog(plain).getByRole('heading', { name: 'Edit Cessna 182' })).toBeVisible();
+		await dialog(plain).getByLabel('Pax (jumper slots)').fill('5');
+		await dialog(plain).getByRole('button', { name: 'Save plane' }).click();
+		await expect(plain.getByTestId('no-js-outcome').getByRole('status')).toHaveText('Plane info updated');
+		await plain.getByRole('link', { name: 'Delete Cessna 182' }).click();
+		await expect(plain).toHaveURL(/\/app\/aircraft\?delete=[\w-]+$/);
+		await dialog(plain).getByRole('link', { name: 'Cancel' }).click();
+		await expect(plain).toHaveURL(/\/app\/aircraft$/);
+		await expect(plain.locator('dialog[open]')).toHaveCount(0);
+		await plain.getByRole('link', { name: 'Delete Cessna 182' }).click();
+		await dialog(plain).getByRole('button', { name: 'Delete' }).click();
+		await expect(plain.getByTestId('no-js-outcome').getByRole('status')).toHaveText('Cessna 182 deleted. Past loads keep their plane name.');
+		await expect(plain.getByRole('link', { name: 'Edit Cessna 182' })).toHaveCount(0);
 		// Tandems: New tandem is a link too, and keeps the board's day.
 		await plain.goto('/app/tandems?day=2026-12-01');
 		await plain.getByRole('link', { name: 'New tandem' }).first().click();
