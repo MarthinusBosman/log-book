@@ -25,22 +25,41 @@
 	let tab = $state<string>(initial().tab);
 	let q = $state(readQuery(page.url.searchParams));
 	let only = $state<GearOnly>(initial().only);
-	let editing = $state<Rig | 'new' | null>(initial().adding ? 'new' : null);
+	// A row's Edit / Service / Delete are links too (?edit=<rigId>, ?service=<rigId>,
+	// ?delete=<rigId>): the server renders that dialog open, so they work before hydration and
+	// without JS; once hydrated they open in place and the URL follows.
+	const rigParam = (key: string) => {
+		const id = page.url.searchParams.get(key);
+		return id && data.register.some((r) => r.rig.id === id) ? id : null;
+	};
+	const findRig = (id: string | null) => (id ? (data.register.find((r) => r.rig.id === id)?.rig ?? null) : null);
+	let editingId = $state<string | null>(initial().adding ? 'new' : rigParam('edit'));
+	let servicingId = $state<string | null>(rigParam('service'));
+	let deletingId = $state<string | null>(rigParam('delete'));
 	// svelte-ignore state_referenced_locally
 	let showAllMembers = $state(initial().allMembers);
-	const view = (): GearView => ({ tab: (tab === 'members' ? 'members' : 'dz') as GearTab, only, adding: editing === 'new', allMembers: showAllMembers });
-	syncViewToUrl(() => ({ q: q.trim(), ...gearViewParams(view()) }));
+	const view = (): GearView => ({ tab: (tab === 'members' ? 'members' : 'dz') as GearTab, only, adding: editingId === 'new', allMembers: showAllMembers });
+	const rig = $derived<Rig | null>(editingId === 'new' ? null : findRig(editingId));
+	const servicing = $derived<Rig | null>(findRig(servicingId));
+	const deleting = $derived<Rig | null>(findRig(deletingId));
+	const noDialog = { new: null, edit: null, service: null, delete: null };
+	syncViewToUrl(() => ({ q: q.trim(), ...gearViewParams(view()), edit: rig?.id ?? null, service: servicing?.id ?? null, delete: deleting?.id ?? null }));
 	// Tabs and the "Due soon / All" switch are links to the view they show (work without JS);
 	// hydrated clicks switch in place and syncViewToUrl writes the same URL.
-	const viewHref = (set: Partial<GearView>) => viewParamsHref(page.url, gearViewParams({ ...view(), adding: false, ...set }));
-	let servicing = $state<Rig | null>(null);
-	let deleting = $state<Rig | null>(null);
+	const viewHref = (set: Partial<GearView>) => viewParamsHref(page.url, { ...noDialog, ...gearViewParams({ ...view(), adding: false, ...set }) });
+	const dialogHref = (set: Record<string, string>) => viewParamsHref(page.url, { ...noDialog, ...set });
+	const openDialog = (set: { edit?: string; service?: string; delete?: string }) =>
+		openInPlace(() => {
+			editingId = set.edit ?? null;
+			servicingId = set.service ?? null;
+			deletingId = set.delete ?? null;
+			if (set.service) serviceKind = 'reserve_repack';
+		});
 	let pending = $state(false);
 	let serviceKind = $state('reserve_repack');
-	const rig = $derived(editing && editing !== 'new' ? editing : null);
 	// A link to ?new=1, so it works before hydration (the server renders the form open);
 	// once hydrated it just opens the dialog.
-	const addRig = openInPlace(() => (editing = 'new'));
+	const addRig = openInPlace(() => ((editingId = 'new'), (servicingId = null), (deletingId = null)));
 
 	const needsAttention = (r: Row) =>
 		r.availability === 'grounded' || r.repack.status === 'due_soon' || r.aad.status === 'due_soon' || r.aad.status === 'overdue';
@@ -133,7 +152,7 @@
 	<nav aria-label="Filter rigs" bind:this={chipBar} class="scrollbar-none -mx-4 mt-3 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
 		{#each chips as c (c.id)}
 			<a
-				href={viewParamsHref(page.url, { show: c.id || null, new: null })}
+				href={viewParamsHref(page.url, { ...noDialog, show: c.id || null })}
 				onclick={openInPlace(() => (only = c.id))}
 				aria-current={only === c.id ? 'true' : undefined}
 				data-active={only === c.id ? '' : undefined}
@@ -196,8 +215,16 @@
 							</td>
 							<td class="stack-full py-3 pr-4 pl-3">
 								<div class="flex flex-wrap gap-1 md:justify-end">
-									<Button size="sm" variant="secondary" onclick={() => ((serviceKind = 'reserve_repack'), (servicing = r.rig))}>Service</Button>
-									<Button size="sm" variant="ghost" onclick={() => (editing = r.rig)}>Edit</Button>
+									<Button
+										size="sm"
+										variant="secondary"
+										href={dialogHref({ service: r.rig.id })}
+										onclick={openDialog({ service: r.rig.id })}
+										aria-label="Service {r.rig.name ?? 'rig'}">Service</Button
+									>
+									<Button size="sm" variant="ghost" href={dialogHref({ edit: r.rig.id })} onclick={openDialog({ edit: r.rig.id })} aria-label="Edit {r.rig.name ?? 'rig'}"
+										>Edit</Button
+									>
 									<form method="POST" action="?/ground" use:enhance={toastEnhance()}>
 										<input type="hidden" name="id" value={r.rig.id} />
 										<input type="hidden" name="active" value={r.rig.active ? 'false' : 'true'} />
@@ -273,14 +300,14 @@
 	</div>
 {/if}
 
-<Dialog open={!!editing} onclose={() => (editing = null)} title={rig ? `Edit ${rig.name ?? 'rig'}` : 'Add rig'} variant="right">
-	{#if editing}
+<Dialog open={editingId === 'new' || !!rig} onclose={() => (editingId = null)} title={rig ? `Edit ${rig.name ?? 'rig'}` : 'Add rig'} variant="right">
+	{#if editingId === 'new' || rig}
 		{#key rig?.id ?? 'new'}
 			<form
 				method="POST"
 				action={rig ? '?/update' : '?/create'}
 				class="space-y-4"
-				use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (editing = null) })}
+				use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (editingId = null) })}
 			>
 				{#if rig}<input type="hidden" name="id" value={rig.id} />{/if}
 				<div class="grid grid-cols-2 gap-3">
@@ -311,40 +338,60 @@
 				<Textarea label="Notes" name="notes" value={rig?.notes ?? ''} rows={2} />
 				<Button type="submit" class="w-full" loading={pending}>{rig ? 'Save rig' : 'Add to register'}</Button>
 				{#if rig}
-					<button type="button" class="w-full text-center text-sm text-danger hover:underline" onclick={() => ((deleting = rig), (editing = null))}>
-						Delete this rig
-					</button>
+					<a
+						href={dialogHref({ delete: rig.id })}
+						onclick={openDialog({ delete: rig.id })}
+						data-sveltekit-reset="false"
+						class="block w-full text-center text-sm text-danger hover:underline">Delete this rig</a
+					>
 				{/if}
 			</form>
 		{/key}
 	{/if}
 </Dialog>
 
-<Dialog open={!!servicing} onclose={() => (servicing = null)} title="Record service" description={servicing?.name ?? ''}>
+<Dialog open={!!servicing} onclose={() => (servicingId = null)} title="Record service" description={servicing?.name ?? ''}>
 	{#if servicing}
-		<form method="POST" action="?/service" class="space-y-4" use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (servicing = null) })}>
+		<!-- The next-due date shows only for an AAD service: CSS follows the selected option, so the
+		     field appears without JS too (the server still requires it for AAD services). -->
+		<form
+			method="POST"
+			action="?/service"
+			class="space-y-4"
+			use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (servicingId = null) })}
+		>
 			<input type="hidden" name="id" value={servicing.id} />
 			<Select label="Work done" name="kind" bind:value={serviceKind} options={serviceOptions} />
 			<div class="grid grid-cols-2 gap-3">
 				<Input label="Date" name="performedOn" type="date" required min="1900-01-01" max={data.today} value={data.today} />
 				<Input label="Rigger no." name="riggerNumber" placeholder="Optional" />
 			</div>
-			{#if serviceKind === 'aad_service'}
-				<Input label="Next AAD service due" name="nextDueOn" type="date" required min={data.today} />
-			{/if}
+			<div class="aad-next-due" data-testid="aad-next-due">
+				<Input label="Next AAD service due" name="nextDueOn" type="date" required={serviceKind === 'aad_service'} min={data.today} />
+			</div>
 			<Textarea label="Notes" name="notes" rows={2} />
 			<Button type="submit" class="w-full" loading={pending}>Save</Button>
 		</form>
 	{/if}
 </Dialog>
 
-<Dialog open={!!deleting} onclose={() => (deleting = null)} title="Delete rig?">
+<Dialog open={!!deleting} onclose={() => (deletingId = null)} title="Delete rig?">
 	{#if deleting}
 		<p class="text-sm text-muted">Delete {deleting.name ?? 'this rig'} and its service history? You can't undo this. To take it out of use, ground it instead.</p>
-		<form method="POST" action="?/delete" class="mt-5 flex justify-end gap-2" use:enhance={toastEnhance({ onSuccess: () => (deleting = null) })}>
+		<form method="POST" action="?/delete" class="mt-5 flex justify-end gap-2" use:enhance={toastEnhance({ onSuccess: () => (deletingId = null) })}>
 			<input type="hidden" name="id" value={deleting.id} />
-			<Button variant="ghost" onclick={() => (deleting = null)}>Cancel</Button>
+			<Button variant="ghost" href={dialogHref({ edit: deleting.id })} onclick={openDialog({ edit: deleting.id })} data-sveltekit-reset="false">Cancel</Button>
 			<Button type="submit" variant="danger">Delete</Button>
 		</form>
 	{/if}
 </Dialog>
+
+<style>
+	/* Shown only for an AAD service; follows the selected option, so it works without JS too. */
+	.aad-next-due {
+		display: none;
+	}
+	form:has(:global(option[value='aad_service']:checked)) .aad-next-due {
+		display: block;
+	}
+</style>

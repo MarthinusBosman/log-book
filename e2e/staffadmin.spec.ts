@@ -113,12 +113,12 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(page).getByLabel('Name / number').fill('Student 1');
 	await dialog(page).getByLabel('Last reserve repack').fill('2026-01-01');
 	await dialog(page).getByRole('button', { name: 'Add to register' }).click();
-	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	await expect(page.getByRole('cell', { name: /^Student 1/ })).toBeVisible();
 	// On a phone each rig is a card (no sideways scroll): the row's actions are on screen.
 	await page.setViewportSize({ width: 390, height: 844 });
 	const rigTable = (await page.locator('table').first().boundingBox())!;
 	expect(rigTable.x + rigTable.width).toBeLessThanOrEqual(390);
-	const service = (await page.getByRole('row', { name: /Student 1/ }).getByRole('button', { name: 'Service' }).boundingBox())!;
+	const service = (await page.getByRole('row', { name: /Student 1/ }).getByRole('link', { name: 'Service Student 1' }).boundingBox())!;
 	expect(service.x + service.width).toBeLessThanOrEqual(390);
 	await expect(page.getByRole('cell', { name: /Repack due/ }).first()).toBeVisible();
 	await page.setViewportSize({ width: 1280, height: 900 });
@@ -133,7 +133,7 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page).toHaveURL(/\/app\/gear\?show=attention$/);
 	const rigChips = page.getByRole('navigation', { name: 'Filter rigs' });
 	await expect(rigChips.getByRole('link', { name: /Needs attention/ })).toHaveAttribute('aria-current', 'true');
-	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	await expect(page.getByRole('cell', { name: /^Student 1/ })).toBeVisible();
 	// Tab and filter changes stay in the URL, so a reload returns to the same view.
 	await page.getByRole('tab', { name: /Jumpers.? gear/ }).click();
 	await expect(page).toHaveURL(/\/app\/gear\?show=attention&tab=members$/);
@@ -158,7 +158,7 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(rigChips.getByRole('link', { name: /All rigs/ })).toHaveAttribute('aria-current', 'true');
 	await rigChips.getByRole('link', { name: /Grounded/ }).click();
 	await expect(page).toHaveURL(/\/app\/gear\?show=grounded$/);
-	await expect(page.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	await expect(page.getByRole('cell', { name: /^Student 1/ })).toBeVisible();
 	await rigChips.getByRole('link', { name: /All rigs/ }).click();
 	await expect(page).toHaveURL(/\/app\/gear$/);
 	// ?new=1 opens the Add rig form; closing it drops the param.
@@ -188,20 +188,20 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(plain).getByLabel('Name / number').fill('Student 2');
 	await dialog(plain).getByLabel('Last reserve repack').fill('2026-11-01');
 	await dialog(plain).getByRole('button', { name: 'Add to register' }).click();
-	await expect(plain.getByRole('cell', { name: /Student 2/ })).toBeVisible();
+	await expect(plain.getByRole('cell', { name: /^Student 2/ })).toBeVisible();
 	// The rig filter chips are links too, and a native search keeps the active chip.
 	const plainChips = plain.getByRole('navigation', { name: 'Filter rigs' });
 	await plainChips.getByRole('link', { name: /Available/ }).click();
 	await expect(plain).toHaveURL(/\/app\/gear\?show=available$/);
-	await expect(plain.getByRole('cell', { name: /Student 2/ })).toBeVisible();
-	await expect(plain.getByRole('cell', { name: /Student 1/ })).toHaveCount(0);
+	await expect(plain.getByRole('cell', { name: /^Student 2/ })).toBeVisible();
+	await expect(plain.getByRole('cell', { name: /^Student 1/ })).toHaveCount(0);
 	await plain.getByRole('searchbox').fill('Student');
 	await plain.getByRole('searchbox').press('Enter');
 	await expect(plain).toHaveURL(/\/app\/gear\?q=Student&show=available$/);
 	await expect(plainChips.getByRole('link', { name: /Available/ })).toHaveAttribute('aria-current', 'true');
 	await plainChips.getByRole('link', { name: /All rigs/ }).click();
 	await expect(plain).toHaveURL(/\/app\/gear\?q=Student$/);
-	await expect(plain.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	await expect(plain.getByRole('cell', { name: /^Student 1/ })).toBeVisible();
 	// The tabs and the members' "All rigs" switch are links as well.
 	await plain.getByRole('tab', { name: /Jumpers.? gear/ }).click();
 	await expect(plain).toHaveURL(/\/app\/gear\?q=Student&tab=members$/);
@@ -212,8 +212,50 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(plainSwitch.getByRole('link', { name: /All rigs/ })).toHaveAttribute('aria-current', 'true');
 	await plain.getByRole('tab', { name: /DZ rigs/ }).click();
 	await expect(plain).toHaveURL(/\/app\/gear\?q=Student$/);
-	await expect(plain.getByRole('cell', { name: /Student 1/ })).toBeVisible();
+	await expect(plain.getByRole('cell', { name: /^Student 1/ })).toBeVisible();
+	// A row's Service / Edit / Delete are links (?service= / ?edit= / ?delete=) the server opens.
+	// The AAD next-due field follows the "Work done" choice with CSS, so it shows without JS.
+	await plain.getByRole('link', { name: 'Service Student 2' }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?q=Student&service=[\w-]+$/);
+	await expect(dialog(plain).getByRole('heading', { name: 'Record service' })).toBeVisible();
+	await expect(dialog(plain).getByLabel('Next AAD service due')).toBeHidden();
+	await dialog(plain).getByLabel('Work done').selectOption('aad_service');
+	await expect(dialog(plain).getByLabel('Next AAD service due')).toBeVisible();
+	await dialog(plain).getByLabel('Next AAD service due').fill('2027-11-01');
+	await dialog(plain).getByRole('button', { name: 'Save' }).click();
+	await expect(plain.getByTestId('no-js-outcome')).toContainText('Service recorded for Student 2');
+	await expect(plain.getByRole('row', { name: /Student 2/ }).getByText('No date')).toHaveCount(0);
+	await plain.getByRole('link', { name: 'Edit Student 2' }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?edit=[\w-]+$/);
+	await expect(dialog(plain).getByLabel('Name / number')).toHaveValue('Student 2');
+	await dialog(plain).getByRole('link', { name: 'Delete this rig' }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?delete=[\w-]+$/);
+	await dialog(plain).getByRole('link', { name: 'Cancel' }).click();
+	await expect(plain).toHaveURL(/\/app\/gear\?edit=[\w-]+$/);
+	await dialog(plain).getByRole('link', { name: 'Delete this rig' }).click();
+	await dialog(plain).getByRole('button', { name: 'Delete' }).click();
+	await expect(plain.getByTestId('no-js-outcome')).toContainText('Student 2 removed');
+	await expect(plain.getByRole('cell', { name: /^Student 2/ })).toHaveCount(0);
 	await noJs.close();
+	// With JS the same links open in place, the URL follows (reload keeps the dialog) and closing
+	// drops the param.
+	await go(page, '/app/gear');
+	await page.getByRole('link', { name: 'Edit Student 1' }).click();
+	await expect(page).toHaveURL(/\/app\/gear\?edit=[\w-]+$/);
+	await expect(dialog(page).getByLabel('Name / number')).toHaveValue('Student 1');
+	await page.reload();
+	await expect(dialog(page).getByLabel('Name / number')).toHaveValue('Student 1');
+	await page.keyboard.press('Escape');
+	await expect(page).toHaveURL(/\/app\/gear$/);
+	await page.getByRole('link', { name: 'Service Student 1' }).click();
+	await expect(page).toHaveURL(/\/app\/gear\?service=[\w-]+$/);
+	await expect(dialog(page).getByLabel('Next AAD service due')).toBeHidden();
+	await dialog(page).getByLabel('Work done').selectOption('aad_service');
+	await expect(dialog(page).getByLabel('Next AAD service due')).toBeVisible();
+	await dialog(page).getByLabel('Work done').selectOption('reserve_repack');
+	await dialog(page).getByRole('button', { name: 'Save' }).click();
+	await expect(page.getByText('Repack recorded for Student 1')).toBeVisible();
+	await expect(page).toHaveURL(/\/app\/gear$/);
 
 	// Waivers: Add section / Edit are links (?new=1 / ?edit=<id>) that work before hydration and
 	// without JS; no-JS posts come back on the same tab.
