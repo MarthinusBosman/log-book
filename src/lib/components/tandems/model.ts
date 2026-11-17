@@ -127,6 +127,11 @@ export function extraToggleLabel(extraTitle: string, jumperName: string | null):
 	return jumperName ? `Add ${extraTitle} for ${jumperName}` : `Add ${extraTitle}`;
 }
 
+/** Booking-summary suffix for a jumper's add-ons: " + 1 add-on", " + 2 add-ons", "" for none. */
+export function addOnsSuffix(count: number): string {
+	return count > 0 ? ` + ${count} add-on${count === 1 ? '' : 's'}` : '';
+}
+
 export function addDaysIso(date: string, days: number): string {
 	return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
 }

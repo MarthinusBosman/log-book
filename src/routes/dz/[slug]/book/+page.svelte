@@ -5,7 +5,7 @@
 	import { formatMoney, type SlotExtra } from '#lib/domain/constants.ts';
 	import BookingSteps from '#lib/components/tandems/BookingSteps.svelte';
 	import MonthCalendar from '#lib/components/tandems/MonthCalendar.svelte';
-	import { EXTRA_COPY, ageOn, extraToggleLabel, fmtDay, limitWarnings } from '#lib/components/tandems/model.ts';
+	import { EXTRA_COPY, addOnsSuffix, ageOn, extraToggleLabel, fmtDay, limitWarnings } from '#lib/components/tandems/model.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -384,7 +384,7 @@
 				<dl class="mt-4 grid gap-2 border-t border-border pt-4 text-sm">
 					{#each jumpers as j, i (i)}
 						<div class="flex justify-between gap-2">
-							<dt class="truncate text-muted">{count > 1 || j.name ? first(j, i) : 'Tandem skydive'}{j.extras.length ? ` + ${j.extras.length}` : ''}</dt>
+							<dt class="truncate text-muted">{count > 1 || j.name ? first(j, i) : 'Tandem skydive'}{addOnsSuffix(j.extras.length)}</dt>
 							<dd class="tabular-nums">{money(perJumper[i])}</dd>
 						</div>
 					{/each}

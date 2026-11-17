@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { calendarDayLabel, extraToggleLabel } from './model.ts';
+import { addOnsSuffix, calendarDayLabel, extraToggleLabel } from './model.ts';
 
 describe('booking accessible names', () => {
 	test('calendar days are spoken as dates, with singular/plural places', () => {
@@ -11,5 +11,11 @@ describe('booking accessible names', () => {
 	test('extras toggles name the extra and, in a group, the jumper', () => {
 		expect(extraToggleLabel('Handcam video', 'Max Mate')).toBe('Add Handcam video for Max Mate');
 		expect(extraToggleLabel('Handcam video', null)).toBe('Add Handcam video');
+	});
+
+	test('booking summary names add-ons instead of a bare "+ N"', () => {
+		expect(addOnsSuffix(0)).toBe('');
+		expect(addOnsSuffix(1)).toBe(' + 1 add-on');
+		expect(addOnsSuffix(3)).toBe(' + 3 add-ons');
 	});
 });

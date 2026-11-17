@@ -220,6 +220,17 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await p2.getByRole('navigation', { name: 'Add slots by' }).getByRole('link', { name: 'Every week' }).click();
 	await expect(p2.getByRole('button', { name: 'Add weekly slot' })).toBeVisible();
 	await p2.getByRole('navigation', { name: 'Add slots by' }).getByRole('link', { name: 'By date' }).click();
+	// Places: nothing submits on change without JS, so a Save shows while the field has focus.
+	const places = p2.getByRole('spinbutton', { name: 'Places at 10:00' });
+	const save = p2.getByRole('button', { name: 'Save places at 10:00' });
+	await expect(save).toBeHidden();
+	await places.fill('5');
+	await expect(save).toBeVisible();
+	await save.click();
+	await expect(p2.getByText('Capacity updated')).toBeVisible();
+	await expect(places).toHaveValue('5');
+	// With JS the change submits by itself: no Save button at all.
+	await expect(page.getByTestId('capacity-save')).toHaveCount(0);
 	await p2.getByRole('link', { name: `Remove ${tomorrow} 10:00` }).click();
 	await expect(p2.getByTestId('remove-slot-confirm')).toBeVisible();
 	await p2.getByTestId('remove-slot-confirm').getByRole('link', { name: 'Cancel' }).click();

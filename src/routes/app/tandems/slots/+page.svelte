@@ -2,6 +2,7 @@
 	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
+	import { onMount } from 'svelte';
 	import { openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Badge, Button, EmptyState, Icon, Input, Select, cn } from '#lib/ui/index.ts';
@@ -10,6 +11,8 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	let hydrated = $state(false);
+	onMount(() => (hydrated = true));
 
 	// View state lives in the URL (?mode=weekly, ?all=1, ?remove=<slot id>) so the tabs, "Show all"
 	// and the remove-a-booked-slot question work before hydration and without JS.
@@ -163,7 +166,7 @@
 										)}
 									>
 										<span class="font-mono font-medium tabular-nums">{s.time}</span>
-										<form method="POST" action={actionHref('capacity')} use:enhance={toastEnhance()} class="flex items-center gap-1">
+										<form method="POST" action={actionHref('capacity')} use:enhance={toastEnhance()} class="group flex items-center gap-1">
 											<input type="hidden" name="id" value={s.id} />
 											<span class="text-xs text-muted tabular-nums" title="booked / places">{s.booked} /</span>
 											<input
@@ -176,6 +179,15 @@
 												class="h-7 w-9 [appearance:textfield] rounded-md border border-transparent bg-transparent px-1 text-center text-sm tabular-nums outline-none hover:border-border focus:border-primary [&::-webkit-inner-spin-button]:appearance-none"
 												onchange={(e) => e.currentTarget.form?.requestSubmit()}
 											/>
+											{#if !hydrated}
+												<!-- Without JS nothing submits on change: offer a Save while the field has focus (Enter works too). -->
+												<button
+													type="submit"
+													class="hidden h-7 rounded-md bg-primary px-2 text-xs font-medium text-primary-fg group-focus-within:inline-flex group-focus-within:items-center"
+													aria-label="Save places at {s.time}"
+													data-testid="capacity-save">Save</button
+												>
+											{/if}
 										</form>
 										{#if s.booked}
 											<!-- Booked: ask first (a link, so the question also works before hydration / without JS). -->
