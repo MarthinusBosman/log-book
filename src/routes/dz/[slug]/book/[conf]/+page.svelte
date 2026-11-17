@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
@@ -18,7 +18,23 @@
 	const money = (m: number) => formatMoney(m, b.currency);
 	const pdfHref = $derived(`/dz/${data.dz.slug}/book/${b.confirmationNumber}/pdf`);
 	const signHref = (conf: string) => `/dz/${data.dz.slug}/book/${conf}#indemnity`;
-	let signLater = $state(false);
+	// ?later=1 is the no-JS / pre-hydration path of "I'll sign later"; hydrated taps just flip state.
+	let signLater = $state(untrack(() => page.url.searchParams.get('later') === '1'));
+	let indemnityHeading: HTMLHeadingElement | undefined = $state();
+	function laterHref(later: boolean) {
+		const u = new URL(page.url.href);
+		if (later) u.searchParams.set('later', '1');
+		else u.searchParams.delete('later');
+		return `${u.pathname}${u.search}#indemnity`;
+	}
+	/** The pressed button disappears with the swap: move focus somewhere useful instead of <body>. */
+	async function toggleLater(e: MouseEvent, later: boolean) {
+		e.preventDefault();
+		signLater = later;
+		await tick();
+		if (later) document.querySelector<HTMLElement>('[data-testid="sign-now"]')?.focus();
+		else indemnityHeading?.focus();
+	}
 	let payWhat = $state<'deposit' | 'balance'>('deposit');
 	let who = $state<'group' | 'me'>('group');
 	let paying = $state<string | null>(null);
@@ -242,14 +258,16 @@
 	<!-- step 4: indemnity -->
 	{#if needsSign}
 		<section id="indemnity" class="mt-8 scroll-mt-20">
-			<h2 class="text-2xl font-semibold tracking-tight">Sign your indemnity</h2>
+			<h2 bind:this={indemnityHeading} tabindex="-1" class="text-2xl font-semibold tracking-tight outline-none">Sign your indemnity</h2>
 			<p class="mt-1 text-sm text-muted">
 				Everyone who jumps signs before boarding. Do it now on your phone and skip the queue at the dropzone{b.minor ? ' — a parent or guardian signs too' : ''}.
 			</p>
 			{#if signLater}
-				<div class="mt-4 rounded-2xl border border-border bg-surface p-4 text-sm">
+				<div class="mt-4 rounded-2xl border border-border bg-surface p-4 text-sm" data-testid="sign-later-note">
 					No problem — open this page again from your email any time before the jump, or sign at the dropzone.
-					<Button size="sm" variant="secondary" class="mt-3" onclick={() => (signLater = false)}>Sign now</Button>
+					<Button size="sm" variant="secondary" class="mt-3" href={laterHref(false)} data-testid="sign-now" onclick={(e: MouseEvent) => toggleLater(e, false)}
+						>Sign now</Button
+					>
 				</div>
 			{:else}
 				<div class="mt-4">
@@ -264,7 +282,9 @@
 						errorSection={(form as { section?: number | null } | null)?.section ?? null}
 						submitLabel="Sign indemnity"
 					/>
-					<Button variant="ghost" size="sm" class="mt-2" onclick={() => (signLater = true)}>I’ll sign later</Button>
+					<Button variant="ghost" size="sm" class="mt-2" href={laterHref(true)} data-testid="sign-later" onclick={(e: MouseEvent) => toggleLater(e, true)}
+						>I’ll sign later</Button
+					>
 				</div>
 			{/if}
 		</section>

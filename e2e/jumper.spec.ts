@@ -519,6 +519,7 @@ test('join form with an empty wallet: "not enough" + Top up link, but not at a D
 });
 
 test('paying from the wallet, checking out, leaving a team and removing a teammate or buddy ask first — also before hydration / without JS', async ({ page, browser }) => {
+	test.setTimeout(60_000); // ~22 s alone; overran 30 s under full-suite load
 	await signup(page, 'Prudent Payer');
 	await page.goto('/app/dropzones/new');
 	await page.getByLabel('Dropzone name').fill(`Prudent DZ ${test.info().project.name} ${Date.now()}`);

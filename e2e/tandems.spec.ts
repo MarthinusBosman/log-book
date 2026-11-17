@@ -17,6 +17,7 @@ async function drawSignature(page: Page, canvasIndex = 0) {
 }
 
 test('tandems: slots + waiver setup → public booking → indemnity → staff view', async ({ page, request, browser }) => {
+	test.setTimeout(90_000); // the whole customer + staff journey; 30 s was tight under full-suite load
 	const project = test.info().project.name;
 	const stamp = `${project}-${Date.now()}`;
 	const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
@@ -94,6 +95,30 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await expect(page).toHaveURL(new RegExp(`/dz/${slug}/book/[A-Z0-9]{4}-[A-Z0-9]{4}$`)); // ?new=1 dropped
 	const conf = (await page.getByTestId('conf').textContent())!.trim();
 	expect(conf).toMatch(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+
+	// "I'll sign later" ↔ "Sign now": the pressed button is swapped out, so focus moves to the
+	// replacement (not <body>). Without JS the same buttons are links (?later=1).
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('sign-later').click();
+	await expect(page.getByTestId('sign-later-note')).toBeVisible();
+	await expect(page.getByTestId('sign-now')).toBeFocused();
+	await expect(page).not.toHaveURL(/later=1/);
+	await page.getByTestId('sign-now').click();
+	await expect(page.getByRole('heading', { name: 'Sign your indemnity' })).toBeFocused();
+	await expect(page.getByTestId('sign-form')).toBeVisible();
+	{
+		const ctx = await browser.newContext({ javaScriptEnabled: false });
+		const nojs = await ctx.newPage();
+		await nojs.goto(page.url());
+		await nojs.getByTestId('sign-later').click();
+		await expect(nojs).toHaveURL(/[?&]later=1#indemnity$/);
+		await expect(nojs.getByTestId('sign-later-note')).toBeVisible();
+		await expect(nojs.getByTestId('sign-form')).toHaveCount(0);
+		await nojs.getByTestId('sign-now').click();
+		await expect(nojs).not.toHaveURL(/later=1/);
+		await expect(nojs.getByTestId('sign-form')).toBeVisible();
+		await ctx.close();
+	}
 
 	// Step 4: sign the indemnity.
 	await page.locator('input[name=ack_0]').check();
