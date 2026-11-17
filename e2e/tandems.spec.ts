@@ -394,3 +394,55 @@ test('public dropzone page: opening days have a text alternative, phone link dia
 		await expect(page.locator('main a[href^="tel:"]').first()).toHaveAttribute('href', 'tel:+27215550123');
 	}
 });
+
+test('booking: the time picker is one tab stop and arrow keys move between times', async ({ page }) => {
+	const stamp = `${test.info().project.name}-${Date.now()}`;
+	const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Kay Keys');
+	await page.getByLabel('Email').fill(`keys-${stamp}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Keys DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/tandems/slots');
+	for (const t of ['09:00', '11:00', '14:00']) {
+		await page.getByLabel('Date', { exact: true }).fill(tomorrow);
+		await page.getByLabel('Time', { exact: true }).fill(t);
+		await page.getByLabel('Places', { exact: true }).fill('2');
+		await page.getByRole('button', { name: 'Add slots' }).click();
+		await expect(page.locator('[data-testid="slot-day"]').first()).toContainText(t);
+	}
+	await page.goto('/app/tandems');
+	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
+
+	await page.goto(href!);
+	await page.waitForLoadState('networkidle');
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	const group = page.getByRole('radiogroup', { name: 'Time' });
+	const radios = group.getByRole('radio');
+	await expect(radios).toHaveCount(3);
+	// Nothing picked yet: only the first time is in the tab order.
+	await expect(group.locator('[tabindex="0"]')).toHaveCount(1);
+	await expect(radios.nth(0)).toHaveAttribute('tabindex', '0');
+	await radios.nth(0).focus();
+	await page.keyboard.press('ArrowRight');
+	await expect(radios.nth(1)).toBeFocused();
+	await expect(radios.nth(1)).toHaveAttribute('aria-checked', 'true');
+	await expect(radios.nth(1)).toHaveAttribute('tabindex', '0');
+	await expect(radios.nth(0)).toHaveAttribute('tabindex', '-1');
+	await page.keyboard.press('End');
+	await expect(radios.nth(2)).toBeFocused();
+	await expect(radios.nth(2)).toHaveAttribute('aria-checked', 'true');
+	// Wraps around.
+	await page.keyboard.press('ArrowDown');
+	await expect(radios.nth(0)).toBeFocused();
+	await expect(radios.nth(0)).toHaveAttribute('aria-checked', 'true');
+	// Tab leaves the group in one step.
+	await page.keyboard.press('Tab');
+	await expect(radios.nth(1)).not.toBeFocused();
+	await expect(group.locator(':focus')).toHaveCount(0);
+});

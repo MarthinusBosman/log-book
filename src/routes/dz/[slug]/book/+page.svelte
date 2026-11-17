@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import { Button, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
+	import { radioKeyTarget, radioTabIndex } from '#lib/ui/radio-keys.ts';
 	import { formatMoney, type SlotExtra } from '#lib/domain/constants.ts';
 	import BookingSteps from '#lib/components/tandems/BookingSteps.svelte';
 	import MonthCalendar from '#lib/components/tandems/MonthCalendar.svelte';
@@ -58,6 +59,17 @@
 	const available = $derived(Object.fromEntries(Object.entries(data.days).map(([d, s]) => [d, s.reduce((n, x) => n + x.remaining, 0)])));
 	const times = $derived(date ? (data.days[date] ?? []) : []);
 	const slotLeft = $derived(times.find((t) => t.time === time)?.remaining ?? 0);
+	// Time picker = one tab stop; arrow keys move + select (radio group pattern).
+	const timesEnabled = $derived(times.map((t) => t.remaining > 0));
+	const timeTabStop = $derived(radioTabIndex(timesEnabled, times.findIndex((t) => t.time === time)));
+	function timeKey(e: KeyboardEvent, from: number) {
+		const to = radioKeyTarget(timesEnabled, from, e.key);
+		if (to === null) return;
+		e.preventDefault();
+		time = times[to].time;
+		const group = (e.currentTarget as HTMLElement).parentElement;
+		(group?.children[to] as HTMLElement | undefined)?.focus();
+	}
 	const maxCount = $derived(Math.min(data.maxJumpers, Math.max(1, slotLeft || data.maxJumpers)));
 
 	$effect(() => {
@@ -184,13 +196,15 @@
 						<p class="text-sm font-medium">{date ? fmtDay(date, { weekday: 'long', day: 'numeric', month: 'long' }) : 'Choose a day'}</p>
 						{#if date}
 							<div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-3" role="radiogroup" aria-label="Time">
-								{#each times as t (t.time)}
+								{#each times as t, i (t.time)}
 									<button
 										type="button"
 										role="radio"
 										aria-checked={time === t.time}
 										disabled={!t.remaining}
+										tabindex={i === timeTabStop ? 0 : -1}
 										onclick={() => (time = t.time)}
+										onkeydown={(e) => timeKey(e, i)}
 										data-time={t.time}
 										class={cn(
 											'flex flex-col items-center rounded-xl border px-2 py-2.5 transition-all',
