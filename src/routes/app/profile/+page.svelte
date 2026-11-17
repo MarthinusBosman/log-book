@@ -9,6 +9,7 @@
 	import { fmtDate } from '#lib/components/jumper/format.ts';
 	import ImageUpload from '#lib/components/ImageUpload.svelte';
 	import { IMAGE_PRESETS } from '#lib/client/resize-image.ts';
+	import { revealCurrent } from '#lib/components/staffadmin/list-view.ts';
 	import PasaCard, { type PasaPreviewVM } from '#lib/components/memberships/PasaCard.svelte';
 	import type { PageProps } from './$types';
 
@@ -90,7 +91,7 @@
 	</div>
 </div>
 
-<nav class="mb-6 scrollbar-none inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-surface-2/60 p-1" aria-label="Profile sections">
+<nav class="mb-6 scrollbar-none inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-surface-2/60 p-1" aria-label="Profile sections" use:revealCurrent={data.tab}>
 	{#each tabs as t (t.id)}
 		<a href="?tab={t.id}" class={cn('inline-flex h-8 items-center rounded-lg px-3 text-sm font-medium whitespace-nowrap', data.tab === t.id ? 'bg-surface text-fg shadow-sm' : 'text-muted hover:text-fg')} aria-current={data.tab === t.id ? 'page' : undefined} data-sveltekit-reset="false">{t.label}</a>
 	{/each}

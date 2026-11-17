@@ -1,6 +1,6 @@
 <script lang="ts">
 	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
-	import { goto } from '$app/navigation';
+	import { revealCurrent } from '#lib/components/staffadmin/list-view.ts';
 	import { Badge, Button, EmptyState, Icon, cn } from '#lib/ui/index.ts';
 	import FormBuilder from '#lib/components/waivers/FormBuilder.svelte';
 	import type { PageProps } from './$types';
@@ -31,7 +31,7 @@
 </div>
 <NoJsOutcome />
 
-<nav class="mt-6 scrollbar-none flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-surface-2/60 p-1 sm:inline-flex" aria-label="Waiver sections">
+<nav class="mt-6 scrollbar-none flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-surface-2/60 p-1 sm:inline-flex" aria-label="Waiver sections" use:revealCurrent={data.tab}>
 	{#each tabs as t (t.id)}
 		<a
 			href="?tab={t.id}"
@@ -73,7 +73,7 @@
 				name="audience"
 				aria-label="Form"
 				value={data.audience}
-				onchange={(e) => goto(`?tab=signed&q=${encodeURIComponent(data.q)}&audience=${e.currentTarget.value}`)}
+				onchange={(e) => e.currentTarget.form?.requestSubmit()}
 				class="h-11 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
 			>
 				<option value="">All forms</option>

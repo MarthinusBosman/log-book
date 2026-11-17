@@ -34,6 +34,23 @@ export function revealInRow(row: HTMLElement, item: HTMLElement): void {
 	if (next !== null) row.scrollLeft = next;
 }
 
+/**
+ * Action for a sideways-scrolling tab strip: keeps the current tab (`aria-current="page"` or
+ * `aria-selected="true"`) in view on narrow screens, on mount and whenever `key` changes
+ * (pass the active tab id). Without it a deep link such as `?tab=jumpers` opens with the
+ * active tab scrolled off the right edge.
+ */
+export function revealCurrent(row: HTMLElement, key?: unknown) {
+	const run = () => {
+		const item = row.querySelector<HTMLElement>('[aria-current="page"], [aria-selected="true"]');
+		if (item) revealInRow(row, item);
+	};
+	void key;
+	run();
+	// On update the tab's own attributes may not be patched yet: reveal after this tick.
+	return { update: (_key?: unknown) => queueMicrotask(run) };
+}
+
 /** `href` with each key set (or removed when empty/null); other query params are kept. */
 export function listViewHref(href: string, view: Record<string, string | null | undefined>): string {
 	const url = new URL(href);

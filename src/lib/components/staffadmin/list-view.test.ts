@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { MAX_QUERY, listViewHref, readChoice, readQuery, rowScrollToReveal } from './list-view.ts';
+import { MAX_QUERY, listViewHref, readChoice, readQuery, revealCurrent, rowScrollToReveal } from './list-view.ts';
 
 const base = 'https://log-book.app/app/jumpers';
 const params = (qs: string) => new URL(`${base}${qs}`).searchParams;
@@ -46,5 +46,39 @@ describe('rowScrollToReveal (active filter chip on a phone)', () => {
 	});
 	test('a chip wider than the view aligns its start', () => {
 		expect(rowScrollToReveal(0, 100, 400, 200)).toBe(384);
+	});
+});
+
+describe('revealCurrent (tab strip deep link on a phone)', () => {
+	// A 390-wide strip whose current tab sits at 500..600 in content coordinates.
+	function strip(selector: string | null) {
+		const tab = { offsetWidth: 100, getBoundingClientRect: () => ({ left: 500 - row.scrollLeft }) };
+		const row = {
+			scrollLeft: 0,
+			scrollWidth: 700,
+			clientWidth: 390,
+			getBoundingClientRect: () => ({ left: 0 }),
+			querySelector: (sel: string) => (selector && sel.includes(selector) ? tab : null)
+		};
+		return row;
+	}
+	test('scrolls the aria-current tab into view on mount', () => {
+		const row = strip('aria-current');
+		revealCurrent(row as unknown as HTMLElement, 'jumpers');
+		expect(row.scrollLeft).toBe(600 + 16 - 390);
+	});
+	test('also handles role=tab strips (aria-selected), after the update tick', async () => {
+		const row = strip('aria-selected');
+		const action = revealCurrent(row as unknown as HTMLElement, 'a');
+		row.scrollLeft = 0;
+		action.update('b');
+		expect(row.scrollLeft).toBe(0);
+		await Promise.resolve();
+		expect(row.scrollLeft).toBe(226);
+	});
+	test('no current tab: nothing moves', () => {
+		const row = strip(null);
+		revealCurrent(row as unknown as HTMLElement);
+		expect(row.scrollLeft).toBe(0);
 	});
 });

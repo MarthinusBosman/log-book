@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { cn } from './cn.ts';
+	import { revealCurrent } from '#lib/components/staffadmin/list-view.ts';
 
 	type Tab = { id: string; label: string; count?: number };
 	type Props = {
@@ -59,6 +60,7 @@
 		tabindex="-1"
 		class="scrollbar-none inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-border bg-surface-2/60 p-1"
 		{onkeydown}
+		use:revealCurrent={value}
 	>
 		{#each tabs as tab (tab.id)}
 			{@const active = tab.id === value}

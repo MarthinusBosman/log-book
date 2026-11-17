@@ -175,6 +175,32 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	// Signed waiver is listed with a PDF.
 	await page.goto('/app/waivers?tab=signed');
 	await expect(page.getByTestId('signed-row').filter({ hasText: 'Pat Passenger' })).toBeVisible();
+	// Changing the form filter keeps search text that wasn't submitted yet.
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Search signed waivers').fill('Pat');
+	await page.getByLabel('Form', { exact: true }).selectOption('sport');
+	await expect(page).toHaveURL(/[?&]q=Pat(&|$)/);
+	await expect(page).toHaveURL(/[?&]audience=sport/);
+	await expect(page.getByLabel('Search signed waivers')).toHaveValue('Pat');
+	await expect(page.getByTestId('signed-row').filter({ hasText: 'Pat Passenger' })).toHaveCount(0);
+	await page.getByLabel('Form', { exact: true }).selectOption('tandem');
+	await expect(page).toHaveURL(/[?&]audience=tandem/);
+	await expect(page.getByTestId('signed-row').filter({ hasText: 'Pat Passenger' })).toBeVisible();
+
+	// On a phone a deep link to a later tab scrolls the tab strip so the active tab shows.
+	const viewport = page.viewportSize();
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/app/waivers?tab=jumpers');
+	await page.waitForLoadState('networkidle');
+	const strip = page.getByRole('navigation', { name: 'Waiver sections' });
+	const inView = () =>
+		strip.evaluate((nav) => {
+			const a = nav.querySelector('[aria-current="page"]')!.getBoundingClientRect();
+			const n = nav.getBoundingClientRect();
+			return nav.scrollWidth > nav.clientWidth && a.left >= n.left && a.right <= n.right;
+		});
+	await expect.poll(inView).toBe(true);
+	if (viewport) await page.setViewportSize(viewport);
 
 	// Cancelling a booking asks first: Cancel keeps it, the confirm cancels it.
 	await page.goto(`/app/tandems?day=${tomorrow}`);
