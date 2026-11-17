@@ -1,5 +1,6 @@
 import type { SubmitFunction } from '$app/forms';
 import { toast } from '#lib/ui/index.ts';
+import { followsActionUrl } from './action-url.ts';
 
 type Opts = {
 	/** Toast title on success; defaults to `result.data.message` or "Saved". */
@@ -12,7 +13,7 @@ type Opts = {
 
 /** `use:enhance={toastEnhance({...})}`: toast the outcome, keep form values, refresh data. */
 export function toastEnhance(opts: Opts = {}): SubmitFunction {
-	return () => {
+	return ({ action }) => {
 		opts.pending?.(true);
 		return async ({ result, update }) => {
 			opts.pending?.(false);
@@ -26,7 +27,7 @@ export function toastEnhance(opts: Opts = {}): SubmitFunction {
 			} else if (result.type === 'error') {
 				toast.error('Something went wrong', result.error?.message);
 			}
-			await update({ reset: opts.reset ?? false });
+			await update({ reset: opts.reset ?? false, navigate: followsActionUrl(action, new URL(location.href)) });
 		};
 	};
 }

@@ -277,7 +277,15 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(dialog(page).getByLabel('Name / number')).toHaveValue('Student 1');
 	await page.keyboard.press('Escape');
 	await expect(page).toHaveURL(/\/app\/gear$/);
-	await page.getByRole('link', { name: 'Service Student 1' }).click();
+	// Saving keeps the rigger's place in the list: a same-page action doesn't follow the action's
+	// URL (Kit 3 would navigate to /app/gear without ?service=, which scrolls to the top).
+	const viewport = page.viewportSize();
+	await page.setViewportSize({ width: 1280, height: 420 });
+	const serviceLink = page.getByRole('link', { name: 'Service Student 1' });
+	await serviceLink.scrollIntoViewIfNeeded();
+	const scrolled = await page.evaluate(() => scrollY);
+	expect(scrolled).toBeGreaterThan(0);
+	await serviceLink.click();
 	await expect(page).toHaveURL(/\/app\/gear\?service=[\w-]+$/);
 	await expect(dialog(page).getByLabel('Next AAD service due')).toBeHidden();
 	await dialog(page).getByLabel('Work done').selectOption('aad_service');
@@ -286,6 +294,9 @@ test('owner runs the back office', async ({ page }) => {
 	await dialog(page).getByRole('button', { name: 'Save' }).click();
 	await expect(page.getByText('Repack recorded for Student 1')).toBeVisible();
 	await expect(page).toHaveURL(/\/app\/gear$/);
+	expect(await page.evaluate(() => scrollY)).toBeGreaterThan(0);
+	await expect(serviceLink).toBeInViewport();
+	if (viewport) await page.setViewportSize(viewport);
 
 	// Waivers: Add section / Edit are links (?new=1 / ?edit=<id>) that work before hydration and
 	// without JS; no-JS posts come back on the same tab.
