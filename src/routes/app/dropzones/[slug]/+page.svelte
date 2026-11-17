@@ -4,7 +4,7 @@
 	import { ROLE_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
-	import { WEEKDAYS, WEEKDAY_LABELS, openToday, weekdayIn } from '#lib/components/jumper/hours.ts';
+	import { WEEKDAYS, WEEKDAY_LABELS, openDaysText, openToday, telHref, weekdayIn } from '#lib/components/jumper/hours.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -84,7 +84,7 @@
 		</div>
 
 		<Card title="Opening times">
-			<div class="grid grid-cols-7 gap-1.5">
+			<div class="grid grid-cols-7 gap-1.5" aria-hidden="true" data-testid="open-days-grid">
 				{#each WEEKDAYS as d (d)}
 					{@const on = dz.openDays.includes(d)}
 					<div
@@ -99,6 +99,7 @@
 					</div>
 				{/each}
 			</div>
+			{#if dz.openDays.length}<p class="sr-only">{openDaysText(dz.openDays)}</p>{/if}
 			<p class="mt-4 flex items-center gap-2 text-sm text-muted">
 				<JIcon name="clock" class="size-4" />
 				{#if dz.openDays.length === 0}Opening days not published yet{:else if dz.openTime && dz.closeTime}{dz.openTime} – {dz.closeTime} <span class="text-subtle">({dz.timezone})</span>{:else}Times not published{/if}
@@ -142,7 +143,7 @@
 					</li>
 				{/if}
 				{#if dz.contactPhone}
-					<li class="flex items-center gap-3"><JIcon name="phone" class="size-4 text-muted" /><a href="tel:{dz.contactPhone}" class="font-medium hover:underline">{dz.contactPhone}</a></li>
+					<li class="flex items-center gap-3"><JIcon name="phone" class="size-4 text-muted" /><a href={telHref(dz.contactPhone)} class="font-medium hover:underline">{dz.contactPhone}</a></li>
 				{/if}
 				{#if dz.contactEmail}
 					<li class="flex items-center gap-3"><JIcon name="mail" class="size-4 text-muted" /><a href="mailto:{dz.contactEmail}?subject=Skydive%20Inquiry" class="truncate font-medium hover:underline">{dz.contactEmail}</a></li>
@@ -154,7 +155,7 @@
 			</ul>
 			{#if dz.contactPhone || dz.contactEmail}
 				<div class="mt-4 grid grid-cols-2 gap-2">
-					{#if dz.contactPhone}<Button href="tel:{dz.contactPhone}" variant="secondary" size="sm"><JIcon name="phone" class="size-4" /> Call</Button>{/if}
+					{#if dz.contactPhone}<Button href={telHref(dz.contactPhone)} variant="secondary" size="sm"><JIcon name="phone" class="size-4" /> Call</Button>{/if}
 					{#if dz.contactEmail}<Button href="mailto:{dz.contactEmail}?subject=Skydive%20Inquiry" variant="secondary" size="sm"><JIcon name="mail" class="size-4" /> Email</Button>{/if}
 				</div>
 			{/if}

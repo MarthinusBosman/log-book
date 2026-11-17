@@ -3,6 +3,7 @@
 	import { SLOT_EXTRA_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import { countryName } from '#lib/domain/countries.ts';
 	import { fmtDay } from '#lib/components/tandems/model.ts';
+	import { openDaysText, telHref } from '#lib/components/jumper/hours.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -95,12 +96,13 @@
 		<section class="rounded-2xl border border-border bg-surface p-5">
 			<h2 class="flex items-center gap-2 font-semibold"><Icon name="sun" class="size-4 text-primary" /> Opening hours</h2>
 			{#if dz.openDays.length}
-				<ul class="mt-3 grid grid-cols-7 gap-1 text-center text-[11px]">
+				<ul class="mt-3 grid grid-cols-7 gap-1 text-center text-[11px]" aria-hidden="true" data-testid="open-days-grid">
 					{#each DAYS as [key, label] (key)}
 						{@const open = dz.openDays.includes(key)}
 						<li class="rounded-md py-1.5 {open ? 'bg-primary/15 font-semibold text-primary' : 'bg-surface-2 text-subtle'}">{label}</li>
 					{/each}
 				</ul>
+				<p class="sr-only">{openDaysText(dz.openDays)}</p>
 				{#if dz.openTime && dz.closeTime}<p class="mt-3 text-sm text-muted">{dz.openTime} – {dz.closeTime}, weather permitting</p>{/if}
 			{:else}
 				<p class="mt-2 text-sm text-muted">Open by appointment — weather permitting.</p>
@@ -113,7 +115,7 @@
 				{#if mapHref}<a href={mapHref} target="_blank" rel="noopener" class="mt-2 inline-block font-medium text-primary hover:underline">Open map →</a>{/if}
 				{#if dz.contactPhone || dz.contactEmail}
 					<div class="mt-3 flex flex-col gap-1 border-t border-border pt-3">
-						{#if dz.contactPhone}<a href="tel:{dz.contactPhone}" class="hover:text-primary">{dz.contactPhone}</a>{/if}
+						{#if dz.contactPhone}<a href={telHref(dz.contactPhone)} class="hover:text-primary">{dz.contactPhone}</a>{/if}
 						{#if dz.contactEmail}<a href="mailto:{dz.contactEmail}" class="break-all hover:text-primary">{dz.contactEmail}</a>{/if}
 					</div>
 				{/if}

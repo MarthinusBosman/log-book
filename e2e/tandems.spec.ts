@@ -282,3 +282,36 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await expect(p2.getByRole('link', { name: `Remove ${tomorrow} 10:00` })).toHaveCount(0);
 	await noJs.close();
 });
+
+test('public dropzone page: opening days have a text alternative, phone link dials', async ({ page }) => {
+	const stamp = `${test.info().project.name}-${Date.now()}`;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Hettie Hours');
+	await page.getByLabel('Email').fill(`hours-${stamp}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Hours DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	await page.goto('/app/settings');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Phone').fill('+27 21 555 0123');
+	for (const d of ['Wed', 'Sat', 'Sun']) await page.locator(`input[name=openDays][value=${d.toLowerCase()}]`).check({ force: true });
+	await page.getByRole('button', { name: 'Save details' }).click();
+	await expect(page.getByText('Dropzone details saved').first()).toBeVisible();
+
+	await page.goto('/app/tandems');
+	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
+	const slug = href!.split('/')[2];
+
+	for (const url of [`/dz/${slug}`, `/app/dropzones/${slug}`]) {
+		await page.goto(url);
+		// The colour-coded grid is hidden from screen readers; a sentence says which days are open.
+		await expect(page.getByTestId('open-days-grid')).toHaveAttribute('aria-hidden', 'true');
+		await expect(page.locator('main .sr-only', { hasText: 'Open Wednesday, Saturday and Sunday' })).toHaveCount(1);
+		await expect(page.locator('main a[href^="tel:"]').first()).toHaveAttribute('href', 'tel:+27215550123');
+	}
+});
