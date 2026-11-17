@@ -147,6 +147,9 @@ refresh tokens are random, stored hashed, and **rotated** on every use.
   Updates overwrite; `jump_delete` removes.
 * Per-item results; failures get exponential backoff (1, 2, 4 … min, max 6 h) with `last_error`
   shown on the settings page. Items of users who unlinked are dropped.
+* Every call to the global instance (token, userinfo, revoke, push, Test connection) aborts after
+  15 s (`FEDERATION_TIMEOUT_MS`, `src/lib/server/fetch-timeout.ts`): a global that never answers
+  counts as a normal failure ("… did not answer within 15 s") instead of hanging the request.
 
 ### 4. Failure modes and limits
 Offline dropzones keep working; the outbox retries. Revoking the grant (either side) stops sync;

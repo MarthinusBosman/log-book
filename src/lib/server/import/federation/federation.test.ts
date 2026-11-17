@@ -18,7 +18,21 @@ import {
 	revokeGrant,
 	validateAuthorize
 } from './server.ts';
-import { CALLBACK_PATH, FederationError, finishLink, flushOutbox, localLink, resolveConfig, saveStoredConfig, signedHeaders, startLink, unlink, type FedConfig } from './client.ts';
+import {
+	CALLBACK_PATH,
+	FederationError,
+	finishLink,
+	flushOutbox,
+	localLink,
+	resolveConfig,
+	saveStoredConfig,
+	signedHeaders,
+	startLink,
+	testConnection,
+	unlink,
+	type FedConfig
+} from './client.ts';
+import { fetchWithDeadline } from '../../fetch-timeout.ts';
 import { pkceChallenge } from './crypto.ts';
 
 const GLOBAL = 'http://global.test';
@@ -254,5 +268,66 @@ describe('linking + sync', () => {
 		// the stored row can never act as a client of this server
 		const self = await s.ddb.select().from(linkedAccounts).where(and(eq(linkedAccounts.userId, s.local.id)));
 		expect(self).toHaveLength(0);
+	});
+});
+
+/** A global instance that accepts the request but never answers (until the signal aborts it). */
+const hanging = ((_: RequestInfo | URL, init?: RequestInit) =>
+	new Promise<Response>((_, reject) => {
+		init?.signal?.addEventListener('abort', () => reject(init.signal!.reason));
+	})) as typeof fetch;
+
+describe('a global instance that never answers', () => {
+	test('Sync fails fast, says so, and backs off like any other failure', async () => {
+		const s = await setup();
+		await link(s);
+		await completeOneLoad(s, [s.local.id]);
+		const t0 = Date.now();
+		const r = await flushOutbox(s.ddb, s.cfg, fetchWithDeadline(hanging, 50), { now: NOW });
+		expect(Date.now() - t0).toBeLessThan(2000);
+		expect(r).toMatchObject({ failed: 1, sent: 0, error: 'global.test did not answer within 1 s' });
+		const [row] = await s.ddb.select().from(federationOutbox);
+		expect(row.attempts).toBe(1);
+		expect(row.nextAttemptAt!.getTime()).toBe(NOW + 60_000);
+	});
+
+	test('Test connection and linking report the timeout instead of hanging', async () => {
+		const s = await setup();
+		expect(await testConnection(s.cfg, fetchWithDeadline(hanging, 50))).toEqual({ ok: false, message: 'global.test did not answer within 1 s.' });
+		// token answers, userinfo hangs
+		const real = globalFetch(s.gdb);
+		const f = fetchWithDeadline(((input: RequestInfo | URL, init?: RequestInit) =>
+			String(input).endsWith('/oauth/userinfo') ? hanging(input, init) : real(input, init)) as typeof fetch, 50);
+		const err = await link(s, f).then(
+			() => null,
+			(e: unknown) => e
+		);
+		expect(err).toBeInstanceOf(FederationError);
+		expect((err as Error).message).toBe('global.test did not answer within 1 s.');
+		expect(await localLink(s.ddb, s.local.id)).toBeNull();
+	});
+
+	test('the default fetch carries a deadline', async () => {
+		const s = await setup();
+		const original = globalThis.fetch;
+		let signal: AbortSignal | null | undefined;
+		globalThis.fetch = (async (_: RequestInfo | URL, init?: RequestInit) => {
+			signal = init?.signal;
+			return Response.json(metadata(GLOBAL));
+		}) as typeof fetch;
+		try {
+			expect((await testConnection(s.cfg)).ok).toBe(true);
+		} finally {
+			globalThis.fetch = original;
+		}
+		expect(signal).toBeInstanceOf(AbortSignal);
+	});
+
+	test('a plain connection error keeps the old message', async () => {
+		const s = await setup();
+		const down = (async () => {
+			throw new Error('ECONNREFUSED');
+		}) as unknown as typeof fetch;
+		expect((await testConnection(s.cfg, down)).message).toBe("Couldn't reach the global instance.");
 	});
 });

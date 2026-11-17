@@ -13,6 +13,7 @@ import { federationOutbox, instances, linkedAccounts, users, type LinkedAccount 
 import { newId } from '../../auth/token.ts';
 import { GRANT_ISSUER_PREFIX, dueOutbox, enqueueUserJumps, markFailed, markSent, type FederatedJump } from '../../domain/federation.ts';
 import { decrypt, encrypt, hmac, pkceChallenge, randomToken, sha256 } from './crypto.ts';
+import { FetchTimeoutError, fetchWithDeadline } from '../../fetch-timeout.ts';
 
 export const SELF_ID = 'federation-self';
 export const LINK_COOKIE = 'fed_link';
@@ -22,6 +23,19 @@ export type FedConfig = { globalUrl: string; clientId: string; clientSecret: str
 export type FedEnv = { FEDERATION_GLOBAL_URL?: string; FEDERATION_CLIENT_ID?: string; FEDERATION_CLIENT_SECRET?: string };
 
 export class FederationError extends Error {}
+
+/**
+ * Every call to the global instance gets a deadline: otherwise a global that accepts the
+ * connection but never answers hangs "Test connection", "Sync now", the link callback (awaited on
+ * Cloudflare) and the hourly retry. On timeout the normal error path runs (outbox backoff).
+ */
+export const FEDERATION_TIMEOUT_MS = 15_000;
+
+/** The default fetch for this module: global `fetch` (looked up per call) with the deadline. */
+export const federationFetch: typeof fetch = ((input: RequestInfo | URL, init?: RequestInit) =>
+	fetchWithDeadline(fetch, FEDERATION_TIMEOUT_MS, 'The global instance')(input, init)) as typeof fetch;
+
+const unreachable = (e: unknown) => (e instanceof FetchTimeoutError ? e.message.replace(/\. Try again in a moment\.$/, '') : "Couldn't reach the global instance");
 
 const trimUrl = (u: string) => u.trim().replace(/\/+$/, '');
 
@@ -71,15 +85,15 @@ export async function clearStoredConfig(db: Database) {
 }
 
 /** Probe the global instance's metadata endpoint. */
-export async function testConnection(cfg: FedConfig, f: typeof fetch = fetch): Promise<{ ok: boolean; message: string }> {
+export async function testConnection(cfg: FedConfig, f: typeof fetch = federationFetch): Promise<{ ok: boolean; message: string }> {
 	try {
 		const res = await f(`${cfg.globalUrl}/.well-known/oauth-authorization-server`, { headers: { accept: 'application/json' } });
 		if (!res.ok) return { ok: false, message: `The global instance answered ${res.status}.` };
 		const m = (await res.json()) as { token_endpoint?: string; federation_push_endpoint?: string };
 		if (!m.token_endpoint || !m.federation_push_endpoint) return { ok: false, message: "That URL doesn't look like a global instance." };
 		return { ok: true, message: 'Connected — the global instance is reachable.' };
-	} catch {
-		return { ok: false, message: "Couldn't reach the global instance." };
+	} catch (e) {
+		return { ok: false, message: `${unreachable(e)}.` };
 	}
 }
 
@@ -128,8 +142,8 @@ async function tokenRequest(cfg: FedConfig, body: Record<string, string>, f: typ
 			},
 			body: JSON.stringify(body)
 		});
-	} catch {
-		throw new FederationError("Couldn't reach the global instance.");
+	} catch (e) {
+		throw new FederationError(`${unreachable(e)}.`);
 	}
 	const json = (await res.json().catch(() => ({}))) as TokenJson;
 	if (!res.ok || !json.access_token) throw new FederationError(json.error_description ?? `Token request failed (${res.status}).`);
@@ -141,14 +155,19 @@ export async function finishLink(
 	cfg: FedConfig,
 	userId: string,
 	p: { code: string | null; state: string | null; error?: string | null; cookie: string | undefined; redirectUri: string },
-	f: typeof fetch = fetch,
+	f: typeof fetch = federationFetch,
 	now = Date.now()
 ): Promise<{ subject: string; name?: string; email?: string; queued: number }> {
 	if (p.error) throw new FederationError(p.error === 'access_denied' ? 'Linking was cancelled.' : `The global instance returned: ${p.error}`);
 	const [state, verifier] = (p.cookie ?? '').split('.');
 	if (!state || !verifier || !p.state || state !== p.state || !p.code) throw new FederationError('This link attempt expired. Start again.');
 	const t = await tokenRequest(cfg, { grant_type: 'authorization_code', code: p.code, redirect_uri: p.redirectUri, code_verifier: verifier }, f);
-	const infoRes = await f(`${cfg.globalUrl}/oauth/userinfo`, { headers: { authorization: `Bearer ${t.access_token}`, accept: 'application/json' } });
+	let infoRes: Response;
+	try {
+		infoRes = await f(`${cfg.globalUrl}/oauth/userinfo`, { headers: { authorization: `Bearer ${t.access_token}`, accept: 'application/json' } });
+	} catch (e) {
+		throw new FederationError(`${unreachable(e)}.`);
+	}
 	const info = (await infoRes.json().catch(() => ({}))) as { sub?: string; name?: string; email?: string };
 	if (!infoRes.ok || !info.sub) throw new FederationError("Couldn't read the global account.");
 	const taken = (
@@ -175,7 +194,7 @@ export async function finishLink(
 	return { subject: info.sub, name: info.name, email: info.email, queued };
 }
 
-export async function unlink(db: Database, cfg: FedConfig | null, userId: string, f: typeof fetch = fetch) {
+export async function unlink(db: Database, cfg: FedConfig | null, userId: string, f: typeof fetch = federationFetch) {
 	const link = await localLink(db, userId);
 	if (!link) return;
 	if (cfg && link.refreshTokenEnc) {
@@ -213,7 +232,7 @@ export async function signedHeaders(cfg: FedConfig, body: string, now = Date.now
 export type FlushResult = { sent: number; failed: number; dropped: number; error?: string };
 
 /** Push due outbox rows to the global instance (batches of 50). Safe to call concurrently-ish: idempotent on the global side. */
-export async function flushOutbox(db: Database, cfg: FedConfig, f: typeof fetch = fetch, opts: { limit?: number; now?: number } = {}): Promise<FlushResult> {
+export async function flushOutbox(db: Database, cfg: FedConfig, f: typeof fetch = federationFetch, opts: { limit?: number; now?: number } = {}): Promise<FlushResult> {
 	const now = opts.now ?? Date.now();
 	const rows = await dueOutbox(db, opts.limit ?? 200, now);
 	const out: FlushResult = { sent: 0, failed: 0, dropped: 0 };
@@ -241,8 +260,8 @@ export async function flushOutbox(db: Database, cfg: FedConfig, f: typeof fetch 
 			const res = await f(`${cfg.globalUrl}/api/federation/jumps`, { method: 'POST', headers: await signedHeaders(cfg, body, now), body });
 			if (res.ok) results = ((await res.json()) as { results?: R[] }).results ?? null;
 			else error = `Global instance answered ${res.status}`;
-		} catch {
-			error = "Couldn't reach the global instance";
+		} catch (e) {
+			error = unreachable(e);
 		}
 		if (!results) {
 			await markFailed(db, batch.map((r) => r.id), error || 'Bad response', now);
