@@ -148,7 +148,8 @@
 				</dd>
 			</dl>
 
-			<div class="mt-5 flex flex-wrap gap-2">
+			<!-- Phones: two full-width stacked buttons (a wrapped ghost link sat oddly on its own line). -->
+			<div class="mt-5 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap" data-testid="booking-links">
 				<Button variant="secondary" href={pdfHref} target="_blank" rel="noopener" data-testid="pdf"><Icon name="waiver" class="size-4" /> Download PDF</Button>
 				<Button variant="ghost" href="/dz/{data.dz.slug}">About {data.dz.name}</Button>
 			</div>

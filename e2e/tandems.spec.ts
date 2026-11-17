@@ -190,6 +190,10 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	const code = page.getByTestId('group-code');
 	await expect(code).toHaveText(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
 	expect(await code.evaluate((el) => el.getBoundingClientRect().right <= el.parentElement!.parentElement!.getBoundingClientRect().right + 0.5)).toBe(true);
+	// Download PDF and the DZ link stack as two equal full-width buttons instead of a ragged wrap.
+	const links = await page.getByTestId('booking-links').evaluate((box) => [...box.children].map((a) => a.getBoundingClientRect()).map((r) => [Math.round(r.left), Math.round(r.width)]));
+	expect(links).toHaveLength(2);
+	expect(links[1]).toEqual(links[0]);
 	if (desktop) await page.setViewportSize(desktop);
 	// Copy link never fails silently: with the clipboard denied (or missing, as on a plain-http
 	// self-host) and no legacy copy, the link is shown in a prompt to copy by hand.
