@@ -94,7 +94,7 @@
 		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
 		--dz-primary: #0050ea; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces + their /15 tints (branding.ts) */
 		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(0 80 234 / 0.45);
+		--dz-ring: #0050ea; /* = primary: focus outlines need 3:1 (WCAG 1.4.11) */
 		--color-brand-600: #0045c9; /* hover */
 		--color-brand-700: #003bad; /* active */
 		--dz-success: #046e50; /* status colours: 4.5:1 as text on their own /15 tints too */
@@ -116,7 +116,7 @@
 		--dz-subtle: #7787a7; /* ≥4.5:1 on surfaces incl. surface-2/elevated (WCAG AA) */
 		--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 		--dz-primary-fg: #0b1220;
-		--dz-ring: rgb(96 151 255 / 0.5);
+		--dz-ring: #6097ff; /* = primary: focus outlines need 3:1 (WCAG 1.4.11) */
 		--color-brand-600: #76a6ff; /* hover: lighter, away from the dark label */
 		--color-brand-700: #89b2ff;
 		--dz-success: #34d399;
@@ -140,7 +140,7 @@
 			--dz-subtle: #7787a7; /* ≥4.5:1 on surfaces incl. surface-2/elevated (WCAG AA) */
 			--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 			--dz-primary-fg: #0b1220;
-			--dz-ring: rgb(96 151 255 / 0.5);
+			--dz-ring: #6097ff; /* = primary: focus outlines need 3:1 (WCAG 1.4.11) */
 			--color-brand-600: #76a6ff; /* hover: lighter, away from the dark label */
 			--color-brand-700: #89b2ff;
 			--dz-success: #34d399;
@@ -183,7 +183,7 @@
 		--dz-subtle: #646f83; /* ≥4.5:1 on surfaces (WCAG AA) */
 		--dz-primary: #0050ea; /* DEFAULT_BRAND_COLOR nudged to 4.5:1 on light surfaces + their /15 tints (branding.ts) */
 		--dz-primary-fg: #ffffff;
-		--dz-ring: rgb(0 80 234 / 0.45);
+		--dz-ring: #0050ea; /* = primary: focus outlines need 3:1 (WCAG 1.4.11) */
 		--color-brand-600: #0045c9; /* hover */
 		--color-brand-700: #003bad; /* active */
 		--dz-success: #046e50; /* status colours: 4.5:1 as text on their own /15 tints too */
@@ -204,7 +204,7 @@
 		--dz-subtle: #7787a7; /* ≥4.5:1 on surfaces incl. surface-2/elevated (WCAG AA) */
 		--dz-primary: #6097ff; /* 4.5:1 on dark surfaces + their /15 tints, so labels are near-black */
 		--dz-primary-fg: #0b1220;
-		--dz-ring: rgb(96 151 255 / 0.5);
+		--dz-ring: #6097ff; /* = primary: focus outlines need 3:1 (WCAG 1.4.11) */
 		--color-brand-600: #76a6ff; /* hover: lighter, away from the dark label */
 		--color-brand-700: #89b2ff;
 		--dz-success: #34d399;

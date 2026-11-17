@@ -150,6 +150,16 @@ describe('readBranding', () => {
 	});
 });
 
+test('focus ring is opaque and reaches 3:1 on every surface (WCAG 1.4.11)', () => {
+	for (const c of [DEFAULT_BRAND_COLOR, '#F5C518', '#ff6600', '#00b894', '#111111', '#e84393']) {
+		const t = brandTheme(c);
+		for (const mode of ['light', 'dark'] as const) {
+			expect(t[mode].ring).toMatch(/^#[0-9a-f]{6}$/i);
+			for (const s of SURFACES[mode]) expect(contrast(t[mode].ring, s)).toBeGreaterThanOrEqual(3);
+		}
+	}
+});
+
 describe('default theme tokens (app.css)', () => {
 	// The default colour bypasses brandCss (no <style> tag), so app.css must hold the same
 	// contrast-safe values the algorithm would generate, or default buttons fail WCAG AA.
@@ -182,6 +192,7 @@ describe('default theme tokens (app.css)', () => {
 			expect(token(b, '--dz-primary-fg')).toBe(m.primaryFg);
 			expect(token(b, '--color-brand-600')).toBe(m.hover);
 			expect(token(b, '--color-brand-700')).toBe(m.active);
+			expect(token(b, '--dz-ring')).toBe(m.ring);
 			expect(contrast(m.primary, m.primaryFg)).toBeGreaterThanOrEqual(4.5);
 			expect(contrast(m.hover, m.primaryFg)).toBeGreaterThanOrEqual(4.5);
 		}

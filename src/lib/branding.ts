@@ -161,7 +161,10 @@ export type ModeColors = {
 	primaryFg: string;
 	hover: string;
 	active: string;
-	/** Translucent tint for soft backgrounds / focus ring. */
+	/**
+	 * Keyboard focus outline. Opaque primary: a translucent ring blended to ~2:1 on the surfaces,
+	 * under the 3:1 WCAG asks of focus indicators (1.4.11); primary is ≥4.5:1 on every surface.
+	 */
 	ring: string;
 	/** Contrast of the ORIGINAL colour on this theme's surfaces. */
 	originalRatio: number;
@@ -200,7 +203,7 @@ function modeColors(base: string, mode: 'light' | 'dark'): ModeColors {
 		primaryFg,
 		hover: mix(primary, away, 0.14),
 		active: mix(primary, away, 0.26),
-		ring: rgba(primary, mode === 'dark' ? 0.5 : 0.45),
+		ring: primary,
 		originalRatio,
 		ratio: fixed.ratio,
 		adjusted: fixed.adjusted,
