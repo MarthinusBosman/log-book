@@ -4,7 +4,7 @@
 	import Menu from '#lib/components/manifest/Menu.svelte';
 	import MIcon from '#lib/components/manifest/MIcon.svelte';
 	import { act } from '#lib/components/manifest/forms.ts';
-	import { toast } from '#lib/ui/index.ts';
+	import { copyText, toast } from '#lib/ui/index.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -14,12 +14,7 @@
 		else document.documentElement.requestFullscreen?.().catch(() => toast.error('Fullscreen is not available here'));
 	}
 	async function copy(url: string) {
-		try {
-			await navigator.clipboard.writeText(url);
-			toast.success('Display link copied');
-		} catch {
-			prompt('Copy the display link', url);
-		}
+		if ((await copyText(url, 'Copy the display link')) === 'copied') toast.success('Display link copied');
 	}
 	const item = 'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-fg hover:bg-surface-2';
 </script>

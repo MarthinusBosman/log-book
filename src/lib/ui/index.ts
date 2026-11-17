@@ -14,3 +14,4 @@ export { default as Tabs } from './Tabs.svelte';
 export { default as Toaster } from './Toaster.svelte';
 export { toast } from './toast.svelte.ts';
 export { cn } from './cn.ts';
+export { copyText } from './clipboard.ts';

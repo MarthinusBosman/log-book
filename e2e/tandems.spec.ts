@@ -191,6 +191,23 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await expect(code).toHaveText(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/);
 	expect(await code.evaluate((el) => el.getBoundingClientRect().right <= el.parentElement!.parentElement!.getBoundingClientRect().right + 0.5)).toBe(true);
 	if (desktop) await page.setViewportSize(desktop);
+	// Copy link never fails silently: with the clipboard denied (or missing, as on a plain-http
+	// self-host) and no legacy copy, the link is shown in a prompt to copy by hand.
+	await page.evaluate(() => {
+		Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: () => Promise.reject(new Error('NotAllowedError')) } });
+		document.execCommand = () => false;
+	});
+	// Handle the prompt inside the listener: an open prompt blocks the click from resolving.
+	const shown = new Promise<[string, string]>((resolve) =>
+		page.once('dialog', (d) => {
+			resolve([d.message(), d.defaultValue()]);
+			void d.dismiss();
+		})
+	);
+	await page.getByRole('button', { name: "Copy Max Mate's indemnity link" }).click();
+	const [message, value] = await shown;
+	expect(message).toBe("Copy Max Mate's indemnity link");
+	expect(value).toMatch(/^https?:\/\/[^/]+\/dz\/[^/]+\/book\/[A-Z0-9]{4}-[A-Z0-9]{4}#indemnity$/);
 
 	// Staff sees the booking in the day list and drawer.
 	await page.goto(`/app/tandems?day=${tomorrow}`);

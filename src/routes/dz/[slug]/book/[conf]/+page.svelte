@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
-	import { Badge, Button, Icon, cn, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Icon, cn, copyText, toast } from '#lib/ui/index.ts';
 	import { SLOT_EXTRA_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import BookingSteps from '#lib/components/tandems/BookingSteps.svelte';
 	import SignWaiver from '#lib/components/waivers/SignWaiver.svelte';
@@ -53,13 +53,8 @@
 		});
 	});
 
-	async function copy(text: string) {
-		try {
-			await navigator.clipboard.writeText(text);
-			toast.success('Copied');
-		} catch {
-			/* ignore */
-		}
+	async function copy(text: string, label: string) {
+		if ((await copyText(text, label)) === 'copied') toast.success('Copied');
 	}
 </script>
 
@@ -128,7 +123,7 @@
 			<div class="mt-5 grid grid-cols-1 gap-4 rounded-2xl border border-dashed border-border-strong bg-surface-2/40 p-4 sm:grid-cols-[1fr_auto] sm:items-center">
 				<div>
 					<p class="text-[11px] font-semibold tracking-wider text-subtle uppercase">Confirmation number</p>
-					<button type="button" class="mt-1 font-mono text-2xl font-semibold tracking-[0.15em] text-primary" onclick={() => copy(b.confirmationNumber)} data-testid="conf">
+					<button type="button" class="mt-1 font-mono text-2xl font-semibold tracking-[0.15em] text-primary" onclick={() => copy(b.confirmationNumber, 'Your confirmation number')} data-testid="conf">
 						{b.confirmationNumber}
 					</button>
 				</div>
@@ -236,7 +231,7 @@
 						</span>
 						{#if g.cancelled}<Badge tone="danger">Cancelled</Badge>{:else if g.signed}<Badge tone="success">Signed</Badge>{:else if data.waiver}
 							<Button size="sm" variant="secondary" href={signHref(g.confirmationNumber)}>Sign</Button>
-							<Button size="sm" variant="ghost" onclick={() => copy(`${page.url.origin}${signHref(g.confirmationNumber)}`)}>Copy link</Button>
+							<Button size="sm" variant="ghost" aria-label="Copy {g.name}'s indemnity link" onclick={() => copy(`${page.url.origin}${signHref(g.confirmationNumber)}`, `Copy ${g.name}'s indemnity link`)}>Copy link</Button>
 						{/if}
 					</li>
 				{/each}

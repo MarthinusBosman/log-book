@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { cn } from '#lib/ui/cn.ts';
+	import { copyText } from '#lib/ui/clipboard.ts';
 	import Glyph from './Glyph.svelte';
 
 	let { label, value, secret = false, testid }: { label: string; value: string; secret?: boolean; testid?: string } = $props();
@@ -7,13 +8,9 @@
 	let show = $state(false);
 
 	async function copy() {
-		try {
-			await navigator.clipboard.writeText(value);
-			copied = true;
-			setTimeout(() => (copied = false), 1500);
-		} catch {
-			/* clipboard blocked: the value is selectable */
-		}
+		if ((await copyText(value, label)) !== 'copied') return;
+		copied = true;
+		setTimeout(() => (copied = false), 1500);
 	}
 </script>
 

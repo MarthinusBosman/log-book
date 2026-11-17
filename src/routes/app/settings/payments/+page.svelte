@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
-	import { Badge, Button, Card, Icon, Input, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, Icon, Input, copyText, toast } from '#lib/ui/index.ts';
 	import Switch from '#lib/components/staffadmin/Switch.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
 	import { FEES_CHECKED, FEE_RECOMMENDATION, SA_FEES } from '#lib/components/payments/fees.ts';
@@ -25,12 +25,7 @@
 	}
 
 	async function copy(text: string) {
-		try {
-			await navigator.clipboard.writeText(text);
-			toast.success('Copied');
-		} catch {
-			toast.error('Copy failed — select the text instead');
-		}
+		if ((await copyText(text, 'Copy the webhook URL')) === 'copied') toast.success('Copied');
 	}
 
 	const recentTone = (s: string) => (s === 'succeeded' ? 'success' : s === 'pending' ? 'brand' : s === 'refunded' ? 'neutral' : 'warning') as 'success' | 'brand' | 'neutral' | 'warning';

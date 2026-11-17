@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { onMount, untrack } from 'svelte';
-	import { Badge, Button, Card, ConfirmAction, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, ConfirmAction, copyText, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import JumpForm from '#lib/components/jumper/JumpForm.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -39,13 +39,9 @@
 		if (msg) untrack(() => toast.success(msg));
 	});
 	async function copy(link: string) {
-		try {
-			await navigator.clipboard.writeText(link);
-			copied = true;
-			setTimeout(() => (copied = false), 2000);
-		} catch {
-			toast.error('Copy failed — select the link instead');
-		}
+		if ((await copyText(link, 'Copy the sign-off link')) !== 'copied') return;
+		copied = true;
+		setTimeout(() => (copied = false), 2000);
 	}
 	async function share(link: string) {
 		if (navigator.share) await navigator.share({ title: `Sign my jump #${j.jumpNumber}`, url: link }).catch(() => {});

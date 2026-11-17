@@ -2,7 +2,7 @@
 	/** Staff tandem detail (drawer on /app/tandems and full page /app/tandems/[id]). */
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
-	import { Badge, Button, ConfirmAction, Icon, Input, Select, cn, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, ConfirmAction, Icon, Input, Select, cn, copyText, toast } from '#lib/ui/index.ts';
 	import { SLOT_EXTRA_LABELS, formatMoney, paymentMethodLabel, type SlotExtra } from '#lib/domain/constants.ts';
 	import { relativeTime } from '#lib/components/jumper/format.ts';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -53,12 +53,7 @@
 		toastEnhance({ ...opts, pending: (on) => (busy = on ? name : null) });
 
 	async function copyLink() {
-		try {
-			await navigator.clipboard.writeText(regLink);
-			toast.success('Registration link copied');
-		} catch {
-			toast.error('Could not copy — select the link manually');
-		}
+		if ((await copyText(regLink, 'Copy the registration link')) === 'copied') toast.success('Registration link copied');
 	}
 	const stageIndex = $derived(STAGE_ORDER.indexOf(stage));
 	const staffOptions = (list: { id: string; name: string }[], none?: string) => [
