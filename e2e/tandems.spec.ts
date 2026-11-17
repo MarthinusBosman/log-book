@@ -446,3 +446,51 @@ test('booking: the time picker is one tab stop and arrow keys move between times
 	await expect(radios.nth(1)).not.toBeFocused();
 	await expect(group.locator(':focus')).toHaveCount(0);
 });
+
+test('booking: the calendar is one tab stop and arrow keys move between bookable days', async ({ page }) => {
+	const stamp = `${test.info().project.name}-${Date.now()}`;
+	const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+	const [d1, d2, d8] = [day(1), day(2), day(8)];
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Cal Keys');
+	await page.getByLabel('Email').fill(`calkeys-${stamp}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Cal DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/tandems/slots');
+	for (const [i, d] of [d1, d2, d8].entries()) {
+		await page.getByLabel('Date', { exact: true }).fill(d);
+		await page.getByLabel('Time', { exact: true }).fill('10:00');
+		await page.getByLabel('Places', { exact: true }).fill('2');
+		await page.getByRole('button', { name: 'Add slots' }).click();
+		await expect(page.locator('[data-testid="slot-day"]')).toHaveCount(i + 1);
+	}
+	await page.goto('/app/tandems');
+	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
+
+	await page.goto(href!);
+	await page.waitForLoadState('networkidle');
+	const cal = page.getByTestId('calendar');
+	const dayBtn = (d: string) => cal.locator(`[data-date="${d}"]`);
+	// Only the first bookable day is in the tab order.
+	await expect(cal.locator('[data-date][tabindex="0"]')).toHaveCount(1);
+	await expect(dayBtn(d1)).toHaveAttribute('tabindex', '0');
+	await dayBtn(d1).focus();
+	// Arrows move focus (switching month if needed) without selecting.
+	await page.keyboard.press('ArrowRight');
+	await expect(dayBtn(d2)).toBeFocused();
+	await expect(dayBtn(d2)).toHaveAttribute('aria-pressed', 'false');
+	await expect(dayBtn(d2)).toHaveAttribute('tabindex', '0');
+	await page.keyboard.press('ArrowLeft');
+	await expect(dayBtn(d1)).toBeFocused();
+	await page.keyboard.press('ArrowDown');
+	await expect(dayBtn(d8)).toBeFocused();
+	// Enter selects the focused day and shows its times.
+	await page.keyboard.press('Enter');
+	await expect(dayBtn(d8)).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.getByRole('radiogroup', { name: 'Time' }).getByRole('radio')).toHaveCount(1);
+});

@@ -1,7 +1,9 @@
 <script lang="ts">
 	/** Month calendar for picking a booking date. `available` maps YYYY-MM-DD → places left. */
 	import { cn } from '#lib/ui/cn.ts';
+	import { tick } from 'svelte';
 	import { calendarDayLabel as dayLabel } from './model.ts';
+	import { calendarKeyTarget, calendarTabDate } from './calendar-keys.ts';
 
 	type Props = { available: Record<string, number>; min: string; max: string; value?: string | null; onselect?: (date: string) => void };
 	let { available, min, max, value = $bindable(null), onselect }: Props = $props();
@@ -28,6 +30,26 @@
 	const canPrev = $derived(month > ym(min));
 	const canNext = $derived(month < ym(max));
 	const monthHas = $derived(Object.keys(available).some((d) => d.startsWith(month)));
+
+	// Keyboard: one tab stop per month, arrows/Home/End/PageUp/PageDown move focus between
+	// bookable days (see calendar-keys.ts); Enter/Space selects.
+	const bookable = $derived(Object.keys(available).filter((d) => available[d] > 0));
+	let focused = $state<string | null>(null);
+	const tabDate = $derived(calendarTabDate(bookable, month, focused, value));
+	let grid: HTMLDivElement | undefined = $state();
+
+	async function onkeydown(e: KeyboardEvent, from: string) {
+		if (e.altKey || e.ctrlKey || e.metaKey) return;
+		const to = calendarKeyTarget(bookable, from, e.key);
+		if (!to) return;
+		e.preventDefault();
+		focused = to;
+		if (ym(to) !== month) {
+			month = ym(to);
+			await tick();
+		}
+		grid?.querySelector<HTMLButtonElement>(`[data-date="${to}"]`)?.focus();
+	}
 </script>
 
 <div class="select-none" data-testid="calendar">
@@ -51,7 +73,7 @@
 	<div class="mt-3 grid grid-cols-7 gap-1 text-center text-[11px] font-medium text-subtle uppercase">
 		{#each ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] as d (d)}<span>{d}</span>{/each}
 	</div>
-	<div class="mt-1 grid grid-cols-7 gap-1">
+	<div class="mt-1 grid grid-cols-7 gap-1" bind:this={grid}>
 		{#each cells as d, i (d ?? `x${i}`)}
 			{#if d}
 				{@const left = available[d] ?? 0}
@@ -62,7 +84,11 @@
 					aria-pressed={sel}
 					aria-label={dayLabel(d, left)}
 					data-date={d}
+					tabindex={d === tabDate ? 0 : -1}
+					onkeydown={(e) => onkeydown(e, d)}
+					onfocus={() => (focused = d)}
 					onclick={() => {
+						focused = d;
 						value = d;
 						onselect?.(d);
 					}}
