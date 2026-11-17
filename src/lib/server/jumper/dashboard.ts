@@ -3,7 +3,7 @@ import type { Database } from '../db/index.ts';
 import { dropzones, users, type Dropzone } from '../db/schema.ts';
 import { currentCheckin } from '../domain/checkins.ts';
 import { aadStatus, repackIntervalDays, repackStatus, listUserRigs } from '../domain/gear.ts';
-import { openLoadsToday, upcomingSlotsForUser } from '../domain/loads.ts';
+import { hasLoadsOnDay, openLoadsToday, upcomingSlotsForUser } from '../domain/loads.ts';
 import { logbookTotals } from '../domain/logbook.ts';
 import { listRatings, membershipStatus } from '../domain/profile.ts';
 import { listAccountsForUser } from '../domain/wallet.ts';
@@ -49,9 +49,10 @@ export async function loadJumperDashboard(
 	const checkedInDz = checkedInDzId ? (checkedInDzId === dz?.id ? dz : await dropzoneById(checkedInDzId)) : undefined;
 	// The DZ you're jumping at (checked in, else the selected one) wants a signed sport waiver first.
 	const waiverDz = checkedInDz ?? dz ?? null;
-	const [openLoads, needsWaiver] = await Promise.all([
+	const [openLoads, needsWaiver, loadsToday] = await Promise.all([
 		checkedInDz ? openLoadsToday(db, checkedInDz, now) : Promise.resolve([]),
-		waiverDz ? needsSportIndemnity(db, waiverDz, userId) : Promise.resolve(false)
+		waiverDz ? needsSportIndemnity(db, waiverDz, userId) : Promise.resolve(false),
+		dz ? hasLoadsOnDay(db, dz.id, today) : Promise.resolve(false)
 	]);
 	const joinable = openLoads.filter(
 		(l) => SELF_SERVICE_LOAD_STATUSES.includes(l.status) && !l.stats.full && !l.slots.some((s) => s.userId === userId)
@@ -174,6 +175,8 @@ export async function loadJumperDashboard(
 			: null,
 		moreUpcoming: Math.max(0, upcoming.length - 1),
 		joinableLoads: joinable.length,
+		/** The selected dropzone has loads on the board today (overrides its usual opening days). */
+		loadsToday,
 		totals,
 		nextRepack,
 		membership,

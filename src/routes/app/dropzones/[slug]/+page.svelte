@@ -9,7 +9,7 @@
 
 	let { data }: PageProps = $props();
 	const dz = $derived(data.dz);
-	const open = $derived(openToday(dz));
+	const open = $derived(openToday(dz, Date.now(), data.loadsToday));
 	const today = $derived(weekdayIn(Date.now(), dz.timezone));
 	const mapHref = $derived(
 		dz.lat != null && dz.lng != null

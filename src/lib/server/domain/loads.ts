@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, max } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, max, ne } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import {
 	aircraft,
@@ -886,6 +886,40 @@ export async function moveSlot(
 export async function openLoadsToday(db: Database, dropzone: string | Pick<Dropzone, 'id' | 'timezone'>, now = Date.now()): Promise<LoadWithSlots[]> {
 	const dz = typeof dropzone === 'string' ? await dzRow(db, dropzone) : dropzone;
 	return listLoadsForDay(db, dz.id, localDate(now, dz.timezone), { onlyOpen: true });
+}
+
+/**
+ * Whether the dropzone has any (non-cancelled) load on `day`: the board beats the configured
+ * opening days (boogies, weather days, special openings). One indexed lookup.
+ */
+export async function hasLoadsOnDay(db: Database, dropzoneId: string, day: string): Promise<boolean> {
+	const row = await db
+		.select({ id: loads.id })
+		.from(loads)
+		.where(and(eq(loads.dropzoneId, dropzoneId), eq(loads.day, day), ne(loads.status, 'cancelled')))
+		.limit(1);
+	return row.length > 0;
+}
+
+/**
+ * `hasLoadsOnDay` for a list of dropzones (each with its own local `day`) in one query: the ids
+ * with a non-cancelled load that day.
+ */
+export async function dropzonesWithLoadsOnDay(db: Database, items: { id: string; day: string }[]): Promise<Set<string>> {
+	if (!items.length) return new Set();
+	const want = new Set(items.map((i) => `${i.id}|${i.day}`));
+	const ids = [...new Set(items.map((i) => i.id))];
+	const days = [...new Set(items.map((i) => i.day))];
+	const out = new Set<string>();
+	// D1 caps bound parameters at 100 per statement
+	for (let i = 0; i < ids.length; i += 80) {
+		const rows = await db
+			.selectDistinct({ dropzoneId: loads.dropzoneId, day: loads.day })
+			.from(loads)
+			.where(and(inArray(loads.dropzoneId, ids.slice(i, i + 80)), inArray(loads.day, days), ne(loads.status, 'cancelled')));
+		for (const r of rows) if (want.has(`${r.dropzoneId}|${r.day}`)) out.add(r.dropzoneId);
+	}
+	return out;
 }
 
 /**

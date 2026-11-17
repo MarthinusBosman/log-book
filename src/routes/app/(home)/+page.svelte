@@ -21,7 +21,7 @@
 	const greeting = $derived(hour === null ? 'Welcome' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening');
 	// Loads on the board beat the configured opening days (boogies, weather days, special openings).
 	const open = $derived(
-		data.staffToday?.loadsPlanned ? { label: 'Loads running today', tone: 'success' as const } : data.hours ? openToday(data.hours, data.serverNow) : null
+		data.hours ? openToday(data.hours, data.serverNow, !!data.staffToday?.loadsPlanned || data.jumper.loadsToday) : null
 	);
 </script>
 

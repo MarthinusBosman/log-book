@@ -80,7 +80,7 @@
 {:else}
 	<ul class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3" data-testid="dz-list">
 		{#each data.dropzones as dz (dz.id)}
-			{@const open = openToday(dz)}
+			{@const open = openToday(dz, Date.now(), dz.loadsToday)}
 			<li class="group relative flex flex-col rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-border-strong">
 				<div class="flex items-start gap-3">
 					<span class="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-linear-to-br from-primary/25 to-primary/5 text-lg font-semibold text-primary">

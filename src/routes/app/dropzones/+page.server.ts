@@ -1,5 +1,7 @@
 import { distanceKm, followDropzone, listFollowedDropzones, listPublicDropzones, unfollowDropzone } from '#lib/server/domain/dropzone-admin.ts';
 import { currentCheckin } from '#lib/server/domain/checkins.ts';
+import { dropzonesWithLoadsOnDay } from '#lib/server/domain/loads.ts';
+import { localDate } from '#lib/server/domain/time.ts';
 import { domainFail, requireUser, str } from '#lib/server/jumper/forms.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -46,7 +48,12 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			? (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity) || a.name.localeCompare(b.name)
 			: Number(b.favourite) - Number(a.favourite) || Number(b.following) - Number(a.following) || a.name.localeCompare(b.name)
 	);
-	return { q, nearMe: !!here, dropzones: list };
+	const now = Date.now();
+	const flying = await dropzonesWithLoadsOnDay(
+		locals.db,
+		list.map((d) => ({ id: d.id, day: localDate(now, d.timezone) }))
+	);
+	return { q, nearMe: !!here, dropzones: list.map((d) => ({ ...d, loadsToday: flying.has(d.id) })) };
 };
 
 export const actions: Actions = {

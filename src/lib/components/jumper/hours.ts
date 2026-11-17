@@ -10,8 +10,12 @@ export function weekdayIn(now: number, timeZone = 'UTC'): (typeof WEEKDAYS)[numb
 	return (WEEKDAYS as readonly string[]).includes(d) ? (d as (typeof WEEKDAYS)[number]) : 'mon';
 }
 
-/** 'Open today 08:00–17:00' / 'Closed today' (null when no hours are set). */
-export function openToday(h: Hours, now = Date.now()): { label: string; tone: 'success' | 'neutral' } | null {
+/**
+ * 'Open today 08:00–17:00' / 'Closed today' (null when no hours are set). Loads on today's board
+ * beat the configured opening days (boogies, weather days, special openings): pass `loadsToday`.
+ */
+export function openToday(h: Hours, now = Date.now(), loadsToday = false): { label: string; tone: 'success' | 'neutral' } | null {
+	if (loadsToday) return { label: 'Loads running today', tone: 'success' };
 	if (!h.openDays?.length) return null;
 	const today = weekdayIn(now, h.timezone);
 	if (!h.openDays.includes(today)) return { label: 'Closed today', tone: 'neutral' };

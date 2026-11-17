@@ -3,7 +3,8 @@ import { and, eq, sql } from 'drizzle-orm';
 import { dropzoneMemberRoles, dropzoneMembers, dropzones } from '#lib/server/db/schema.ts';
 import { followDropzone, listAircraft, listFollowedDropzones, unfollowDropzone } from '#lib/server/domain/dropzone-admin.ts';
 import { currentCheckin } from '#lib/server/domain/checkins.ts';
-import { openLoadsToday } from '#lib/server/domain/loads.ts';
+import { hasLoadsOnDay, openLoadsToday } from '#lib/server/domain/loads.ts';
+import { localDate } from '#lib/server/domain/time.ts';
 import { getAccount } from '#lib/server/domain/wallet.ts';
 import { needsSportIndemnity } from '#lib/server/domain/indemnity.ts';
 import { domainFail, requireUser, str } from '#lib/server/jumper/forms.ts';
@@ -19,7 +20,7 @@ export const load: PageServerLoad = async ({ locals, params, url, parent }) => {
 	const follow = follows.find((f) => f.dropzone.id === dz?.id);
 	if (!dz || (!dz.listed && !member && !follow)) error(404, 'Dropzone not found');
 
-	const [roleRows, aircraft, checkin, loads, account, needsWaiver] = await Promise.all([
+	const [roleRows, aircraft, checkin, loads, account, needsWaiver, loadsToday] = await Promise.all([
 		locals.db
 			.select({ role: dropzoneMemberRoles.role, n: sql<number>`count(*)` })
 			.from(dropzoneMemberRoles)
@@ -30,7 +31,8 @@ export const load: PageServerLoad = async ({ locals, params, url, parent }) => {
 		currentCheckin(locals.db, user.id),
 		openLoadsToday(locals.db, dz),
 		getAccount(locals.db, user.id, dz.id),
-		needsSportIndemnity(locals.db, dz, user.id)
+		needsSportIndemnity(locals.db, dz, user.id),
+		hasLoadsOnDay(locals.db, dz.id, localDate(Date.now(), dz.timezone))
 	]);
 	const staffCounts = roleRows
 		.filter((r) => STAFF_ROLES.includes(r.role as DropzoneRole))
@@ -63,6 +65,8 @@ export const load: PageServerLoad = async ({ locals, params, url, parent }) => {
 		jumpers: Number(roleRows.find((r) => r.role === 'jumper')?.n ?? 0),
 		aircraft: aircraft.map((a) => ({ id: a.id, name: a.name, capacity: a.capacity })),
 		openLoads: loads.filter((l) => !l.stats.full).length,
+		/** Loads on today's board (any status but cancelled): beats the usual opening days. */
+		loadsToday,
 		following: !!follow,
 		favourite: follow?.favourite ?? false,
 		roles: member?.roles ?? [],

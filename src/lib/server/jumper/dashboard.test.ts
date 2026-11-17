@@ -4,7 +4,8 @@ import type { Dropzone } from '../db/schema.ts';
 import { checkIn } from '../domain/checkins.ts';
 import { addSection, needsSportIndemnity, setIndemnityActive, signIndemnity, WAIVER_VALID_DAYS } from '../domain/indemnity.ts';
 import { DAY_MS } from '../domain/time.ts';
-import { boardLoad, createLoads, openLoadsToday } from '../domain/loads.ts';
+import { boardLoad, cancelLoad, createLoads, dropzonesWithLoadsOnDay, hasLoadsOnDay, openLoadsToday } from '../domain/loads.ts';
+import { openToday } from '../../components/jumper/hours.ts';
 import { DAY, NOW, freshDb, makeDropzone, makeUser } from '../domain/testing.ts';
 import { loadJumperDashboard } from './dashboard.ts';
 
@@ -88,5 +89,48 @@ describe('dropzone row reuse (fewer D1 round trips)', () => {
 		const [only] = await openLoadsToday(db, dz, NOW);
 		await boardLoad(db, only.id, { now: NOW });
 		expect((await loadJumperDashboard(db, u.id, dz.id, NOW)).joinableLoads).toBe(0);
+	});
+});
+
+describe('loads on today’s board beat the opening days', () => {
+	test('hasLoadsOnDay / dropzonesWithLoadsOnDay ignore cancelled loads and other days', async () => {
+		const { dz, owner } = await makeDropzone(db);
+		const { dz: quiet } = await makeDropzone(db, { slug: 'quiet-dz', name: 'Quiet DZ' });
+		const { dz: cancelled } = await makeDropzone(db, { slug: 'cancelled-dz', name: 'Cancelled DZ' });
+		await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 4, createdBy: owner.id, now: NOW });
+		await createLoads(db, { dropzoneId: quiet.id, day: '2026-11-15', capacity: 4, createdBy: owner.id, now: NOW });
+		const [c] = await createLoads(db, { dropzoneId: cancelled.id, day: DAY, capacity: 4, createdBy: owner.id, now: NOW });
+		await cancelLoad(db, c.id, { now: NOW });
+
+		expect(await hasLoadsOnDay(db, dz.id, DAY)).toBe(true);
+		expect(await hasLoadsOnDay(db, quiet.id, DAY)).toBe(false);
+		expect(await hasLoadsOnDay(db, quiet.id, '2026-11-15')).toBe(true);
+		expect(await hasLoadsOnDay(db, cancelled.id, DAY)).toBe(false);
+
+		const flying = await dropzonesWithLoadsOnDay(db, [
+			{ id: dz.id, day: DAY },
+			// a load on the 15th must not count for a DZ whose "today" is the 14th
+			{ id: quiet.id, day: DAY },
+			{ id: cancelled.id, day: DAY }
+		]);
+		expect([...flying]).toEqual([dz.id]);
+		expect((await dropzonesWithLoadsOnDay(db, [])).size).toBe(0);
+	});
+
+	test('dashboard reports loadsToday for the selected dropzone; the badge says loads are running', async () => {
+		// 2026-11-14 is a Saturday: the DZ only opens on Sundays
+		const { dz, owner } = await makeDropzone(db, { openDays: ['sun'], openTime: '08:00', closeTime: '17:00' });
+		const u = await makeUser(db);
+		const hours = { openDays: ['sun'], openTime: '08:00', closeTime: '17:00', timezone: dz.timezone };
+		const before = await loadJumperDashboard(db, u.id, dz.id, NOW);
+		expect(before.loadsToday).toBe(false);
+		expect(openToday(hours, NOW, before.loadsToday)?.label).toBe('Closed today');
+
+		await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 4, createdBy: owner.id, now: NOW });
+		const after = await loadJumperDashboard(db, u.id, dz.id, NOW);
+		expect(after.loadsToday).toBe(true);
+		expect(openToday(hours, NOW, after.loadsToday)).toEqual({ label: 'Loads running today', tone: 'success' });
+		// without a selected dropzone there's nothing to say
+		expect((await loadJumperDashboard(db, u.id, null, NOW)).loadsToday).toBe(false);
 	});
 });
