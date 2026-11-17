@@ -110,6 +110,17 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await expect(page.getByTestId('hangar-board')).toBeVisible();
 	// the dropzone name is the board's page heading (screen readers)
 	await expect(page.getByTestId('hangar-board').getByRole('heading', { level: 1 })).toBeVisible();
+	// The public TV link shows the bare board: one main landmark, no booking-site header/footer
+	await page.locator('summary[aria-label="Public display link"]').click();
+	await page.getByTestId('create-public-link').click();
+	const publicUrl = await page.getByTestId('public-url').inputValue();
+	const tv = await page.context().browser()!.newContext();
+	const tvPage = await tv.newPage();
+	await tvPage.goto(publicUrl);
+	await expect(tvPage.getByTestId('hangar-board')).toBeVisible();
+	await expect(tvPage.getByRole('main')).toHaveCount(1);
+	await expect(tvPage.getByText(/Bookings by/)).toHaveCount(0);
+	await tv.close();
 	await page.goto('/app');
 	await expect(page.getByTestId('staff-today')).toContainText('Loads flown');
 	await expect(page.getByTestId('staff-today')).toContainText('of 1 manifested');

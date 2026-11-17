@@ -67,13 +67,13 @@
 	</header>
 
 	{#if shown.length === 0}
-		<div class="grid flex-1 place-items-center p-10 text-center">
+		<main class="grid flex-1 place-items-center p-10 text-center">
 			<div>
 				<MIcon name="clock" class="mx-auto size-[6vw] min-h-12 min-w-12 text-subtle" />
 				<p class="mt-6 text-[clamp(1.5rem,3vw,4rem)] font-semibold">No loads manifested yet</p>
 				<p class="mt-2 text-[clamp(1rem,1.4vw,2rem)] text-muted">Check in at manifest — the next load shows here as soon as it's created.</p>
 			</div>
-		</div>
+		</main>
 	{:else}
 		<main
 			class="grid flex-1 gap-[max(0.5rem,1vw)] p-[max(0.5rem,1vw)] [grid-template-columns:repeat(var(--cols),minmax(0,1fr))] max-lg:[--cols:1]! max-xl:[--cols:2]!"

@@ -36,17 +36,31 @@ describe('svelte a11y lint', () => {
 		expect(missing).toEqual([]);
 	});
 
-	test('pages that reset to the root layout (+page@) render a <main> landmark', () => {
-		// The app shell provides <main id="main">; print sheets and the hangar board skip it.
+	test('every page renders exactly one <main> landmark (itself, a component, or a layout above it)', () => {
+		// The app/auth/marketing/public-DZ layouts provide <main id="main">; +page@ pages
+		// (print sheets, hangar boards) bring their own. Nesting one inside another was how the
+		// public hangar TV board ended up inside the booking site's header and footer.
 		const withMain = files
 			.filter((f) => f.name.startsWith('lib/') && /<main\b/.test(f.text))
 			.map((f) => f.name.split('/').pop()!.replace('.svelte', ''));
-		const resets = files.filter((f) => /\+(page|layout)@[^/]*\.svelte$/.test(f.name));
-		expect(resets.length).toBeGreaterThan(0);
-		const missing = resets
-			.filter((f) => !/<main\b/.test(f.text) && !withMain.some((c) => new RegExp(`<${c}\\b`).test(f.text)))
-			.map((f) => f.name);
-		expect(missing).toEqual([]);
+		expect(withMain).toContain('HangarBoard');
+		const hasMain = (text: string) => /<main\b/.test(text) || withMain.some((c) => new RegExp(`<${c}\\b`).test(text));
+		const byName = new Map(files.map((f) => [f.name, f.text]));
+		const pages = files.filter((f) => /\+page(@[^/]*)?\.svelte$/.test(f.name) && !f.text.includes('never rendered'));
+		expect(pages.length).toBeGreaterThan(30);
+		const bad: string[] = [];
+		for (const f of pages) {
+			let count = hasMain(f.text) ? 1 : 0;
+			if (!f.name.includes('+page@')) {
+				const dirs = f.name.split('/').slice(0, -1);
+				for (let i = dirs.length; i >= 1; i--) {
+					const layout = byName.get([...dirs.slice(0, i), '+layout.svelte'].join('/'));
+					if (layout && hasMain(layout)) count++;
+				}
+			}
+			if (count !== 1) bad.push(`${f.name} (${count})`);
+		}
+		expect(bad).toEqual([]);
 	});
 
 	test('responsive grids set a base column (grid-cols-1), so long text cannot widen phones', () => {

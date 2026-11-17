@@ -5,7 +5,9 @@
 	let { data }: PageProps = $props();
 </script>
 
+<!-- +page@: a full-screen TV board, not inside the public booking header/footer. -->
 <svelte:head>
+	{@html data.brand.style}
 	<title>{data.dz.name} · Loads</title>
 	<meta name="robots" content="noindex" />
 </svelte:head>
