@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { onMount, untrack } from 'svelte';
-	import { Badge, Button, Card, ConfirmAction, copyText, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Card, ConfirmAction, canShareLinks, copyText, shareOrCopy, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import JumpForm from '#lib/components/jumper/JumpForm.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
@@ -43,9 +43,14 @@
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
+	// Phones get the share sheet (WhatsApp etc.); desktops just have Copy. Decided after hydration.
+	let canShare = $state(false);
+	$effect(() => {
+		canShare = canShareLinks();
+	});
 	async function share(link: string) {
-		if (navigator.share) await navigator.share({ title: `Sign my jump #${j.jumpNumber}`, url: link }).catch(() => {});
-		else copy(link);
+		const r = await shareOrCopy({ url: link, title: `Sign my jump #${j.jumpNumber}`, text: `Please sign my jump #${j.jumpNumber} on ${brand.name}:` }, 'Copy the sign-off link');
+		if (r === 'copied') toast.success('Copied');
 	}
 </script>
 
@@ -120,7 +125,9 @@
 						<input readonly value={f.link} class="min-w-0 flex-1 bg-transparent px-1 font-mono text-xs text-muted outline-none" onfocus={(e) => e.currentTarget.select()} aria-label="Sign-off link" />
 						<Button size="sm" variant="secondary" onclick={() => copy(f.link!)}>{copied ? 'Copied' : 'Copy'}</Button>
 					</div>
-					<Button variant="outline" class="w-full" onclick={() => share(f.link!)}><JIcon name="link" class="size-4" /> Share link</Button>
+					{#if canShare}
+						<Button variant="outline" class="w-full" onclick={() => share(f.link!)} data-testid="share-sign-link"><JIcon name="link" class="size-4" /> Share link</Button>
+					{/if}
 				</div>
 			{:else}
 				{#if j.signerName || j.signerLicence}

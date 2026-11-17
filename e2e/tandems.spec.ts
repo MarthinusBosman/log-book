@@ -239,6 +239,13 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await expect(drawer.locator('dl > :not(dt, dd, div)')).toHaveCount(0);
 	// In the drawer the name sits under the dialog title (h2); as a full page it is the h1.
 	await expect(drawer.getByRole('heading', { level: 2, name: 'Pat Passenger' })).toBeVisible();
+	// Staff on a phone share the customer's booking link (share sheet still stubbed from above).
+	await expect(drawer.getByTestId('reg-link')).toHaveText('Share link');
+	await drawer.getByTestId('reg-link').click();
+	const sharedReg = await page.evaluate(() => (window as unknown as { __shared: ShareData[] }).__shared);
+	expect(sharedReg).toHaveLength(1);
+	expect(sharedReg[0].url).toMatch(new RegExp(`/dz/[^/]+/book/${conf}$`));
+	expect(sharedReg[0].text).toContain('Pat Passenger, here is your tandem booking');
 	await drawer.getByRole('link', { name: 'Open as full page →' }).click();
 	await expect(page.getByRole('heading', { level: 1, name: 'Pat Passenger' })).toBeVisible();
 	await expect(page.getByRole('heading', { level: 2, name: 'Emergency contact' })).toHaveCount(0);

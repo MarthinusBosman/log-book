@@ -60,6 +60,24 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	// Sign-off link + QR
 	await page.getByTestId('create-sign-link').click();
 	await expect(page.getByTestId('sign-link').getByRole('img', { name: 'Sign jump' })).toBeVisible();
+	// "Share link" only where there's a share sheet worth opening (phones); desktops have Copy.
+	const hasSheet = await page.evaluate(() => typeof navigator.share === 'function' && matchMedia('(pointer: coarse)').matches);
+	await expect(page.getByTestId('share-sign-link')).toHaveCount(hasSheet ? 1 : 0);
+	await page.addInitScript(() => {
+		const w = window as unknown as { __shared: ShareData[] };
+		w.__shared = [];
+		Object.defineProperty(navigator, 'share', { configurable: true, value: async (d: ShareData) => void w.__shared.push(d) });
+		const mm = window.matchMedia.bind(window);
+		window.matchMedia = (q: string) => (q === '(pointer: coarse)' ? ({ matches: true, media: q } as MediaQueryList) : mm(q));
+	});
+	await page.reload();
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('create-sign-link').click();
+	await page.getByTestId('share-sign-link').click();
+	const shared = await page.evaluate(() => (window as unknown as { __shared: ShareData[] }).__shared);
+	expect(shared).toHaveLength(1);
+	expect(shared[0].url).toBe(await page.getByLabel('Sign-off link').inputValue());
+	expect(shared[0].text).toMatch(/^Please sign my jump #\d+ on /);
 
 	// List + CSV export
 	await page.goto('/app/logbook');
