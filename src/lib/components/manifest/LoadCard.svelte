@@ -247,7 +247,7 @@
 				</form>
 			{/if}
 			{#if !detail}
-				<Button href="/app/manifest/{load.id}" size="sm" variant="secondary" class="ml-auto">
+				<Button href="/app/manifest/{load.id}{editable ? '#add' : ''}" size="sm" variant="secondary" class="ml-auto">
 					{editable ? 'Add slots' : 'Details'}
 				</Button>
 			{/if}

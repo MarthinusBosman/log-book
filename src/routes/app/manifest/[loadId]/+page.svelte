@@ -87,7 +87,7 @@
 				<ul class="divide-y divide-border">
 					{#each load.slots as s, i (s.id)}
 						{@const stripe = s.colour ?? (s.groupId ? `hsl(${groupHue(s.groupId)} 70% 55%)` : (s.tiColour ?? 'transparent'))}
-						<li class="relative flex items-center gap-3 px-4 py-2.5 hover:bg-surface-2/40" data-testid="detail-slot" data-slot-name={s.displayName}>
+						<li class="relative flex items-center gap-2 px-3 py-2.5 hover:bg-surface-2/40 sm:gap-3 sm:px-4" data-testid="detail-slot" data-slot-name={s.displayName}>
 							<span class="absolute inset-y-2 left-1 w-1 rounded-full" style="background:{stripe}" aria-hidden="true"></span>
 							{#if data.canPay}
 								<input
@@ -105,7 +105,7 @@
 							<Avatar name={s.displayName} src={s.avatar} size="sm" />
 							<div class="min-w-0 flex-1">
 								<div class="flex min-w-0 flex-wrap items-center gap-1.5">
-									<span class="truncate font-medium">{s.displayName}</span>
+									<span class="truncate text-sm font-medium sm:text-base" data-testid="slot-name">{s.displayName}</span>
 									<SlotTags staffRole={s.staffRole} isLoadMaster={s.isLoadMaster} tandemPassenger={!!s.tandemPassengerId} extras={s.extras} colour={s.tiColour} warning={s.membershipWarning} />
 								</div>
 								<p class="truncate text-xs text-muted">

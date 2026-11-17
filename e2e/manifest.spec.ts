@@ -49,7 +49,9 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 
 	// Load detail: add a walk-in jumper from the Custom tab
 	await card.getByRole('link', { name: 'Add slots' }).click();
-	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+$/);
+	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+#add$/);
+	// desktop: the add panel sits beside the slot list, so the #add jump keeps the page at the top
+	if (project === 'desktop') await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 	await page.getByRole('tab', { name: 'Custom' }).click();
 	await page.getByLabel('Jumper name').fill('Vera Visitor');
 	await page.getByLabel('Slot weight (kg)').fill('72');
@@ -256,7 +258,7 @@ test('board slot rows open the slot editor (?slot=), also before hydration / wit
 	await expect(page.getByTestId('load-card')).toHaveCount(2);
 	const load1 = page.locator('[data-testid=load-card][data-load-number="1"]');
 	await load1.getByRole('link', { name: 'Add slots' }).click();
-	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+$/);
+	await expect(page).toHaveURL(/\/app\/manifest\/[\w-]+#add$/);
 	await page.getByRole('tab', { name: 'Custom' }).click();
 	await page.getByLabel('Jumper name').fill('Sam Slot');
 	await page.getByLabel('Slot weight (kg)').fill('80');
@@ -353,4 +355,13 @@ test('add-to-load picker says who is already on another load that day', async ({
 	const row = page.getByRole('tabpanel').locator('label', { has: page.getByRole('checkbox', { name: /Olga Onload/ }) });
 	await expect(row.locator('[data-also-on]')).toHaveText('On load 1');
 	await expect(row.getByRole('checkbox')).toBeEnabled();
+
+	// on a phone the panel sits below the slot list: the board's "Add slots" lands on it
+	await page.setViewportSize({ width: 390, height: 844 });
+	await page.goto('/app/manifest');
+	await load1.getByRole('link', { name: 'Add slots' }).click();
+	await expect(page).toHaveURL(/#add$/);
+	await expect(page.getByRole('heading', { name: 'Add to load' })).toBeInViewport();
+	await expect.poll(() => page.evaluate(() => Math.round(document.getElementById('add')!.getBoundingClientRect().top))).toBeLessThan(200);
+	await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
 });
