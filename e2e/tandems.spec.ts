@@ -212,7 +212,21 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	const [message, value] = await shown;
 	expect(message).toBe("Copy Max Mate's indemnity link");
 	expect(value).toMatch(/^https?:\/\/[^/]+\/dz\/[^/]+\/book\/[A-Z0-9]{4}-[A-Z0-9]{4}#indemnity$/);
-
+	// On a phone with a share sheet the button shares the link (WhatsApp etc.) instead of copying.
+	await page.addInitScript(() => {
+		const w = window as unknown as { __shared: ShareData[] };
+		w.__shared = [];
+		Object.defineProperty(navigator, 'share', { configurable: true, value: async (d: ShareData) => void w.__shared.push(d) });
+		const mm = window.matchMedia.bind(window);
+		window.matchMedia = (q: string) => (q === '(pointer: coarse)' ? ({ matches: true, media: q } as MediaQueryList) : mm(q));
+	});
+	await page.reload();
+	await page.getByRole('button', { name: "Share Max Mate's indemnity link" }).click();
+	await expect(page.getByTestId('group-share')).toHaveText('Share link');
+	const shared = await page.evaluate(() => (window as unknown as { __shared: ShareData[] }).__shared);
+	expect(shared).toHaveLength(1);
+	expect(shared[0].url).toBe(value);
+	expect(shared[0].text).toContain('Max Mate, please sign your indemnity');
 	// Staff sees the booking in the day list and drawer.
 	await page.goto(`/app/tandems?day=${tomorrow}`);
 	const row = page.getByTestId('tandem-row').filter({ hasText: 'Pat Passenger' });

@@ -4,7 +4,7 @@
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
-	import { Badge, Button, Icon, cn, copyText, toast } from '#lib/ui/index.ts';
+	import { Badge, Button, Icon, canShareLinks, cn, copyText, shareOrCopy, toast } from '#lib/ui/index.ts';
 	import { SLOT_EXTRA_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import BookingSteps from '#lib/components/tandems/BookingSteps.svelte';
 	import SignWaiver from '#lib/components/waivers/SignWaiver.svelte';
@@ -55,6 +55,18 @@
 
 	async function copy(text: string, label: string) {
 		if ((await copyText(text, label)) === 'copied') toast.success('Copied');
+	}
+	// Phones get the share sheet (WhatsApp etc.) for group sign links; decided after hydration.
+	let canShare = $state(false);
+	$effect(() => {
+		canShare = canShareLinks();
+	});
+	async function shareSignLink(name: string, conf: string) {
+		const r = await shareOrCopy(
+			{ url: `${page.url.origin}${signHref(conf)}`, title: `Indemnity for ${name}`, text: `${name}, please sign your indemnity for ${data.dz.name}:` },
+			`Copy ${name}'s indemnity link`
+		);
+		if (r === 'copied') toast.success('Copied');
 	}
 </script>
 
@@ -232,7 +244,13 @@
 						</span>
 						{#if g.cancelled}<Badge tone="danger">Cancelled</Badge>{:else if g.signed}<Badge tone="success">Signed</Badge>{:else if data.waiver}
 							<Button size="sm" variant="secondary" href={signHref(g.confirmationNumber)}>Sign</Button>
-							<Button size="sm" variant="ghost" aria-label="Copy {g.name}'s indemnity link" onclick={() => copy(`${page.url.origin}${signHref(g.confirmationNumber)}`, `Copy ${g.name}'s indemnity link`)}>Copy link</Button>
+							<Button
+								size="sm"
+								variant="ghost"
+								aria-label="{canShare ? 'Share' : 'Copy'} {g.name}'s indemnity link"
+								data-testid="group-share"
+								onclick={() => shareSignLink(g.name, g.confirmationNumber)}>{canShare ? 'Share link' : 'Copy link'}</Button
+							>
 						{/if}
 					</li>
 				{/each}

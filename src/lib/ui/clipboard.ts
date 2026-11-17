@@ -62,3 +62,46 @@ export async function copyText(text: string, label = 'Copy this text', env: Copy
 	env.prompt?.(label, text);
 	return 'shown';
 }
+
+/**
+ * Share a link with the phone's share sheet (WhatsApp, SMS, …) when it has one, else copy it.
+ *
+ * Only phones/tablets (coarse pointer) get the share sheet: on desktops copying is what people
+ * expect. A dismissed share sheet (`AbortError`) is `'cancelled'` (no fallback, no toast); any
+ * other share failure falls back to `copyText`.
+ */
+export type ShareResult = CopyResult | 'shared' | 'cancelled';
+
+export interface ShareLink {
+	url: string;
+	title?: string;
+	text?: string;
+}
+
+export interface ShareEnv extends CopyEnv {
+	share?: ((data: ShareLink) => Promise<void>) | null;
+}
+
+/** True in a browser with a share sheet that's worth offering (touch device). */
+export function canShareLinks(): boolean {
+	if (typeof navigator === 'undefined' || typeof window === 'undefined') return false;
+	if (typeof navigator.share !== 'function') return false;
+	return window.matchMedia?.('(pointer: coarse)').matches ?? false;
+}
+
+function browserShareEnv(): ShareEnv {
+	return { ...browserEnv(), share: canShareLinks() ? (d) => navigator.share(d) : null };
+}
+
+export async function shareOrCopy(link: ShareLink, label = 'Copy this link', env: ShareEnv = browserShareEnv()): Promise<ShareResult> {
+	if (env.share) {
+		try {
+			await env.share(link);
+			return 'shared';
+		} catch (e) {
+			if ((e as { name?: string } | null)?.name === 'AbortError') return 'cancelled';
+			/* not allowed / unsupported data: fall back to copying */
+		}
+	}
+	return copyText(link.url, label, env);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { copyText } from './clipboard.ts';
+import { canShareLinks, copyText, shareOrCopy } from './clipboard.ts';
 
 describe('copyText', () => {
 	test('uses the async clipboard when it works', async () => {
@@ -39,5 +39,39 @@ describe('copyText', () => {
 
 	test('never throws outside a browser', async () => {
 		expect(await copyText('z')).toBe('shown');
+	});
+});
+
+describe('shareOrCopy', () => {
+	const link = { url: 'https://log-book.app/dz/x/book/AB12#indemnity', title: 'Indemnity', text: 'Please sign' };
+
+	test('uses the share sheet when there is one', async () => {
+		const shared: unknown[] = [];
+		const copied: string[] = [];
+		const r = await shareOrCopy(link, 'Copy', { share: async (d) => void shared.push(d), clipboard: { writeText: async (t) => void copied.push(t) } });
+		expect(r).toBe('shared');
+		expect(shared).toEqual([link]);
+		expect(copied).toEqual([]);
+	});
+
+	test('a dismissed share sheet is cancelled, not copied', async () => {
+		const copied: string[] = [];
+		const abort = Object.assign(new Error('Share canceled'), { name: 'AbortError' });
+		const r = await shareOrCopy(link, 'Copy', { share: async () => Promise.reject(abort), clipboard: { writeText: async (t) => void copied.push(t) } });
+		expect(r).toBe('cancelled');
+		expect(copied).toEqual([]);
+	});
+
+	test('falls back to copying the url when sharing fails or is missing', async () => {
+		const copied: string[] = [];
+		const clipboard = { writeText: async (t: string) => void copied.push(t) };
+		const failed = await shareOrCopy(link, 'Copy', { share: async () => Promise.reject(new Error('NotAllowedError')), clipboard });
+		const missing = await shareOrCopy(link, 'Copy', { share: null, clipboard });
+		expect([failed, missing]).toEqual(['copied', 'copied']);
+		expect(copied).toEqual([link.url, link.url]);
+	});
+
+	test('canShareLinks is false outside a browser', () => {
+		expect(canShareLinks()).toBe(false);
 	});
 });
