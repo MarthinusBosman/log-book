@@ -65,6 +65,8 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await page.locator(`[data-date="${tomorrow}"]`).click();
 	await page.locator('[data-time="10:00"]').click();
 	await clickVisible(page, ['next', 'next-mobile']);
+	await expect(page.getByTestId('step-heading')).toHaveText('Who’s jumping?');
+	await expect(page.getByTestId('step-heading')).toBeFocused();
 
 	await page.locator('input[name=j0_name]').fill('Pat Passenger');
 	await page.locator('input[name=j0_email]').fill('pat@example.com');
@@ -73,7 +75,17 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await page.locator('input[name=j0_weightKg]').fill('72');
 	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
 	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
+	// Each step change moves focus to the new heading (the pressed button is replaced, so focus
+	// would otherwise fall back to <body> and screen readers hear nothing).
+	const heading = page.getByTestId('step-heading');
 	await clickVisible(page, ['next', 'next-mobile']);
+	await expect(heading).toHaveText('Make it yours');
+	await expect(heading).toBeFocused();
+	await page.getByRole('button', { name: 'Back' }).locator('visible=true').first().click();
+	await expect(heading).toHaveText('Who’s jumping?');
+	await expect(heading).toBeFocused();
+	await clickVisible(page, ['next', 'next-mobile']);
+	await expect(heading).toBeFocused();
 
 	await page.getByTestId('terms').check();
 	await clickVisible(page, ['confirm', 'confirm-mobile']);

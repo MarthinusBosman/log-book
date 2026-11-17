@@ -52,6 +52,7 @@
 	let busy = $state(false);
 	let formEl: HTMLFormElement | undefined = $state();
 	let top: HTMLDivElement | undefined = $state();
+	let heading: HTMLHeadingElement | undefined = $state();
 
 
 	const available = $derived(Object.fromEntries(Object.entries(data.days).map(([d, s]) => [d, s.reduce((n, x) => n + x.remaining, 0)])));
@@ -87,6 +88,10 @@
 	async function go(to: number) {
 		step = to;
 		await tick();
+		// The Back/Continue button that was pressed is replaced (or removed) on a step change, which
+		// would drop keyboard focus to <body>: move it to the new step's heading so screen readers
+		// announce the step and Tab continues from the top of it.
+		heading?.focus({ preventScroll: true });
 		top?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 	}
 
@@ -134,7 +139,7 @@
 <div bind:this={top} class="mx-auto max-w-5xl scroll-mt-16 px-4 pt-6 pb-28 sm:px-6 lg:pb-12">
 	<div class="max-w-2xl">
 		<BookingSteps current={STEPS[step]} waiver={data.waiver} />
-		<h1 class="mt-6 text-2xl font-semibold tracking-tight sm:text-3xl">
+		<h1 bind:this={heading} tabindex="-1" data-testid="step-heading" class="mt-6 text-2xl font-semibold tracking-tight outline-none sm:text-3xl">
 			{step === 0 ? 'When would you like to jump?' : step === 1 ? 'Who’s jumping?' : 'Make it yours'}
 		</h1>
 		<p class="mt-1 text-sm text-muted">
