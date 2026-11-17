@@ -47,6 +47,13 @@
 		e.preventDefault();
 		panel = panel === 'change' ? 'none' : 'change';
 	}
+	/**
+	 * A form's `ondone` runs after `update()` has already re-rendered the card, so a quick tap on
+	 * the new Change button can open another panel first: only close the panel that submitted.
+	 */
+	function closeIf(p: 'solo' | 'team' | 'change') {
+		if (panel === p) panel = 'none';
+	}
 	function open(e: MouseEvent, p: 'solo' | 'team') {
 		e.preventDefault();
 		panel = p;
@@ -172,7 +179,7 @@
 						{wallet}
 						currentTotal={load.mine.totalMinor}
 						error={error?.action === 'change' ? error.message : null}
-						ondone={() => (panel = 'none')}
+						ondone={() => closeIf('change')}
 					/>
 				</div>
 			{/if}
@@ -229,9 +236,9 @@
 					</button>
 				</div>
 				{#if panel === 'solo'}
-					<JoinForm mode="solo" loadId={load.id} types={soloTypes} {extras} {prices} {currency} initialExtras={defaultExtras} {wallet} error={error?.action === 'join' ? error.message : null} ondone={() => (panel = 'none')} />
+					<JoinForm mode="solo" loadId={load.id} types={soloTypes} {extras} {prices} {currency} initialExtras={defaultExtras} {wallet} error={error?.action === 'join' ? error.message : null} ondone={() => closeIf('solo')} />
 				{:else}
-					<JoinForm mode="team" loadId={load.id} types={teamTypes} {extras} {prices} {currency} {teams} {wallet} error={error?.action === 'team' ? error.message : null} ondone={() => (panel = 'none')} />
+					<JoinForm mode="team" loadId={load.id} types={teamTypes} {extras} {prices} {currency} {teams} {wallet} error={error?.action === 'team' ? error.message : null} ondone={() => closeIf('team')} />
 				{/if}
 			{/if}
 			{#if panel === 'none' && error?.message && (error.action === 'join' || error.action === 'leave')}

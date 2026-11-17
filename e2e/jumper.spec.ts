@@ -780,9 +780,27 @@ test('changing or leaving a load works before hydration / without JS, and leavin
 	await page.goto('/app/check-in');
 	await page.goto(`/app/check-in${(await load.getByTestId('join-solo').getAttribute('href'))!}`);
 	await page.waitForLoadState('networkidle');
+	// Tap Change the moment it appears (same JS turn as the re-render, before the join form's
+	// `ondone` runs): the late close of the join panel must not shut the Change panel.
+	await page.evaluate(() => {
+		const card = document.querySelector('[data-testid=load-card][data-load="1"]')!;
+		new MutationObserver((_, obs) => {
+			const change = card.querySelector<HTMLElement>('[data-testid=change-slot]');
+			if (change) {
+				obs.disconnect();
+				change.click();
+			}
+		}).observe(card, { childList: true, subtree: true });
+	});
 	await load.getByRole('button', { name: 'Join this load' }).click();
 	await expect(load.getByText('You’re on this load')).toBeVisible();
 	const url = page.url();
+	await expect(load.getByRole('button', { name: 'Save changes' })).toBeVisible();
+	await page.waitForTimeout(300);
+	await expect(load.getByRole('button', { name: 'Save changes' })).toBeVisible();
+	expect(page.url()).toBe(url);
+	await load.getByTestId('change-slot').click();
+	await expect(load.getByRole('button', { name: 'Save changes' })).toHaveCount(0);
 	await load.getByTestId('change-slot').click();
 	await expect(load.getByRole('button', { name: 'Save changes' })).toBeVisible();
 	expect(page.url()).toBe(url);
