@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { MAX_QUERY, listViewHref, readChoice, readQuery, revealCurrent, rowScrollToReveal } from './list-view.ts';
+import { CURRENT_ITEM, MAX_QUERY, listViewHref, readChoice, readQuery, revealCurrent, rowScrollToReveal } from './list-view.ts';
 
 const base = 'https://log-book.app/app/jumpers';
 const params = (qs: string) => new URL(`${base}${qs}`).searchParams;
@@ -80,5 +80,14 @@ describe('revealCurrent (tab strip deep link on a phone)', () => {
 		const row = strip(null);
 		revealCurrent(row as unknown as HTMLElement);
 		expect(row.scrollLeft).toBe(0);
+	});
+	test('the selector finds any aria-current value (a day strip uses "date"), not "false"', () => {
+		expect(CURRENT_ITEM).toContain('[aria-current]');
+		expect(CURRENT_ITEM).toContain(':not([aria-current="false"])');
+		expect(CURRENT_ITEM).toContain('[aria-selected="true"]');
+		let asked = '';
+		const row = { ...strip('x'), querySelector: (sel: string) => ((asked = sel), null) };
+		revealCurrent(row as unknown as HTMLElement, '2026-11-22');
+		expect(asked).toBe(CURRENT_ITEM);
 	});
 });

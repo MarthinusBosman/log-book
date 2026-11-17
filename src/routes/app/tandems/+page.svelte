@@ -11,6 +11,7 @@
 	import { toastEnhance } from '#lib/components/tandems/enhance.ts';
 	import { newDialogHref, openInPlace, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
+	import { revealCurrent } from '#lib/components/staffadmin/list-view.ts';
 	import {
 		PAYMENT_LABELS,
 		PAYMENT_TONES,
@@ -120,7 +121,7 @@
 </div>
 
 <!-- two-week strip -->
-<nav class="-mx-4 mt-4 scrollbar-none overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" aria-label="Days">
+<nav class="-mx-4 mt-4 scrollbar-none overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" aria-label="Days" use:revealCurrent={data.q ? '' : data.day}>
 	<ol class="flex min-w-max gap-1.5">
 		{#each data.strip as d (d.date)}
 			{@const sel = d.date === data.day && !data.q}

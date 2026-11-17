@@ -200,6 +200,20 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 			return nav.scrollWidth > nav.clientWidth && a.left >= n.left && a.right <= n.right;
 		});
 	await expect.poll(inView).toBe(true);
+
+	// Same for the tandem day strip: a deep link to the Sunday of the week shows that day.
+	await page.goto(`/app/tandems?day=${tomorrow}`);
+	const days = page.getByRole('navigation', { name: 'Days' });
+	const sunday = await days.locator('a').nth(6).getAttribute('href');
+	await page.goto(sunday!);
+	await page.waitForLoadState('networkidle');
+	const dayInView = () =>
+		days.evaluate((nav) => {
+			const a = nav.querySelector('[aria-current="date"]')!.getBoundingClientRect();
+			const n = nav.getBoundingClientRect();
+			return nav.scrollWidth > nav.clientWidth && a.left >= n.left && a.right <= n.right;
+		});
+	await expect.poll(dayInView).toBe(true);
 	if (viewport) await page.setViewportSize(viewport);
 
 	// Cancelling a booking asks first: Cancel keeps it, the confirm cancels it.

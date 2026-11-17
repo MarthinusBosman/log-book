@@ -34,15 +34,18 @@ export function revealInRow(row: HTMLElement, item: HTMLElement): void {
 	if (next !== null) row.scrollLeft = next;
 }
 
+/** The selected item of a strip: any `aria-current` value (page, date, true…) or a selected role=tab. */
+export const CURRENT_ITEM = '[aria-current]:not([aria-current="false"]), [aria-selected="true"]';
+
 /**
- * Action for a sideways-scrolling tab strip: keeps the current tab (`aria-current="page"` or
- * `aria-selected="true"`) in view on narrow screens, on mount and whenever `key` changes
+ * Action for a sideways-scrolling tab strip: keeps the current item (`aria-current="page"`,
+ * `"date"`, … or `aria-selected="true"`) in view on narrow screens, on mount and whenever `key` changes
  * (pass the active tab id). Without it a deep link such as `?tab=jumpers` opens with the
  * active tab scrolled off the right edge.
  */
 export function revealCurrent(row: HTMLElement, key?: unknown) {
 	const run = () => {
-		const item = row.querySelector<HTMLElement>('[aria-current="page"], [aria-selected="true"]');
+		const item = row.querySelector<HTMLElement>(CURRENT_ITEM);
 		if (item) revealInRow(row, item);
 	};
 	void key;
