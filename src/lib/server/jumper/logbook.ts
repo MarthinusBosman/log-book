@@ -157,3 +157,11 @@ export async function dzNameMap(db: Database, jumps: LogbookJump[]) {
 	const rows = await db.select({ id: dropzones.id, name: dropzones.name }).from(dropzones).where(inArray(dropzones.id, ids));
 	return new Map(rows.map((r) => [r.id, r.name]));
 }
+
+/** Name + timezone of each dropzone the jumps were made at (exports print sign-off days in the DZ's local calendar). */
+export async function dzInfoMap(db: Database, jumps: LogbookJump[]) {
+	const ids = [...new Set(jumps.map((j) => j.dropzoneId).filter((x): x is string => !!x))];
+	if (!ids.length) return new Map<string, { name: string; timezone: string }>();
+	const rows = await db.select({ id: dropzones.id, name: dropzones.name, timezone: dropzones.timezone }).from(dropzones).where(inArray(dropzones.id, ids));
+	return new Map(rows.map((r) => [r.id, { name: r.name, timezone: r.timezone }]));
+}

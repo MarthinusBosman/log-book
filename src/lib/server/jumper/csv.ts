@@ -1,5 +1,6 @@
 import { JUMP_TYPE_LABELS, type JumpType } from '../../domain/constants.ts';
 import type { LogbookJump } from '../db/schema.ts';
+import { localDate } from '../domain/time.ts';
 
 /** RFC 4180 field; also neutralises spreadsheet formula injection (=,+,-,@ prefixes). */
 export function csvField(v: unknown): string {
@@ -31,8 +32,14 @@ export const LOGBOOK_CSV_HEADER = [
 	'Source'
 ];
 
-/** Logbook → CSV text (CRLF line endings, UTF-8 BOM so Excel picks the encoding). */
-export function logbookCsv(jumps: (LogbookJump & { dropzoneName?: string | null })[]): string {
+/**
+ * Logbook → CSV text (CRLF line endings, UTF-8 BOM so Excel picks the encoding).
+ * "Signed at" is the calendar day in the jump's dropzone timezone (`dropzoneTimezone`), else `fallbackTimezone`.
+ */
+export function logbookCsv(
+	jumps: (LogbookJump & { dropzoneName?: string | null; dropzoneTimezone?: string | null })[],
+	fallbackTimezone = 'UTC'
+): string {
 	const lines = [csvRow(LOGBOOK_CSV_HEADER)];
 	for (const j of jumps) {
 		lines.push(
@@ -48,7 +55,7 @@ export function logbookCsv(jumps: (LogbookJump & { dropzoneName?: string | null 
 				j.verified ? 'yes' : 'no',
 				j.signerName,
 				j.signerLicence,
-				j.signedAt ? j.signedAt.toISOString().slice(0, 10) : '',
+				j.signedAt ? localDate(j.signedAt, j.dropzoneTimezone ?? fallbackTimezone) : '',
 				j.source
 			])
 		);

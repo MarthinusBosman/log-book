@@ -71,6 +71,39 @@ describe('csv', () => {
 		expect(lines[0]).toStartWith('Jump #,Date');
 		expect(lines[1]).toBe('12,2026-11-01,Mossel Bay,C182,10000,50,Belly,"Fun, sunset",no,Ina Instructor,D-1,2026-11-02,manual');
 	});
+	test('logbook export: sign-off day is the dropzone-local calendar day', () => {
+		const base = {
+			id: 'j',
+			userId: 'u',
+			jumpNumber: 13,
+			jumpDate: '2026-11-02',
+			dropzoneId: 'dz',
+			location: null,
+			aircraft: null,
+			altitudeFt: null,
+			freefallSeconds: null,
+			jumpType: 'belly',
+			description: null,
+			rigId: null,
+			signerUserId: null,
+			signerName: 'Ina',
+			signerLicence: null,
+			signatureFileId: null,
+			// 23:30 UTC on 2 Nov = 01:30 on 3 Nov in Johannesburg, 18:30 on 2 Nov in New York.
+			signedAt: new Date('2026-11-02T23:30:00Z'),
+			verified: false,
+			source: 'manual',
+			sourceRef: null,
+			slotId: null,
+			loadId: null,
+			createdAt: new Date(),
+			updatedAt: new Date()
+		} as const;
+		const signed = (csv: string) => csv.replace('\uFEFF', '').trim().split('\r\n')[1].split(',').at(-2);
+		expect(signed(logbookCsv([{ ...base, dropzoneTimezone: 'Africa/Johannesburg' }]))).toBe('2026-11-03');
+		expect(signed(logbookCsv([{ ...base, dropzoneTimezone: null }], 'America/New_York'))).toBe('2026-11-02');
+		expect(signed(logbookCsv([{ ...base }]))).toBe('2026-11-02');
+	});
 });
 
 describe('form helpers', () => {

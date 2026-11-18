@@ -109,8 +109,8 @@
 			<h3 class="mt-5 text-xs font-medium tracking-wide text-muted uppercase">Ratings</h3>
 			<div class="mt-2 flex flex-wrap gap-1">
 				{#each data.ratings as r (r.body + r.rating)}
-					<Badge tone={r.expiresOn && r.expiresOn < new Date().toISOString().slice(0, 10) ? 'danger' : 'neutral'}>
-						{r.rating}{#if r.expiresOn}<span class="opacity-70">· {r.expiresOn}</span>{/if}
+					<Badge tone={r.expiresOn && r.expiresOn < data.pasaToday ? 'danger' : 'neutral'}>
+						{r.rating}{#if r.expiresOn}<span class="opacity-70">· {fmtDate(r.expiresOn)}</span>{/if}
 						{#if r.verified}<Icon name="check" class="size-3" strokeWidth={2.5} />{/if}
 					</Badge>
 				{/each}

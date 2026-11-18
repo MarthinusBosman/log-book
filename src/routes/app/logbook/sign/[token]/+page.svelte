@@ -51,7 +51,7 @@
 					<span class="grid size-10 shrink-0 place-items-center rounded-xl bg-success/15 text-success"><JIcon name="badgeCheck" class="size-5" /></span>
 					<div class="text-sm">
 						<p class="font-semibold">{form?.success ?? `Already signed by ${j.signerName}`}</p>
-						<p class="text-muted">{form?.success ? `Thanks — ${data.ownerName}'s logbook now shows your name and licence.` : fmtDateTime(j.signedAt)}</p>
+						<p class="text-muted">{form?.success ? `Thanks — ${data.ownerName}'s logbook now shows your name and licence.` : fmtDateTime(j.signedAt, data.timezone ?? undefined)}</p>
 					</div>
 				</div>
 			{:else if data.own}
