@@ -53,6 +53,11 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	await page.getByLabel('Content').fill('Skydiving is dangerous and I accept the risks.');
 	await page.getByRole('button', { name: 'Add section', exact: true }).last().click();
 	await expect(page.getByTestId('builder-sport').getByRole('heading', { name: 'Assumption of risk' }).first()).toBeVisible();
+	// The clause text keeps (nearly) the card's full width on phones; beside the four icon
+	// buttons it used to be squeezed into a ~110 px column.
+	const card = await page.getByTestId('builder-sport').getByTestId('section').first().boundingBox();
+	const text = await page.getByTestId('builder-sport').getByTestId('section-text').first().boundingBox();
+	expect(text!.width).toBeGreaterThan(card!.width * (mobile ? 0.75 : 0.6));
 	await page.getByTestId('toggle-sport').click();
 	await expect(page.getByTestId('toggle-sport')).toHaveText('Switch off');
 	await page.goto('/app');

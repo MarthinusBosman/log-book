@@ -96,9 +96,11 @@
 						</div>
 					</form>
 				{:else}
-					<div class="flex gap-3 p-4">
+					<!-- Phones: number + buttons share the first row and the text gets the full width below
+					     (beside four icon buttons the clause text was a ~110 px column). -->
+					<div class="flex flex-wrap items-start gap-3 p-4 sm:flex-nowrap">
 						<span class="mt-0.5 grid size-7 shrink-0 place-items-center rounded-lg bg-surface-2 text-xs font-semibold text-muted tabular-nums">{i + 1}</span>
-						<div class="min-w-0 flex-1">
+						<div class="order-last min-w-0 basis-full sm:order-none sm:basis-auto sm:flex-1" data-testid="section-text">
 							<div class="flex flex-wrap items-center gap-2">
 								<h3 class="font-medium">{s.title}</h3>
 								<Badge tone={TYPE_TONES[s.type]}>{SECTION_TYPE_LABELS[s.type]}</Badge>
@@ -106,7 +108,7 @@
 							{#if s.content}<p class="mt-1 line-clamp-3 text-sm whitespace-pre-line text-muted">{s.content}</p>{/if}
 						</div>
 						{#if canEdit}
-							<div class="flex shrink-0 items-start gap-0.5">
+							<div class="ml-auto flex shrink-0 items-start gap-0.5">
 								{#each [['up', 'arrowUp', i === 0], ['down', 'arrowDown', i === sections.length - 1]] as const as [dir, icon, off] (dir)}
 									<form method="POST" action={act('move')} use:enhance={toastEnhance()}>
 										<input type="hidden" name="id" value={s.id} />
