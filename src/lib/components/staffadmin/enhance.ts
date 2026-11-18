@@ -1,6 +1,17 @@
 import type { SubmitFunction } from '$app/forms';
 import { toast } from '#lib/ui/index.ts';
+import { tick } from 'svelte';
 import { followsActionUrl } from './action-url.ts';
+
+/** Focus (and scroll to) the first `aria-invalid="true"` control inside `root`; returns it, or null when none. */
+export function focusFirstInvalid(root: ParentNode | null | undefined): HTMLElement | null {
+	const el = root?.querySelector<HTMLElement>('[aria-invalid="true"]') ?? null;
+	if (!el) return null;
+	// Centre it: plain focus() scrolls just enough, leaving it under the sticky top bar / mobile tabs.
+	el.scrollIntoView?.({ block: 'center' });
+	el.focus({ preventScroll: true });
+	return el;
+}
 
 type Opts = {
 	/** Toast title on success; defaults to `result.data.message` or "Saved". */
@@ -13,7 +24,7 @@ type Opts = {
 
 /** `use:enhance={toastEnhance({...})}`: toast the outcome, keep form values, refresh data. */
 export function toastEnhance(opts: Opts = {}): SubmitFunction {
-	return ({ action }) => {
+	return ({ action, formElement }) => {
 		opts.pending?.(true);
 		return async ({ result, update }) => {
 			opts.pending?.(false);
@@ -28,6 +39,11 @@ export function toastEnhance(opts: Opts = {}): SubmitFunction {
 				toast.error('Something went wrong', result.error?.message);
 			}
 			await update({ reset: opts.reset ?? false, navigate: followsActionUrl(action, new URL(location.href)) });
+			// Take the user to the first field the server marked (on a long form it may be off screen).
+			if (result.type === 'failure') {
+				await tick();
+				focusFirstInvalid(formElement);
+			}
 		};
 	};
 }

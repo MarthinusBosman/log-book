@@ -42,7 +42,14 @@
 	action="?/save"
 	novalidate
 	oninput={() => (dirty = true)}
-	use:enhance={toastEnhance({ pending: (p) => (saving = p), onSuccess: () => (dirty = false) })}
+	use:enhance={toastEnhance({
+		pending: (p) => (saving = p),
+		onSuccess: () => {
+			dirty = false;
+			// Show what was saved ("3,200" → "3200.00", "R 650.5" → "650.50"), as a reload would.
+			for (const k of Object.keys(values)) values[k] = priceToInput(parseMoney(values[k]) ?? 0);
+		}
+	})}
 >
 	<PageHeader icon="tag" title="Pricelist" description="Prices per jump in {data.currency}. Changes apply to new slots; existing slots keep their price.">
 		{#snippet actions()}

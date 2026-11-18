@@ -130,11 +130,24 @@ test('owner runs the back office', async ({ page }) => {
 	const sportSlot = page.getByLabel('Sport slot', { exact: true });
 	await expect(sportSlot).toHaveValue('');
 	await expect(sportSlot).toHaveAttribute('placeholder', '0.00');
-	await sportSlot.fill('450');
+	// A typo far down the page: the failed save focuses (and explains) the bad field.
+	const handcam = page.getByLabel('Handcam', { exact: true });
+	await sportSlot.fill('1,450');
+	await handcam.fill('abc');
+	await sportSlot.focus();
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.getByText('Fix 1 price before saving.')).toBeVisible();
+	await expect(handcam).toBeFocused();
+	await expect(handcam).toHaveAttribute('aria-invalid', 'true');
+	await expect(handcam).toHaveAccessibleDescription('Enter an amount like 450 or 450.00');
+	await handcam.fill('');
 	await page.getByRole('button', { name: 'Save all' }).first().click();
 	await expect(page.getByText('Price list updated')).toBeVisible();
+	// The fields show the saved amounts straight away, as a reload would.
+	await expect(sportSlot).toHaveValue('1450.00');
+	await expect(handcam).not.toHaveAttribute('aria-invalid', 'true');
 	await page.reload();
-	await expect(sportSlot).toHaveValue('450.00');
+	await expect(sportSlot).toHaveValue('1450.00');
 	await expect(page.getByLabel('Gear rental', { exact: true })).toHaveValue('');
 
 	// Gear

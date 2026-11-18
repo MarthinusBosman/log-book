@@ -35,9 +35,10 @@
 			{required}
 			pattern={allowNegative ? '-?[0-9 ,]*([.,][0-9]{0,2})?' : '[0-9 ,]*([.,][0-9]{0,2})?'}
 			aria-invalid={error ? true : undefined}
+			aria-describedby={error || help ? `m-${uid}-desc` : undefined}
 			class="h-full w-full min-w-0 bg-transparent px-2 text-right text-[15px] text-fg tabular-nums outline-none placeholder:text-subtle"
 			placeholder="0.00"
 		/>
 	</div>
-	{#if error}<p class="text-xs text-danger">{error}</p>{:else if help}<p class="text-xs text-muted">{help}</p>{/if}
+	{#if error}<p id="m-{uid}-desc" class="text-xs text-danger">{error}</p>{:else if help}<p id="m-{uid}-desc" class="text-xs text-muted">{help}</p>{/if}
 </div>
