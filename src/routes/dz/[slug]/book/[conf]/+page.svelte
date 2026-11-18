@@ -35,10 +35,12 @@
 		if (later) document.querySelector<HTMLElement>('[data-testid="sign-now"]')?.focus();
 		else indemnityHeading?.focus();
 	}
-	let payWhat = $state<'deposit' | 'balance'>('deposit');
+	const notice = $derived(data.paymentNotice);
+	// Back from a checkout that didn't go through: offer what the customer chose then (full price or
+	// deposit) instead of always resetting to the deposit. Still a choice they can change.
+	let payWhat = $derived<'deposit' | 'balance'>(notice && notice.status !== 'succeeded' && notice.full ? 'balance' : 'deposit');
 	let who = $state<'group' | 'me'>('group');
 	let paying = $state<string | null>(null);
-	const notice = $derived(data.paymentNotice);
 	const f = $derived(form as { message?: string; ok?: boolean } | null);
 
 	$effect(() => {
@@ -46,7 +48,9 @@
 		const u = new URL(page.url.href);
 		u.searchParams.delete('new');
 		untrack(() => {
-			toast.success('Booking confirmed');
+			// After a checkout that didn't complete, the warning banner says the booking stands;
+			// a green "Booking confirmed" toast on top of it read as if the payment had worked.
+			if (!notice || notice.status === 'succeeded') toast.success('Booking confirmed');
 			// Not shallow: Kit's popstate goes back to a shallow entry's underlying URL (?new=1),
 			// so the toast fired again every time the customer came back to this page.
 			goto(u, { replace: true, reset: false });

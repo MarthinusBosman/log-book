@@ -120,7 +120,7 @@ export const actions: Actions = {
 				} catch (e) {
 					// The booking stands; the confirmation page offers "pay online" again.
 					console.warn('[book] online payment could not start', e);
-					landing += '&payerror=1';
+					landing += deposit ? '&payerror=1' : '&payerror=1&full=1';
 				}
 			}
 		} catch (e) {

@@ -50,7 +50,7 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await page.goto('/app/tandems/slots');
 	await page.getByLabel('Date').fill(tomorrow);
 	await page.getByLabel('Time').fill('10:00');
-	await page.getByLabel('Places').fill('3');
+	await page.getByLabel('Places').fill('4');
 	await page.getByRole('button', { name: 'Add slots' }).click();
 	await expect(page.locator('[data-testid="slot-day"]').first()).toContainText('10:00');
 	await page.goto('/app/settings/features');
@@ -129,6 +129,34 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await page.getByTestId('mock-pay').click();
 	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'succeeded');
 	await expect(page.getByTestId('pay-online')).toHaveCount(0);
+
+	// Full price chosen at booking, cancelled at the provider: the confirmation page offers the full
+	// price again (not the deposit) and doesn't show a "Booking confirmed" toast over the warning.
+	await page.goto(`/dz/${slug}/book`);
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	await page.locator('[data-time="10:00"]').click();
+	await clickVisible(page, ['next', 'next-mobile']);
+	await page.locator('input[name=j0_name]').fill('Fran Fullprice');
+	await page.locator('input[name=j0_email]').fill('fran@example.com');
+	await page.locator('input[name=j0_phone]').fill('0820001111');
+	await page.locator('input[name=j0_dob]').fill('1990-05-05');
+	await page.locator('input[name=j0_weightKg]').fill('72');
+	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
+	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
+	await clickVisible(page, ['next', 'next-mobile']);
+	await page.getByTestId('provider-payfast').check();
+	await page.getByTestId('pay-full').check();
+	await page.getByTestId('terms').check();
+	await clickVisible(page, ['confirm', 'confirm-mobile']);
+	await expect(page.getByTestId('mock-amount')).toHaveText('R 3200.00');
+	await page.getByTestId('mock-cancel').click();
+	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'cancelled');
+	await expect(page).not.toHaveURL(/[?&]new=1/);
+	// The ?new=1 effect has run once the URL loses it; count right away (a retrying toHaveCount(0)
+	// would also pass once a toast times out after 4 s).
+	expect(await page.locator('[aria-live]').getByText('Booking confirmed').count()).toBe(0);
+	await expect(page.getByTestId('pay-online').locator('input[name=pay][value=balance]')).toBeChecked();
+	await expect(page.getByTestId('pay-with-payfast')).toContainText(/3[\s ]?200/);
 
 	// Group of two: the online checkout is cancelled, then the lead pays both deposits from
 	// the confirmation page ("Whole group" is the default).
@@ -238,5 +266,5 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 
 	// Owner sees the payments in Settings → Payments.
 	await page.goto('/app/settings/payments');
-	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(9);
+	await expect(page.getByTestId('recent-payments').locator('li')).toHaveCount(10);
 });

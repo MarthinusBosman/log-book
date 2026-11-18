@@ -45,10 +45,12 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 					amountMinor: pay.amountMinor,
 					currency: pay.currency,
 					provider: isOnlineProvider(pay.provider) ? PROVIDERS[pay.provider].label : pay.provider,
-					jumpers: paymentJumpers(pay)
+					jumpers: paymentJumpers(pay),
+					/** The checkout was for the full price, not a deposit: "Pay online now" offers the same again. */
+					full: pay.purpose === 'tandem'
 				}
 			: url.searchParams.get('payerror')
-				? { id: null, status: 'error' as const, amountMinor: 0, currency: p.currency, provider: '', jumpers: 1 }
+				? { id: null, status: 'error' as const, amountMinor: 0, currency: p.currency, provider: '', jumpers: 1, full: url.searchParams.get('full') === '1' }
 				: null;
 	const { usable } = await dropzonePayments(locals.db, dz, secretsKey());
 	const codes = groupCodes(url.searchParams.get('g'));
