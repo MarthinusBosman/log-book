@@ -502,3 +502,61 @@ test('booking: the calendar is one tab stop and arrow keys move between bookable
 	await expect(dayBtn(d8)).toHaveAttribute('aria-pressed', 'true');
 	await expect(page.getByRole('radiogroup', { name: 'Time' }).getByRole('radio')).toHaveCount(1);
 });
+
+test('booking: Continue marks every missing field at once; too young shows inline, no guardian fields', async ({ page }) => {
+	const stamp = `${test.info().project.name}-${Date.now()}`;
+	const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Val Idate');
+	await page.getByLabel('Email').fill(`valid-${stamp}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Valid DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/tandems/slots');
+	await page.getByLabel('Date', { exact: true }).fill(tomorrow);
+	await page.getByLabel('Time', { exact: true }).fill('10:00');
+	await page.getByLabel('Places', { exact: true }).fill('2');
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(page.locator('[data-testid="slot-day"]').first()).toContainText('10:00');
+	await page.goto('/app/tandems');
+	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
+
+	await page.goto(href!);
+	await page.waitForLoadState('networkidle');
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	await page.locator('[data-time="10:00"]').click();
+	await clickVisible(page, ['next', 'next-mobile']);
+	await expect(page.getByTestId('step-heading')).toHaveText('Who’s jumping?');
+
+	// Empty Continue: every required field is marked with its own message, focus on the first.
+	await clickVisible(page, ['next', 'next-mobile']);
+	await expect(page.getByTestId('step-heading')).toHaveText('Who’s jumping?');
+	const required = ['name', 'email', 'phone', 'dob', 'weightKg', 'emergencyName', 'emergencyPhone'];
+	for (const f of required) {
+		const input = page.locator(`input[name=j0_${f}]`);
+		await expect(input).toHaveAttribute('aria-invalid', 'true');
+		await expect(input).toHaveAccessibleDescription(/.+/);
+	}
+	await expect(page.locator('input[name=j0_heightCm]')).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(page.locator('input[name=j0_name]')).toBeFocused();
+	// Typing in a field clears just its mark.
+	await page.locator('input[name=j0_name]').fill('Young Pat');
+	await expect(page.locator('input[name=j0_name]')).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(page.locator('input[name=j0_email]')).toHaveAttribute('aria-invalid', 'true');
+
+	// Under the minimum age: the reason shows under the date of birth right away, and no
+	// guardian fields appear (a guardian can't make it possible).
+	const [y, m, d] = tomorrow.split('-').map(Number);
+	const tenYearsOld = `${y - 10}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+	await page.locator('input[name=j0_dob]').fill(tenYearsOld);
+	await expect(page.locator('input[name=j0_dob]')).toHaveAccessibleDescription(/at least 12/);
+	await expect(page.locator('input[name=j0_guardianName]')).toHaveCount(0);
+	// 16: allowed with a guardian; the age message goes away.
+	await page.locator('input[name=j0_dob]').fill(`${y - 16}-01-01`);
+	await expect(page.locator('input[name=j0_dob]')).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(page.locator('input[name=j0_guardianName]')).toBeVisible();
+});

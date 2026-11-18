@@ -90,7 +90,19 @@
 	const dueNow = $derived(!online ? 0 : payWhat === 'full' || deposit === 0 ? total : deposit);
 	const providerLabel = $derived(data.providers.find((p) => p.id === provider)?.label ?? '');
 	const first = (j: Jumper, i: number) => j.name.trim().split(/\s+/)[0] || `Jumper ${i + 1}`;
-	const isMinor = (j: Jumper) => !!j.dob && !!date && ageOn(j.dob, date) < 18;
+	const tooYoung = (j: Jumper) => !!j.dob && !!date && ageOn(j.dob, date) < data.minAge;
+	const youngMsg = $derived(`Tandem passengers must be at least ${data.minAge} on the jump date`);
+	// Under the minimum age the booking can't go ahead at all, so don't ask for a guardian.
+	const isMinor = (j: Jumper) => !!j.dob && !!date && ageOn(j.dob, date) < 18 && !tooYoung(j);
+
+	/** Messages shown under each invalid field after Continue / Confirm (keyed by input name). */
+	let fieldErrors = $state<Record<string, string>>({});
+	const fieldError = (name: string) => fieldErrors[name] ?? null;
+	/** Editing a field clears its message; the next Continue checks it again. */
+	function clearFieldError(e: Event) {
+		const name = (e.target as HTMLInputElement | null)?.name;
+		if (name && name in fieldErrors) delete fieldErrors[name];
+	}
 
 	function toggleExtra(i: number, code: SlotExtra) {
 		const j = jumpers[i];
@@ -124,19 +136,25 @@
 		if (!fs) return true;
 		for (const el of fs.querySelectorAll<HTMLInputElement>('input[data-dob]')) {
 			const age = el.value && date ? ageOn(el.value, date) : 99;
-			el.setCustomValidity(age < data.minAge ? `Tandem passengers must be at least ${data.minAge} on the jump date` : '');
+			el.setCustomValidity(age < data.minAge ? youngMsg : '');
 		}
 		for (const el of fs.querySelectorAll<HTMLInputElement>('input[data-weight]')) {
 			const w = Number(el.value);
 			el.setCustomValidity(w > data.limits.maxWeightKg ? `The tandem weight limit is ${data.limits.maxWeightKg} kg — please contact us` : '');
 		}
-		for (const el of fs.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')) {
-			if (!el.checkValidity()) {
-				el.reportValidity();
-				return false;
-			}
-		}
-		return true;
+		// Mark every problem in the step at once (not one native bubble per Continue tap), each
+		// under its own field, then focus the first one.
+		const bad = [...fs.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select')].filter((el) => el.name && !el.checkValidity());
+		fieldErrors = Object.fromEntries(bad.map((el) => [el.name, el.validationMessage || 'Please check this field']));
+		if (!bad.length) return true;
+		const firstBad = bad[0];
+		const details = firstBad.closest('details');
+		if (details) details.open = true;
+		tick().then(() => {
+			firstBad.focus({ preventScroll: true });
+			firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' });
+		});
+		return false;
 	}
 	function next() {
 		if (validStep()) go(step + 1);
@@ -170,6 +188,8 @@
 		method="POST"
 		action="?/book"
 		novalidate
+		oninput={clearFieldError}
+		onchange={clearFieldError}
 		use:enhance={({ cancel }) => {
 			if (!validStep()) return cancel();
 			busy = true;
@@ -249,13 +269,13 @@
 							{count > 1 ? (i === 0 ? 'Lead jumper' : `Jumper ${i + 1}`) : 'Your details'}
 						</h2>
 						<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-							<Input label="Full name" name="j{i}_name" bind:value={j.name} required autocomplete={i === 0 ? 'name' : 'off'} class="sm:col-span-2" />
-							<Input label="Email" name="j{i}_email" type="email" bind:value={j.email} required inputmode="email" autocomplete={i === 0 ? 'email' : 'off'} />
-							<Input label="Mobile number" name="j{i}_phone" type="tel" bind:value={j.phone} required inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
-							<Input label="Date of birth" name="j{i}_dob" type="date" bind:value={j.dob} required min="1900-01-01" max={data.today} autocomplete={i === 0 ? 'bday' : 'off'} data-dob />
+							<Input label="Full name" name="j{i}_name" error={fieldError(`j${i}_name`)} bind:value={j.name} required autocomplete={i === 0 ? 'name' : 'off'} class="sm:col-span-2" />
+							<Input label="Email" name="j{i}_email" error={fieldError(`j${i}_email`)} type="email" bind:value={j.email} required inputmode="email" autocomplete={i === 0 ? 'email' : 'off'} />
+							<Input label="Mobile number" name="j{i}_phone" error={fieldError(`j${i}_phone`)} type="tel" bind:value={j.phone} required inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
+							<Input label="Date of birth" name="j{i}_dob" error={fieldError(`j${i}_dob`) ?? (tooYoung(j) ? youngMsg : null)} type="date" bind:value={j.dob} required min="1900-01-01" max={data.today} autocomplete={i === 0 ? 'bday' : 'off'} data-dob />
 							<div class="grid grid-cols-2 gap-3">
-								<Input label="Weight (kg)" name="j{i}_weightKg" type="number" inputmode="decimal" min="20" max="250" step="0.1" bind:value={j.weightKg} required data-weight />
-								<Input label="Height (cm)" name="j{i}_heightCm" type="number" inputmode="numeric" min="80" max="250" bind:value={j.heightCm} />
+								<Input label="Weight (kg)" name="j{i}_weightKg" error={fieldError(`j${i}_weightKg`)} type="number" inputmode="decimal" min="20" max="250" step="0.1" bind:value={j.weightKg} required data-weight />
+								<Input label="Height (cm)" name="j{i}_heightCm" error={fieldError(`j${i}_heightCm`)} type="number" inputmode="numeric" min="80" max="250" bind:value={j.heightCm} />
 							</div>
 						</div>
 						{#if warn.length}
@@ -266,9 +286,9 @@
 						{#if isMinor(j)}
 							<div class="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:grid-cols-2">
 								<p class="text-sm font-medium text-warning sm:col-span-2">Under 18 — a parent or guardian must sign too</p>
-								<Input label="Guardian full name" name="j{i}_guardianName" bind:value={j.guardianName} required />
-								<Input label="Guardian email" name="j{i}_guardianEmail" type="email" bind:value={j.guardianEmail} required />
-								<Input label="Guardian ID / passport" name="j{i}_guardianIdNumber" bind:value={j.guardianIdNumber} required class="sm:col-span-2" />
+								<Input label="Guardian full name" name="j{i}_guardianName" error={fieldError(`j${i}_guardianName`)} bind:value={j.guardianName} required />
+								<Input label="Guardian email" name="j{i}_guardianEmail" error={fieldError(`j${i}_guardianEmail`)} type="email" bind:value={j.guardianEmail} required />
+								<Input label="Guardian ID / passport" name="j{i}_guardianIdNumber" error={fieldError(`j${i}_guardianIdNumber`)} bind:value={j.guardianIdNumber} required class="sm:col-span-2" />
 							</div>
 						{/if}
 						<details class="group mt-4" open={i === 0}>
@@ -277,8 +297,8 @@
 								<span class="text-subtle group-open:hidden">+</span>
 							</summary>
 							<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-								<Input label="Name" name="j{i}_emergencyName" bind:value={j.emergencyName} required={i === 0} />
-								<Input label="Phone" name="j{i}_emergencyPhone" type="tel" bind:value={j.emergencyPhone} required={i === 0} />
+								<Input label="Name" name="j{i}_emergencyName" error={fieldError(`j${i}_emergencyName`)} bind:value={j.emergencyName} required={i === 0} />
+								<Input label="Phone" name="j{i}_emergencyPhone" error={fieldError(`j${i}_emergencyPhone`)} type="tel" bind:value={j.emergencyPhone} required={i === 0} />
 							</div>
 						</details>
 					</section>
@@ -372,10 +392,21 @@
 						<label for="note" class="text-sm font-medium">Anything we should know? <span class="font-normal text-subtle">(optional)</span></label>
 						<textarea id="note" name="j0_note" rows="2" class="{inputCls} h-auto py-2.5" placeholder="Celebrating a birthday, nervous flyer, travelling together…"></textarea>
 					</div>
-					<label class="flex items-start gap-3 text-sm sm:col-span-2">
-						<input type="checkbox" name="terms" required class="mt-0.5 size-5 shrink-0 accent-[var(--dz-primary)]" data-testid="terms" />
-						<span class="text-muted">I understand the jump is weather dependent and may be rescheduled, and that every jumper must sign an indemnity before jumping.</span>
-					</label>
+					<div class="sm:col-span-2">
+						<label class="flex items-start gap-3 text-sm">
+							<input
+								type="checkbox"
+								name="terms"
+								required
+								aria-invalid={fieldError('terms') ? true : undefined}
+								aria-describedby={fieldError('terms') ? 'terms-error' : undefined}
+								class="mt-0.5 size-5 shrink-0 accent-[var(--dz-primary)]"
+								data-testid="terms"
+							/>
+							<span class="text-muted">I understand the jump is weather dependent and may be rescheduled, and that every jumper must sign an indemnity before jumping.</span>
+						</label>
+						{#if fieldError('terms')}<p id="terms-error" class="mt-1.5 ml-8 text-sm text-danger">Please tick this box to confirm</p>{/if}
+					</div>
 				</section>
 			</fieldset>
 
