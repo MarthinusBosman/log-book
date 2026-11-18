@@ -5,6 +5,7 @@ import { logbookJumps, loads, dropzoneMembers, rigs, type Dropzone } from '../db
 import { can } from '../domain/permissions.ts';
 import { currentMembership, requestDropzone } from '../request-cache.ts';
 import { publicOrigin } from '../config.ts';
+import { localDate } from '../domain/time.ts';
 import { exportDropzone, exportJumper, exportLogbookCsv } from './export.ts';
 
 /** The active dropzone if the user may export it (`dz.settings`), else null. */
@@ -31,7 +32,8 @@ export async function exportSummary(event: Pick<RequestEvent, 'locals' | 'cookie
 	return { jumps: j.n, rigs: r.n, dropzone: dzStats };
 }
 
-const stamp = () => new Date().toISOString().slice(0, 10);
+/** Today in `timeZone` (file names follow the dropzone calendar, like the rest of the app). */
+const stamp = (timeZone = 'UTC') => localDate(Date.now(), timeZone);
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'export';
 
 function download(body: string, type: string, filename: string) {
@@ -47,8 +49,10 @@ function download(body: string, type: string, filename: string) {
 export async function downloadJumper(event: RequestEvent, kind: 'json' | 'csv') {
 	const user = event.locals.user;
 	if (!user) redirect(303, `/login?redirectTo=${encodeURIComponent(event.url.pathname)}`);
-	const base = `${slug(user.name)}-${stamp()}`;
-	if (kind === 'csv') return download(await exportLogbookCsv(event.locals.db, user.id), 'text/csv; charset=utf-8', `logbook-${base}.csv`);
+	const current = await currentMembership(event, user.id);
+	const timezone = (current ? (await requestDropzone(event.locals, current.dropzone.id))?.timezone : undefined) ?? 'UTC';
+	const base = `${slug(user.name)}-${stamp(timezone)}`;
+	if (kind === 'csv') return download(await exportLogbookCsv(event.locals.db, user.id, timezone), 'text/csv; charset=utf-8', `logbook-${base}.csv`);
 	const b = await exportJumper(event.locals.db, user.id, publicOrigin(event.url.origin));
 	return download(JSON.stringify(b, null, 1), 'application/json', `log-book-export-${base}.json`);
 }
@@ -58,5 +62,5 @@ export async function downloadDropzone(event: RequestEvent) {
 	const dz = await exportableDropzone(event);
 	if (!dz) error(403, 'Only the dropzone owner or an admin can export dropzone data.');
 	const b = await exportDropzone(event.locals.db, dz.id, publicOrigin(event.url.origin));
-	return download(JSON.stringify(b, null, 1), 'application/json', `log-book-dropzone-${dz.slug}-${stamp()}.json`);
+	return download(JSON.stringify(b, null, 1), 'application/json', `log-book-dropzone-${dz.slug}-${stamp(dz.timezone)}.json`);
 }

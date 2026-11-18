@@ -115,16 +115,20 @@ export async function exportJumper(db: Database, userId: string, origin: string 
 
 /**
  * Logbook spreadsheet: the same file as the Logbook page's CSV button (`logbookCsv`), so both
- * downloads read back in through the CSV importer with every column matched.
+ * downloads read back in through the CSV importer with every column matched. "Signed at" days use
+ * each jump's dropzone timezone, else `fallbackTimezone` (the active dropzone's).
  */
-export async function exportLogbookCsv(db: Database, userId: string): Promise<string> {
+export async function exportLogbookCsv(db: Database, userId: string, fallbackTimezone = 'UTC'): Promise<string> {
 	const jumps = await db
-		.select({ jump: logbookJumps, dropzoneName: dropzones.name })
+		.select({ jump: logbookJumps, dropzoneName: dropzones.name, dropzoneTimezone: dropzones.timezone })
 		.from(logbookJumps)
 		.leftJoin(dropzones, eq(dropzones.id, logbookJumps.dropzoneId))
 		.where(eq(logbookJumps.userId, userId))
 		.orderBy(asc(logbookJumps.jumpNumber));
-	return logbookCsv(jumps.map((r) => ({ ...r.jump, dropzoneName: r.dropzoneName })));
+	return logbookCsv(
+		jumps.map((r) => ({ ...r.jump, dropzoneName: r.dropzoneName, dropzoneTimezone: r.dropzoneTimezone })),
+		fallbackTimezone
+	);
 }
 
 /** A dropzone's operational data (for moving between instances / self-hosting). */

@@ -303,6 +303,28 @@ describe('export → import round trip', () => {
 		expect(csv).toContain('151,2024-03-09,Skydive Demo DZ');
 	});
 
+	test('logbook CSV export prints sign-off days on the dropzone calendar', async () => {
+		const db = freshDb();
+		const { dz } = await makeDropzone(db); // Africa/Johannesburg
+		const me = await makeUser(db);
+		// 23:30 UTC on 2 Nov = 01:30 on 3 Nov in Johannesburg, 18:30 on 2 Nov in New York.
+		const signedAt = new Date('2026-11-02T23:30:00Z');
+		await db.insert(logbookJumps).values([
+			{ id: 'j1', userId: me.id, jumpNumber: 1, jumpDate: '2026-11-02', dropzoneId: dz.id, signerName: 'Ina', signedAt },
+			{ id: 'j2', userId: me.id, jumpNumber: 2, jumpDate: '2026-11-02', location: 'Boogie', signerName: 'Ina', signedAt }
+		]);
+		const signed = (csv: string) =>
+			csv
+				.replace('\uFEFF', '')
+				.trim()
+				.split('\r\n')
+				.slice(1)
+				.map((l) => l.split(',').at(-2));
+		expect(signed(await exportLogbookCsv(db, me.id))).toEqual(['2026-11-03', '2026-11-02']);
+		expect(signed(await exportLogbookCsv(db, me.id, 'Africa/Johannesburg'))).toEqual(['2026-11-03', '2026-11-03']);
+		expect(signed(await exportLogbookCsv(db, me.id, 'America/New_York'))).toEqual(['2026-11-03', '2026-11-02']);
+	});
+
 	test('dropzone data moves to a fresh dropzone on another instance', async () => {
 		const a = freshDb();
 		const { dz: dzA, owner: ownerA } = await makeDropzone(a);
