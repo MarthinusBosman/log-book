@@ -458,7 +458,10 @@
 				{/if}
 				<div class="min-w-0 flex-1 leading-tight">
 					<p class="text-base font-semibold tabular-nums">{money(total)}</p>
-					<p class="truncate text-xs text-muted">{count} jumper{count === 1 ? '' : 's'}{date ? ` · ${fmtDay(date)}` : ''}{time ? ` ${time}` : ''}</p>
+					<!-- wraps instead of truncating: the jump time must stay readable next to a wide pay button -->
+					<p class="text-xs text-muted" data-testid="bar-summary">
+						{count} jumper{count === 1 ? '' : 's'}{#if date}{' · '}<span class="whitespace-nowrap">{fmtDay(date)}{time ? ` ${time}` : ''}</span>{/if}
+					</p>
 				</div>
 				{#if step < 2}
 					<Button onclick={next} data-testid="next-mobile">Continue</Button>

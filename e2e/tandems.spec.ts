@@ -88,6 +88,20 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await clickVisible(page, ['next', 'next-mobile']);
 	await expect(heading).toBeFocused();
 
+	// Phone bottom bar: the jump day + time stays whole next to the confirm button (it used to be
+	// cut to "Thu 19 Nov 1…").
+	const summary = page.getByTestId('bar-summary');
+	if (await summary.isVisible()) {
+		const vp = page.viewportSize()!;
+		await page.setViewportSize({ width: 360, height: vp.height }); // small Android phone
+		await expect(summary).toContainText('10:00');
+		const clipped = await summary.evaluate((p) =>
+			[p, ...p.querySelectorAll('*')].some((el) => el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().right > innerWidth)
+		);
+		expect(clipped).toBe(false);
+		await page.setViewportSize(vp);
+	}
+
 	await page.getByTestId('terms').check();
 	await clickVisible(page, ['confirm', 'confirm-mobile']);
 	await expect(page).toHaveURL(new RegExp(`/dz/${slug}/book/[A-Z0-9]{4}-[A-Z0-9]{4}`));
