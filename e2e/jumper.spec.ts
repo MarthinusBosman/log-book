@@ -303,6 +303,44 @@ test('logbook hints: out-of-order dates and duplicate numbers are pointed out, n
 	await expect(page.getByTestId('jump-hints')).not.toContainText('Dated');
 });
 
+test('recording an AAD service asks for the next due date and moves it — also without JS', async ({ page, browser }) => {
+	await signup(page, 'Aad Owner');
+	await page.goto('/app/my-gear/new');
+	await page.getByLabel('Container make & model *').fill('Javelin Odyssey');
+	await page.getByLabel('Main canopy *').fill('Sabre3');
+	await page.getByLabel('Reserve canopy *').fill('PD 160');
+	await page.getByLabel('Last repack date *').fill('2026-01-01');
+	await page.getByTestId('save-rig').click();
+	await expect(page).toHaveURL(/\/app\/my-gear\/[0-9a-f-]+$/);
+	const rigUrl = new URL(page.url()).pathname;
+
+	// Hydrated: the date field appears for an AAD service only, and is required then
+	await page.waitForLoadState('networkidle');
+	const service = page.getByTestId('service-form');
+	await expect(service.getByTestId('aad-next-due')).toBeHidden();
+	await service.getByLabel('What was done').selectOption('aad_service');
+	await expect(service.getByLabel('Next service due')).toBeVisible();
+	await expect(service.getByLabel('Next service due')).toHaveAttribute('required', '');
+
+	// Without JS: the field still shows (CSS), a missing date is refused and the choice survives
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto(rigUrl);
+	const form = plain.getByTestId('service-form');
+	await expect(form.getByTestId('aad-next-due')).toBeHidden();
+	await form.getByLabel('What was done').selectOption('aad_service');
+	await expect(form.getByLabel('Next service due')).toBeVisible();
+	await form.getByRole('button', { name: 'Record' }).click();
+	await expect(form).toContainText('Enter when the next AAD service is due.');
+	await expect(plain.getByText('No service recorded yet.')).toBeVisible();
+	await expect(form.getByLabel('What was done')).toHaveValue('aad_service');
+	await form.getByLabel('Next service due').fill('2030-06-01');
+	await form.getByRole('button', { name: 'Record' }).click();
+	await expect(plain.getByText('No service recorded yet.')).toHaveCount(0);
+	await expect(plain.locator('input[name=aadServiceDueOn]')).toHaveValue('2030-06-01');
+	await noJs.close();
+});
+
 test('deleting a jump, rig or team asks first — also before hydration / without JS', async ({ page, browser }) => {
 	await signup(page, 'Careful Deleter');
 	const visible = (id: string) => page.getByTestId(id).locator('visible=true');

@@ -13,7 +13,9 @@
 	let { data, form }: PageProps = $props();
 	const rig = $derived(data.rig);
 	const f = $derived(form as { action?: string; message?: string; success?: string; values?: RigFormEcho } | null);
-	let kind = $state('reserve_repack');
+	// A failed no-JS post echoes the kind back, so the AAD date field stays open.
+	const initKind = () => ((form as { action?: string; kind?: string } | null)?.action === 'service' && (form as { kind?: string }).kind) || 'reserve_repack';
+	let kind = $state(initKind());
 	let busy = $state(false);
 	const KIND_LABELS: Record<string, string> = { reserve_repack: 'Reserve repack', aad_service: 'AAD service', main_reline: 'Main reline', inspection: 'Inspection', other: 'Other' };
 	const today = $derived(data.ctx.today);
@@ -47,12 +49,15 @@
 		</Card>
 	</div>
 	<aside class="space-y-4 lg:col-span-2">
-		<Card title="Record service" description="Repacks move your due date forward.">
+		<Card title="Record service" description="Repacks and AAD services move their due dates forward.">
 			<form method="POST" action="?/service" class="space-y-3" use:enhance={() => { busy = true; return async ({ update }) => { await update(); busy = false; }; }} data-testid="service-form">
 				<Select label="What was done" name="kind" bind:value={kind} options={Object.entries(KIND_LABELS).map(([value, label]) => ({ value, label }))} />
 				<div class="grid grid-cols-2 gap-3">
 					<Input label="Date" name="performedOn" type="date" value={today} min="1900-01-01" max={today} required />
-					{#if kind === 'aad_service'}<Input label="Next service due" name="nextDueOn" type="date" min={today} />{/if}
+					<!-- Always rendered; CSS shows it for an AAD service, so it works before hydration / without JS. -->
+					<div class="aad-next-due" data-testid="aad-next-due">
+						<Input label="Next service due" name="nextDueOn" type="date" min={today} required={kind === 'aad_service'} />
+					</div>
 				</div>
 				<div class="grid grid-cols-2 gap-3">
 					<Input label="Rigger" name="performedByName" placeholder="Name" />
@@ -96,3 +101,12 @@
 		</Card>
 	</aside>
 </div>
+
+<style>
+	.aad-next-due {
+		display: none;
+	}
+	form:has(:global(option[value='aad_service']:checked)) .aad-next-due {
+		display: block;
+	}
+</style>

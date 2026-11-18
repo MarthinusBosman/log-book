@@ -42,9 +42,12 @@ export const actions: Actions = {
 		const user = requireUser(locals);
 		const rig = await ownRig(locals, user.id, params.id);
 		const form = await request.formData();
+		const kind = str(form, 'kind') as GearServiceKind;
 		try {
-			const kind = str(form, 'kind') as GearServiceKind;
 			if (!GEAR_SERVICE_KINDS.includes(kind)) throw new DomainError('invalid', 'Choose what was done');
+			const nextDueOn = kind === 'aad_service' ? opt(form, 'nextDueOn') : null;
+			// Without the new date the rig keeps the old one and soon shows the AAD as overdue.
+			if (kind === 'aad_service' && !nextDueOn) throw new DomainError('invalid', 'Enter when the next AAD service is due.');
 			await recordService(locals.db, {
 				rigId: rig.id,
 				kind,
@@ -52,10 +55,10 @@ export const actions: Actions = {
 				performedByName: opt(form, 'performedByName'),
 				riggerNumber: opt(form, 'riggerNumber'),
 				notes: opt(form, 'notes'),
-				nextDueOn: opt(form, 'nextDueOn')
+				nextDueOn
 			});
 		} catch (e) {
-			return domainFail(e, { action: 'service' });
+			return domainFail(e, { action: 'service', kind });
 		}
 		return { action: 'service', success: 'Service recorded' };
 	},
