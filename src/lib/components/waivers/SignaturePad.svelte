@@ -17,9 +17,11 @@
 		value?: string;
 		disabled?: boolean;
 		class?: string;
+		/** Shown under the pad (red border + aria-invalid), e.g. "Please sign here". */
+		error?: string | null;
 		onchange?: (dataUrl: string) => void;
 	};
-	let { name, label = 'Signature', signer, value = $bindable(''), disabled = false, class: className, onchange }: Props = $props();
+	let { name, label = 'Signature', signer, value = $bindable(''), disabled = false, class: className, error = null, onchange }: Props = $props();
 
 	let canvas: HTMLCanvasElement | undefined = $state();
 	let wrap: HTMLDivElement | undefined = $state();
@@ -137,7 +139,7 @@
 	});
 </script>
 
-<div class={cn('flex flex-col gap-1.5', className)}>
+<div class={cn('flex flex-col gap-1.5', className)} data-pad={name}>
 	<div class="flex items-center justify-between">
 		<span id="{uid}-label" class="text-sm font-medium text-fg">{label}</span>
 		<button
@@ -151,7 +153,7 @@
 		bind:this={wrap}
 		class={cn(
 			'relative h-40 w-full overflow-hidden rounded-xl border-2 border-dashed bg-white sm:h-44',
-			empty ? 'border-border-strong' : 'border-primary/50',
+			error ? 'border-danger' : empty ? 'border-border-strong' : 'border-primary/50',
 			disabled && 'opacity-60'
 		)}
 	>
@@ -160,6 +162,8 @@
 			id="{uid}-canvas"
 			class="absolute inset-0 size-full cursor-crosshair touch-none"
 			aria-label="{label} — draw your signature"
+			aria-invalid={error ? 'true' : undefined}
+			aria-describedby={error ? `${uid}-error` : undefined}
 			onpointerdown={down}
 			onpointermove={move}
 			onpointerup={up}
@@ -175,6 +179,9 @@
 			<span class="pointer-events-none absolute bottom-2.5 left-5 text-xs font-medium text-slate-500">{signer}</span>
 		{/if}
 	</div>
+	{#if error}
+		<p id="{uid}-error" class="text-sm text-danger" data-testid="signature-error">{error}</p>
+	{/if}
 	<noscript><p class="text-sm text-warning">Signing needs JavaScript — please enable it to sign.</p></noscript>
 	<input type="hidden" {name} {value} />
 </div>

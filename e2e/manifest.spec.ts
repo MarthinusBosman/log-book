@@ -336,6 +336,10 @@ test('slot editor: marking paid with unsaved price edits saves them first and ch
 	const editor = page.locator('dialog[open]').filter({ has: page.getByTestId('slot-editor') });
 	await expect(editor.getByRole('heading', { name: 'Pat Payer' })).toBeVisible();
 	await page.waitForLoadState('networkidle');
+	// The side sheet takes the whole width on a phone (the UA dialog max-width once left a strip).
+	const vw = page.viewportSize()!.width;
+	const sheet = (await editor.boundingBox())!;
+	expect(sheet.width).toBeCloseTo(Math.min(416, vw), 0);
 	// nothing edited: plain "Mark paid"
 	await expect(editor.getByRole('button', { name: 'Mark paid', exact: true })).toBeVisible();
 	await expect(editor.getByTestId('slot-pay-note')).toHaveCount(0);

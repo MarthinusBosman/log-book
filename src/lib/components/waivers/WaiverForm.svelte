@@ -19,6 +19,10 @@
 		guardianName?: string;
 		/** Index of a section the server flagged (scroll + highlight). */
 		errorSection?: number | null;
+		/** Messages for empty signature pads, keyed by field name (sig_<i>, signature, guardian_signature). */
+		padErrors?: Record<string, string>;
+		/** Called with the pad's field name whenever it is drawn on or cleared. */
+		onpadchange?: (name: string, dataUrl: string) => void;
 		class?: string;
 	};
 	let {
@@ -30,6 +34,8 @@
 		guardian = false,
 		guardianName = '',
 		errorSection = null,
+		padErrors = {},
+		onpadchange,
 		class: className
 	}: Props = $props();
 
@@ -87,7 +93,7 @@
 						<span class="text-sm text-muted">Type your initials to confirm.</span>
 					</div>
 				{:else if s.type === 'signature'}
-					<SignaturePad name="sig_{i}" label={s.title} disabled={preview} class="mt-3" />
+					<SignaturePad name="sig_{i}" label={s.title} disabled={preview} class="mt-3" error={padErrors[`sig_${i}`]} onchange={(v) => onpadchange?.(`sig_${i}`, v)} />
 				{/if}
 			</li>
 		{:else}
@@ -98,10 +104,24 @@
 	<!-- `col-span-full` (not col-span-2) on the footnote: a span-2 item in a one-column grid
 	     adds an implicit second column and squeezes the signature pad to its min width. -->
 	<div class={cn('grid grid-cols-1 gap-5 border-t border-border px-5 py-5 sm:px-6', guardian && 'sm:grid-cols-2')}>
-		<SignaturePad name="signature" label={guardian ? 'Jumper signature' : 'Your signature'} signer={signerName || (preview ? 'John Doe' : '')} disabled={preview} />
+		<SignaturePad
+			name="signature"
+			label={guardian ? 'Jumper signature' : 'Your signature'}
+			signer={signerName || (preview ? 'John Doe' : '')}
+			disabled={preview}
+			error={padErrors.signature}
+			onchange={(v) => onpadchange?.('signature', v)}
+		/>
 		{#if guardian}
 			<div class="flex flex-col gap-3">
-				<SignaturePad name="guardian_signature" label="Parent / guardian signature" signer={guardianName} disabled={preview} />
+				<SignaturePad
+					name="guardian_signature"
+					label="Parent / guardian signature"
+					signer={guardianName}
+					disabled={preview}
+					error={padErrors.guardian_signature}
+					onchange={(v) => onpadchange?.('guardian_signature', v)}
+				/>
 				<Input name="guardian_name" label="Guardian full name" value={guardianName} required={!preview} disabled={preview} />
 			</div>
 		{/if}

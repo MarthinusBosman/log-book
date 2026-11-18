@@ -105,11 +105,13 @@
 		onclose?.();
 	}
 
+	// `max-w-none`: the UA's `dialog:modal { max-width: calc(100% - 2em - 6px) }` would otherwise
+	// cap the widths below on phones (a right sheet left a 38 px strip at 390 px).
 	const placement = {
 		center:
-			'm-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl animate-slide-up max-h-[85dvh]',
-		right: 'ml-auto mr-0 my-0 h-dvh max-h-dvh w-[min(26rem,100vw)] rounded-l-2xl animate-slide-in-right',
-		left: 'mr-auto ml-0 my-0 h-dvh max-h-dvh w-[min(20rem,85vw)] rounded-r-2xl animate-slide-in-left',
+			'm-auto w-[min(32rem,calc(100vw-2rem))] max-w-none rounded-2xl animate-slide-up max-h-[85dvh]',
+		right: 'ml-auto mr-0 my-0 h-dvh max-h-dvh w-[min(26rem,100vw)] max-w-none rounded-l-2xl animate-slide-in-right',
+		left: 'mr-auto ml-0 my-0 h-dvh max-h-dvh w-[min(20rem,85vw)] max-w-none rounded-r-2xl animate-slide-in-left',
 		bottom: 'mx-auto mb-0 mt-auto w-full max-w-2xl rounded-t-2xl animate-slide-up max-h-[90dvh]'
 	};
 </script>

@@ -126,7 +126,15 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	const formBox = (await page.getByTestId('sign-form').boundingBox())!;
 	const padBox = (await page.locator('[data-testid="sign-form"] canvas').first().boundingBox())!;
 	expect(padBox.width).toBeGreaterThan(formBox.width * 0.8);
+	// Submitting unsigned marks the pad itself (not just a toast); drawing clears the mark.
+	await page.getByTestId('sign-submit').click();
+	const pad = page.locator('[data-testid="sign-form"] [data-pad="signature"]');
+	await expect(pad.getByTestId('signature-error')).toHaveText('Please sign in the signature box.');
+	await expect(pad.locator('canvas')).toHaveAttribute('aria-invalid', 'true');
+	await expect(pad.locator('canvas')).toHaveAccessibleDescription('Please sign in the signature box.');
 	await drawSignature(page);
+	await expect(pad.getByTestId('signature-error')).toHaveCount(0);
+	await expect(pad.locator('canvas')).not.toHaveAttribute('aria-invalid', 'true');
 	await page.getByTestId('sign-submit').click();
 	await expect(page.getByTestId('ticket')).toContainText('Signed');
 
