@@ -360,6 +360,13 @@ export const slotActions = {
 		const form = await ev.request.formData();
 		return runAction('updateSlot', async () => {
 			const s = await slotWithCap(ev, str(form, 'slotId'), 'manifest');
+			// "Save & mark paid" (slot editor with unsaved price edits): check the payment side first
+			const andPay = bool(form, 'andPay');
+			const provider = str(form, 'provider');
+			if (andPay) {
+				await slotWithCap(ev, s.id, 'payments.manage');
+				if (!['cash', 'card', 'eft', 'manual'].includes(provider)) throw new DomainError('invalid', 'Choose how it was paid');
+			}
 			const patch: loadsSvc.SlotPatch = {};
 			if (form.has('jumpType')) patch.jumpType = jumpType(form);
 			if (form.has('extrasSent')) patch.extras = extras(form);
@@ -377,6 +384,11 @@ export const slotActions = {
 				if (patch.baseOverrideMinor === s.baseOverrideMinor) delete patch.baseOverrideMinor;
 			}
 			await loadsSvc.updateSlot(ev.locals.db, s.id, patch, { by: ev.locals.user!.id });
+			if (andPay) {
+				// after the update, so the payment covers the new price
+				const p = await markSlotsPaid(ev.locals.db, { dropzoneId: s.dropzoneId, slotIds: [s.id], provider: provider as 'cash' | 'card' | 'eft' | 'manual', by: ev.locals.user!.id });
+				return { ok: true, action: 'updateSlot', paid: p?.slotIds.length ?? 0 };
+			}
 			return { ok: true, action: 'updateSlot' };
 		});
 	}

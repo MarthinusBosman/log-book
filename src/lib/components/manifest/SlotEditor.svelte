@@ -25,7 +25,19 @@
 	let jumpType = $state<JumpType>(initial()?.jumpType ?? 'belly');
 	let extras = $state<SlotExtra[]>([...(initial()?.extras ?? [])]);
 	let colour = $state(initial()?.colour ?? '');
+	const savedBase = (s: SlotVM | null) => (s?.baseOverrideMinor != null ? s.baseOverrideMinor / 100 : '');
+	let baseOverride = $state<string | number | null>(savedBase(initial()));
+	let provider = $state('cash');
 	let busy = $state(false);
+	const uid = $props.id();
+	const updateFormId = `slot-update-${uid}`;
+
+	const minor = (v: string | number | null | undefined) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Math.round(Number(v) * 100));
+	const sameExtras = (a: readonly string[], b: readonly string[]) => [...a].sort().join() === [...b].sort().join();
+	/** Price fields edited but not saved: "Mark paid" alone would charge the old price and drop them. */
+	const priceDirty = $derived(
+		!!slot && editable && !slot.paid && (jumpType !== slot.jumpType || !sameExtras(extras, slot.extras) || minor(baseOverride) !== (slot.baseOverrideMinor ?? null))
+	);
 
 	// Re-initialise only when a different slot is opened: the page hands in a fresh object
 	// for the same slot after every reload, which must not reset what is being edited.
@@ -38,6 +50,8 @@
 				jumpType = s.jumpType;
 				extras = [...s.extras];
 				colour = s.colour ?? '';
+				baseOverride = savedBase(s);
+				provider = 'cash';
 			}
 		});
 	});
@@ -67,25 +81,34 @@
 				{#if canPay && !s.paid && s.totalMinor > 0}
 					<form method="POST" action={formAction(page.url, 'markPaid')} class="mt-2 flex gap-2" use:enhance={act({ success: 'Slot marked as paid', onSuccess: close })}>
 						<input type="hidden" name="slotId" value={s.id} />
-						<Select name="provider" value="cash" aria-label="Payment method" class="flex-1" options={[{ value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'eft', label: 'EFT' }, { value: 'manual', label: 'Other' }]} />
-						<Button type="submit" variant="secondary" class="h-11">Mark paid</Button>
+						<!-- With unsaved price edits both controls join the slot form: one tap saves, then marks the NEW total paid. -->
+						<Select name="provider" bind:value={provider} form={priceDirty ? updateFormId : undefined} aria-label="Payment method" class="flex-1" options={[{ value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'eft', label: 'EFT' }, { value: 'manual', label: 'Other' }]} />
+						{#if priceDirty}
+							<Button type="submit" variant="secondary" class="h-11" form={updateFormId} name="andPay" value="1" aria-describedby="slot-pay-note">Save & mark paid</Button>
+						{:else}
+							<Button type="submit" variant="secondary" class="h-11">Mark paid</Button>
+						{/if}
 					</form>
+					{#if priceDirty}
+						<p id="slot-pay-note" class="mt-1.5 text-xs text-muted" data-testid="slot-pay-note">You changed the price below: this saves the slot first, then marks the new total paid.</p>
+					{/if}
 				{/if}
 			</section>
 
 			{#if editable}
 				<form
+					id={updateFormId}
 					method="POST"
 					action={formAction(page.url, 'updateSlot')}
 					class="flex flex-col gap-4"
-					use:enhance={act({ success: 'Slot updated', onSuccess: close, pending: (b) => (busy = b) })}
+					use:enhance={act({ success: (d) => (d.paid ? 'Slot saved and marked as paid' : 'Slot updated'), onSuccess: close, pending: (b) => (busy = b) })}
 				>
 					<input type="hidden" name="slotId" value={s.id} />
 					{#if s.paid}
 						<p class="rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">This slot is paid — jump type, extras and price are locked.</p>
 					{:else}
 						<JumpFields idPrefix="ed" bind:jumpType bind:extras staffRole={s.staffRole} noTandem={s.jumpType !== 'tandem'} {currency} />
-						<Input label="Custom base price ({currency})" name="baseOverride" type="number" min="0" step="0.01" value={s.baseOverrideMinor != null ? s.baseOverrideMinor / 100 : ''} hint="Leave empty for the price list. Replaces the base only." />
+						<Input label="Custom base price ({currency})" name="baseOverride" type="number" min="0" step="0.01" bind:value={baseOverride} hint="Leave empty for the price list. Replaces the base only." />
 					{/if}
 					<div class="grid grid-cols-2 gap-3">
 						<Input label="Weight (kg)" name="weightKg" type="number" min="0" step="1" value={s.weightKg} />

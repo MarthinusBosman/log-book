@@ -301,6 +301,62 @@ test('board slot rows open the slot editor (?slot=), also before hydration / wit
 	await ctx.close();
 });
 
+test('slot editor: marking paid with unsaved price edits saves them first and charges the new total', async ({ page }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Paula Payfirst');
+	await page.getByLabel('Email').fill(`payfirst-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`PayFirst E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/pricelist');
+	await page.getByLabel('Sport slot', { exact: true }).fill('450');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.getByText('Price list updated')).toBeVisible();
+
+	await page.goto('/app/manifest?new=1');
+	const dialog = page.locator('dialog[open]');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-PAY');
+	await dialog.getByLabel('Slots (pax)').fill('8');
+	await dialog.getByLabel('Weight limit (kg)').fill('900');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await page.getByTestId('load-card').getByRole('link', { name: 'Add slots' }).click();
+	await page.getByRole('tab', { name: 'Custom' }).click();
+	await page.getByLabel('Jumper name').fill('Pat Payer');
+	await page.getByLabel('Slot weight (kg)').fill('80');
+	await page.getByRole('button', { name: 'Create jumper slot' }).click();
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Pat Payer"]')).toBeVisible();
+
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('link', { name: 'Edit Pat Payer' }).click();
+	const editor = page.locator('dialog[open]').filter({ has: page.getByTestId('slot-editor') });
+	await expect(editor.getByRole('heading', { name: 'Pat Payer' })).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	// nothing edited: plain "Mark paid"
+	await expect(editor.getByRole('button', { name: 'Mark paid', exact: true })).toBeVisible();
+	await expect(editor.getByTestId('slot-pay-note')).toHaveCount(0);
+	// a new base price: Mark paid alone would charge R 450 and drop the edit
+	await editor.getByLabel(/Custom base price/).fill('500');
+	await expect(editor.getByRole('button', { name: 'Mark paid', exact: true })).toHaveCount(0);
+	const both = editor.getByRole('button', { name: 'Save & mark paid' });
+	await expect(both).toHaveAccessibleDescription(/saves the slot first/);
+	await editor.getByLabel('Payment method').selectOption('card');
+	await both.click();
+	await expect(page.getByText('Slot saved and marked as paid')).toBeVisible();
+	await expect(page.getByTestId('slot-editor')).toHaveCount(0);
+	const row = page.locator('[data-testid=detail-slot][data-slot-name="Pat Payer"]');
+	await expect(row).toContainText('500');
+	await expect(row).toContainText(/Paid · Card/);
+	// reopened: paid, so there is no pay form at all
+	await page.getByRole('link', { name: 'Edit Pat Payer' }).click();
+	await expect(editor).toContainText('Paid via Card');
+	await expect(editor.getByRole('button', { name: /Mark paid/ })).toHaveCount(0);
+});
+
 test('public display needs a valid token', async ({ page }) => {
 	const res = await page.goto('/dz/no-such-dz/display?token=nope-nope-nope-nope');
 	expect(res?.status()).toBe(404);
