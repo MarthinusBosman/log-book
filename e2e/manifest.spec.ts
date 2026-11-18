@@ -424,4 +424,22 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await expect(page.getByRole('heading', { name: 'Add to load' })).toBeInViewport();
 	await expect.poll(() => page.evaluate(() => Math.round(document.getElementById('add')!.getBoundingClientRect().top))).toBeLessThan(200);
 	await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+
+	// Her jumper page lists the slot; on a phone the table folds day + load under the jump
+	// instead of scrolling sideways (a scroll region keyboard users can't reach).
+	await page.goto('/app/jumpers');
+	await page.locator('main a[href^="/app/jumpers/"]').filter({ hasText: 'Olga Onload' }).first().click();
+	await expect(page).toHaveURL(/\/app\/jumpers\/[^/]+$/);
+	const recent = page.locator('main table').filter({ has: page.getByRole('columnheader', { name: 'Price' }) }).last();
+	const meta = recent.getByTestId('recent-jump-meta');
+	await expect(meta).toBeVisible();
+	await expect(meta).toHaveText(/^\d{1,2} \w{3} \d{4} · Load #1 · ZS-TWO$/);
+	await expect(recent.getByRole('columnheader', { name: 'Day' })).toBeHidden();
+	const overflow = () => recent.evaluate((t) => t.parentElement!.scrollWidth - t.parentElement!.clientWidth);
+	expect(await overflow()).toBeLessThanOrEqual(0);
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await expect(meta).toBeHidden();
+	await expect(recent.getByRole('columnheader', { name: 'Day' })).toBeVisible();
+	await expect(recent.locator('tbody tr').first()).toContainText(/\d{1,2} \w{3} \d{4}/);
+	expect(await overflow()).toBeLessThanOrEqual(0);
 });

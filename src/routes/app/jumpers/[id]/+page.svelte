@@ -19,6 +19,7 @@
 	} from '#lib/domain/constants.ts';
 	import { cn } from '#lib/ui/index.ts';
 	import StaffPasaPanel from '#lib/components/memberships/StaffPasaPanel.svelte';
+	import { fmtDate } from '#lib/components/jumper/format.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -90,7 +91,7 @@
 				<div class="flex items-center justify-between gap-3">
 					<dt class="text-muted">Waiver</dt>
 					<dd>
-						{#if data.waiverSignedAt}<Badge tone="success">Signed {new Date(data.waiverSignedAt).toLocaleDateString('en-ZA')}</Badge>{:else}<Badge tone="warning" dot>Not signed</Badge>{/if}
+						{#if data.waiverSignedAt}<Badge tone="success">Signed {new Date(data.waiverSignedAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}</Badge>{:else}<Badge tone="warning" dot>Not signed</Badge>{/if}
 					</dd>
 				</div>
 			{/if}
@@ -254,20 +255,21 @@
 				<table class="w-full text-sm">
 					<thead>
 						<tr class="border-y border-border bg-surface-2/60 text-left text-xs tracking-wide text-muted uppercase">
-							<th class="py-2 pr-3 pl-5 font-medium">Day</th>
-							<th class="px-3 py-2 font-medium">Load</th>
-							<th class="px-3 py-2 font-medium">Jump</th>
+							<th class="hidden py-2 pr-3 pl-5 font-medium sm:table-cell">Day</th>
+							<th class="hidden px-3 py-2 font-medium sm:table-cell">Load</th>
+							<th class="py-2 pr-3 pl-5 font-medium sm:px-3">Jump</th>
 							<th class="py-2 pr-5 pl-3 text-right font-medium">Price</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each data.recent as s (s.slotId)}
 							<tr class="border-b border-border/70 last:border-0">
-								<td class="py-2.5 pr-3 pl-5 whitespace-nowrap tabular-nums">{s.day}</td>
-								<td class="px-3 py-2.5">#{s.loadNumber}<span class="text-xs text-muted"> · {s.aircraft ?? '—'}</span></td>
-								<td class="px-3 py-2.5">
+								<td class="hidden py-2.5 pr-3 pl-5 whitespace-nowrap tabular-nums sm:table-cell">{fmtDate(s.day)}</td>
+								<td class="hidden px-3 py-2.5 sm:table-cell">#{s.loadNumber} <span class="text-xs text-muted">· {s.aircraft ?? '—'}</span></td>
+								<td class="py-2.5 pr-3 pl-5 sm:px-3">
 									{JUMP_TYPE_LABELS[s.jumpType as JumpType] ?? s.jumpType}
 									{#if s.staffRole}<Badge tone="brand" class="ml-1 !text-[11px]">{SLOT_STAFF_ROLE_LABELS[s.staffRole as SlotStaffRole] ?? s.staffRole}</Badge>{/if}
+									<span class="block text-[11px] text-subtle tabular-nums sm:hidden" data-testid="recent-jump-meta">{fmtDate(s.day)} · Load #{s.loadNumber}{s.aircraft ? ` · ${s.aircraft}` : ''}</span>
 								</td>
 								<td class="py-2.5 pr-5 pl-3 text-right tabular-nums">
 									{s.staffRole ? '—' : money(s.totalMinor)}
