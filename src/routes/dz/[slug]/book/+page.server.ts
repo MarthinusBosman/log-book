@@ -11,10 +11,9 @@ import { failFrom, publicOrigin, sendAdminBookingEmail, sendConfirmationEmail, s
 import { bookingOptions } from '#lib/server/tandems/payments.ts';
 import { startTandemCheckout, isOnlineProvider } from '#lib/server/payments/index.ts';
 import { paymentsContext, secretsKey } from '#lib/server/payments/runtime.ts';
-import { bookableDays, publicDropzone } from '#lib/server/tandems/public.ts';
+import { BOOKING_HORIZON_DAYS as HORIZON_DAYS, bookableDays, publicDropzone } from '#lib/server/tandems/public.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-const HORIZON_DAYS = 90;
 const MAX_JUMPERS = 5;
 const MIN_AGE = 12;
 

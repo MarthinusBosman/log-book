@@ -6,6 +6,7 @@
 	import { formatMoney, type SlotExtra } from '#lib/domain/constants.ts';
 	import BookingSteps from '#lib/components/tandems/BookingSteps.svelte';
 	import MonthCalendar from '#lib/components/tandems/MonthCalendar.svelte';
+	import NoBookingTimes from '#lib/components/tandems/NoBookingTimes.svelte';
 	import { EXTRA_COPY, addOnsSuffix, ageOn, extraToggleLabel, fmtDay, limitWarnings } from '#lib/components/tandems/model.ts';
 	import type { PageProps } from './$types';
 
@@ -58,6 +59,8 @@
 
 	const available = $derived(Object.fromEntries(Object.entries(data.days).map(([d, s]) => [d, s.reduce((n, x) => n + x.remaining, 0)])));
 	const times = $derived(date ? (data.days[date] ?? []) : []);
+	// No open times in the whole horizon: show the DZ's contact details instead of an empty calendar.
+	const bookable = $derived(Object.keys(data.days).length > 0);
 	const slotLeft = $derived(times.find((t) => t.time === time)?.remaining ?? 0);
 	// Time picker = one tab stop; arrow keys move + select (radio group pattern).
 	const timesEnabled = $derived(times.map((t) => t.remaining > 0));
@@ -166,6 +169,15 @@
 
 <svelte:head><title>Book a tandem · {data.dz.name}</title></svelte:head>
 
+{#if !bookable}
+	<div class="mx-auto max-w-2xl px-4 pt-10 pb-16 sm:px-6">
+		<h1 data-testid="step-heading" class="text-2xl font-semibold tracking-tight sm:text-3xl">Book a tandem at {data.dz.name}</h1>
+		<div class="mt-6 rounded-2xl border border-border bg-surface p-5">
+			<NoBookingTimes dz={data.dz} />
+		</div>
+		<a href="/dz/{data.dz.slug}" class="mt-6 inline-block text-sm font-medium text-primary hover:underline"><span aria-hidden="true">‹</span> {data.dz.name}</a>
+	</div>
+{:else}
 <div bind:this={top} class="mx-auto max-w-5xl scroll-mt-16 px-4 pt-6 pb-28 sm:px-6 lg:pb-12">
 	<div class="max-w-2xl">
 		<BookingSteps current={STEPS[step]} waiver={data.waiver} />
@@ -472,3 +484,4 @@
 		</div>
 	</form>
 </div>
+{/if}

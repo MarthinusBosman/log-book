@@ -397,6 +397,20 @@ test('public dropzone page: opening days have a text alternative, phone link dia
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 
+	await page.goto('/app/tandems');
+	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
+	const slug = href!.split('/')[2];
+
+	// No booking times and no contact details yet: no dead-end "Book a tandem" (it led to an empty
+	// calendar priced R 0,00), and no "Get in touch" without a way to.
+	await page.goto(`/dz/${slug}`);
+	await expect(page.getByTestId('no-booking-times')).toHaveText('Online booking isn’t open yet. Check back soon.');
+	await expect(page.getByTestId('book-cta')).toHaveCount(0);
+	await expect(page.getByRole('link', { name: 'Book a tandem' })).toHaveCount(0);
+	await page.goto(`/dz/${slug}/book`);
+	await expect(page.getByTestId('no-booking-times')).toContainText('Check back soon');
+	await expect(page.locator('[data-date]')).toHaveCount(0);
+
 	await page.goto('/app/settings');
 	await page.waitForLoadState('networkidle');
 	await page.getByLabel('Phone').fill('+27 21 555 0123');
@@ -410,9 +424,10 @@ test('public dropzone page: opening days have a text alternative, phone link dia
 	await page.getByRole('button', { name: 'Save details' }).click();
 	await expect(page.getByText('Dropzone details saved').first()).toBeVisible();
 
-	await page.goto('/app/tandems');
-	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
-	const slug = href!.split('/')[2];
+	// With a phone number the empty booking page points at it instead.
+	await page.goto(`/dz/${slug}/book`);
+	await expect(page.getByTestId('no-booking-times')).toContainText('Call or email Hours DZ');
+	await expect(page.getByTestId('no-booking-times').locator('a[href^="tel:"]')).toHaveText('+27 21 555 0123');
 
 	for (const url of [`/dz/${slug}`, `/app/dropzones/${slug}`]) {
 		await page.goto(url);

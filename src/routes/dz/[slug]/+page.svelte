@@ -3,6 +3,7 @@
 	import { SLOT_EXTRA_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import { countryName } from '#lib/domain/countries.ts';
 	import { fmtDay } from '#lib/components/tandems/model.ts';
+	import NoBookingTimes from '#lib/components/tandems/NoBookingTimes.svelte';
 	import { openDaysText, telHref } from '#lib/components/jumper/hours.ts';
 	import type { PageProps } from './$types';
 
@@ -26,6 +27,7 @@
 				: null
 	);
 	const bookHref = $derived(`/dz/${dz.slug}/book`);
+	const bookable = $derived(data.upcoming.length > 0);
 	const countryLabel = $derived(dz.country ? countryName(dz.country) : null);
 </script>
 
@@ -50,7 +52,7 @@
 		<h1 class="mt-3 max-w-2xl text-4xl leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl">{dz.name}</h1>
 		{#if dz.description}<p class="mt-5 max-w-xl text-base text-pretty text-white/75 sm:text-lg">{dz.description}</p>{/if}
 		<div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-			<Button href={bookHref} size="lg" data-testid="book-cta">Book a tandem <Icon name="arrowRight" class="size-4" /></Button>
+			{#if bookable}<Button href={bookHref} size="lg" data-testid="book-cta">Book a tandem <Icon name="arrowRight" class="size-4" /></Button>{/if}
 			{#if data.offer.baseMinor > 0}
 				<p class="text-sm text-white/70">From <span class="font-semibold text-white">{money(data.offer.baseMinor)}</span> per person</p>
 			{/if}
@@ -77,7 +79,7 @@
 				{/each}
 			</ul>
 		{:else}
-			<p class="mt-3 text-sm text-muted">No online booking times are open right now. Get in touch and we’ll find you a slot.</p>
+			<NoBookingTimes {dz} class="mt-3" />
 		{/if}
 		{#if data.offer.extras.length}
 			<h3 class="mt-6 text-xs font-semibold tracking-wider text-subtle uppercase">Add-ons</h3>
@@ -125,6 +127,8 @@
 </div>
 
 <!-- sticky mobile CTA -->
-<div class="sticky bottom-0 z-20 border-t border-border bg-bg/85 p-3 backdrop-blur-xl sm:hidden">
-	<Button href={bookHref} class="w-full" size="lg">Book a tandem</Button>
-</div>
+{#if bookable}
+	<div class="sticky bottom-0 z-20 border-t border-border bg-bg/85 p-3 backdrop-blur-xl sm:hidden">
+		<Button href={bookHref} class="w-full" size="lg">Book a tandem</Button>
+	</div>
+{/if}
