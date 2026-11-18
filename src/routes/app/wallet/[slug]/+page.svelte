@@ -26,8 +26,22 @@
 	let tab = $state(urlTab());
 	syncViewToUrl(() => ({ tab: tab === defaultTab() ? null : tab }));
 	const tabHref = (id: string) => viewParamsHref(page.url, { tab: id === defaultTab() ? null : id });
-	let amount = $state('');
-	const firstProvider = () => data.providers[0]?.id ?? 'manual';
+	// Back from a cancelled/failed checkout the form keeps what the jumper chose (amount + provider),
+	// so trying again is one tap instead of retyping.
+	const retry = () => {
+		const n = data.paymentNotice;
+		return n && n.status !== 'succeeded' && n.status !== 'pending' ? n : null;
+	};
+	let amount = $state(retryAmount());
+	function retryAmount() {
+		const n = retry();
+		return n ? (n.amountMinor / 100).toFixed(2).replace(/\.00$/, '') : '';
+	}
+	const firstProvider = () => {
+		const n = retry();
+		if (n && data.providers.some((p) => p.id === n.providerId)) return n.providerId;
+		return data.providers[0]?.id ?? 'manual';
+	};
 	let provider = $state<string>(firstProvider());
 	const online = $derived(provider !== 'manual');
 	const providerLabel = $derived(data.providers.find((p) => p.id === provider)?.label ?? '');
@@ -66,7 +80,7 @@
 		<p class="min-w-0 flex-1">
 			{#if ok}<span class="font-medium">{formatMoney(notice.amountMinor, notice.currency)} added to your wallet</span> <span class="text-muted">· paid via {notice.provider}</span>
 			{:else if wait}<span class="font-medium">Not confirmed yet</span> <span class="text-muted">· {notice.provider} hasn’t confirmed this top-up. If you finished paying it shows up within a minute (<a href={page.url.href} class="font-medium text-primary hover:underline">refresh</a>); if not, cancel it under Pending top-ups.</span>
-			{:else}<span class="font-medium">Top-up not completed</span> <span class="text-muted">· no money was taken.</span>{/if}
+			{:else}<span class="font-medium">Top-up not completed</span> <span class="text-muted">· no money was taken.{#if data.dz.walletEnabled} <a href="#topup" class="font-medium text-primary hover:underline">Try again</a> — your amount is filled in.{/if}</span>{/if}
 		</p>
 	</div>
 {/if}

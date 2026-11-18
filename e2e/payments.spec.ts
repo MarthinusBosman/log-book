@@ -246,6 +246,11 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await page.getByTestId('mock-cancel').click();
 	await expect(page.getByTestId('payment-notice')).toHaveAttribute('data-status', 'cancelled');
 	await expect(page.getByTestId('wallet-balance')).toContainText('750');
+	// The form keeps the cancelled choice (amount + provider) so trying again is one tap.
+	await expect(page.getByTestId('payment-notice')).toContainText('Try again');
+	await expect(page.locator('#amount')).toHaveValue('100');
+	await expect(page.getByTestId('topup-provider-yoco')).toBeChecked();
+	await expect(page.getByTestId('topup-submit')).toContainText('Continue to Yoco');
 
 	// Abandoned Paystack checkout (customer comes back without paying): listed as pending with a
 	// Check button that asks the provider (still unpaid → "Not confirmed yet"), then cancelled.

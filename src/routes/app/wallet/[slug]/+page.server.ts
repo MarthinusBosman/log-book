@@ -85,7 +85,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		providers: topup.options,
 		paymentNotice:
 			notice && notice.userId === user.id && notice.dropzoneId === dz.id && notice.purpose === 'wallet_topup'
-				? { status: notice.status, amountMinor: notice.amountMinor, currency: notice.currency, provider: providerLabel(notice.provider) }
+				? { status: notice.status, amountMinor: notice.amountMinor, currency: notice.currency, provider: providerLabel(notice.provider), providerId: notice.provider }
 				: null
 	};
 };
