@@ -12,7 +12,7 @@
 
 	let { data, form }: PageProps = $props();
 	const j = $derived(data.jump);
-	const f = $derived(form as { action?: string; values?: typeof data.values; message?: string; success?: string; link?: string; qr?: string; expiresInDays?: number } | null);
+	const f = $derived(form as { action?: string; values?: typeof data.values; message?: string; fields?: Record<string, string> | null; success?: string; link?: string; qr?: string; expiresInDays?: number } | null);
 	let busySign = $state(false);
 	let copied = $state(false);
 	// Gentle hints only: paper logbooks get typed in out of order, nothing is blocked.
@@ -98,6 +98,7 @@
 				action="?/update"
 				submitLabel="Save changes"
 				error={f?.action === 'update' ? f.message : null}
+				fields={f?.action === 'update' ? f.fields : null}
 			/>
 		</Card>
 		{@render deleteCard('mt-4 lg:hidden')}

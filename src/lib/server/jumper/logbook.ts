@@ -35,21 +35,37 @@ export async function rigOptions(db: Database, userId: string) {
 
 /** Parse the jump form. `dropzoneId` = '' means free-text location. */
 export function parseJumpForm(form: FormData, allowedDzIds: Set<string>, now = Date.now()): JumpInput {
+	// Every field problem at once (keyed by input name), so the form can mark each field
+	// instead of the jumper fixing one message per submit.
+	const fields: Record<string, string> = {};
+	const bad = (name: string, message: string) => (fields[name] ??= message);
 	const jumpDate = str(form, 'jumpDate');
-	if (isIsoDate(jumpDate)) assertJumpDateInRange(jumpDate, now);
+	if (!isIsoDate(jumpDate)) bad('jumpDate', 'Please set the date for this jump');
+	else {
+		try {
+			assertJumpDateInRange(jumpDate, now);
+		} catch (e) {
+			bad('jumpDate', (e as Error).message);
+		}
+	}
 	const dz = str(form, 'dropzoneId');
-	if (dz && !allowedDzIds.has(dz)) throw new DomainError('invalid', 'Choose one of your dropzones or type a location');
-	if (!dz && !opt(form, 'location')) throw new DomainError('invalid', 'Choose a dropzone or type a location');
+	if (dz && !allowedDzIds.has(dz)) bad('dropzoneId', 'Choose one of your dropzones or type a location');
+	if (!dz && !opt(form, 'location')) bad('location', 'Choose a dropzone or type a location');
 	const jumpType = str(form, 'jumpType');
-	if (jumpType && !JUMP_TYPES.includes(jumpType as JumpType)) throw new DomainError('invalid', 'Unknown jump type');
+	if (jumpType && !JUMP_TYPES.includes(jumpType as JumpType)) bad('jumpType', 'Unknown jump type');
 	const n = int(form, 'jumpNumber');
 	const alt = int(form, 'altitudeFt');
 	const ff = seconds(form, 'freefallSeconds');
-	if (Number.isNaN(n as number)) throw new DomainError('invalid', 'Jump number must be a whole number');
-	if (Number.isNaN(alt as number)) throw new DomainError('invalid', 'Altitude must be a number (feet)');
-	if (Number.isNaN(ff as number)) throw new DomainError('invalid', 'Freefall time must be seconds or mm:ss');
-	if (alt !== null && alt > 40000) throw new DomainError('invalid', 'Altitude looks too high (feet, max 40 000)');
-	if (ff !== null && ff > 600) throw new DomainError('invalid', 'Freefall time looks too long (max 10 minutes)');
+	if (Number.isNaN(n as number) || (n !== null && n < 1)) bad('jumpNumber', 'Jump number must be a positive whole number');
+	if (Number.isNaN(alt as number)) bad('altitudeFt', 'Altitude must be a number (feet)');
+	else if (alt !== null && alt < 0) bad('altitudeFt', "Altitude can't be negative");
+	else if (alt !== null && alt > 40000) bad('altitudeFt', 'Altitude looks too high (feet, max 40 000)');
+	if (Number.isNaN(ff as number)) bad('freefallSeconds', 'Freefall time must be seconds or mm:ss');
+	else if (ff !== null && ff > 600) bad('freefallSeconds', 'Freefall time looks too long (max 10 minutes)');
+	const problems = Object.values(fields);
+	if (problems.length) {
+		throw new DomainError('invalid', problems.length === 1 ? problems[0] : `Please fix the ${problems.length} highlighted fields`, { fields });
+	}
 	return {
 		jumpNumber: n ?? undefined,
 		jumpDate,

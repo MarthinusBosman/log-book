@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { createSignToken, parseSignToken, qrSvg, verifySignToken } from './signoff.ts';
 import { csvField, logbookCsv } from './csv.ts';
-import { friendlyError, moneyMinor, seconds } from './forms.ts';
+import { domainFail, fieldErrors, friendlyError, moneyMinor, seconds } from './forms.ts';
 import { DomainError } from '../domain/errors.ts';
 import { jumpFormEcho, parseJumpForm } from './logbook.ts';
 import { rigFormEcho } from './gear.ts';
@@ -110,6 +110,32 @@ describe('jump form', () => {
 		expect(parseJumpForm(fd({ ...base, jumpDate: '2026-11-14' }), new Set(), now).jumpDate).toBe('2026-11-14');
 		expect(() => parseJumpForm(fd({ ...base, jumpDate: '2030-01-01' }), new Set(), now)).toThrow(/future/);
 		expect(() => parseJumpForm(fd({ ...base, jumpDate: '0101-02-03' }), new Set(), now)).toThrow(/past/);
+	});
+	test('reports every bad field at once, keyed by input name', () => {
+		let err: unknown;
+		try {
+			parseJumpForm(fd({ jumpNumber: '0', jumpDate: '2030-01-01', dropzoneId: '', location: '', altitudeFt: '-50', freefallSeconds: 'abc', jumpType: 'belly' }), new Set(), now);
+		} catch (e) {
+			err = e;
+		}
+		expect(err).toBeInstanceOf(DomainError);
+		const e = err as DomainError;
+		expect(e.message).toBe('Please fix the 5 highlighted fields');
+		expect(fieldErrors(e)).toEqual({
+			jumpDate: 'That jump date is in the future',
+			location: 'Choose a dropzone or type a location',
+			jumpNumber: 'Jump number must be a positive whole number',
+			altitudeFt: "Altitude can't be negative",
+			freefallSeconds: 'Freefall time must be seconds or mm:ss'
+		});
+		// a single problem keeps its own message
+		expect(() => parseJumpForm(fd({ jumpDate: '2026-11-14', location: 'Boogie', altitudeFt: '50000' }), new Set(), now)).toThrow('Altitude looks too high (feet, max 40 000)');
+		expect(() => parseJumpForm(fd({ jumpDate: '', location: 'Boogie' }), new Set(), now)).toThrow('Please set the date for this jump');
+	});
+	test('domainFail passes field messages to the form', () => {
+		const r = domainFail(new DomainError('invalid', 'x', { fields: { altitudeFt: 'bad', junk: 3 } }));
+		expect(r.data.fields).toEqual({ altitudeFt: 'bad' });
+		expect(domainFail(new DomainError('invalid', 'x')).data.fields).toBeNull();
 	});
 	test('echoes what was typed so a failed post keeps the values', () => {
 		const v = jumpFormEcho(fd({ jumpNumber: '42', jumpDate: '0101-02-03', dropzoneId: '', location: 'Boogie', altitudeFt: '-500', freefallSeconds: '0:45', jumpType: 'freefly', description: 'Long track' }));

@@ -63,10 +63,21 @@ export function domainFail<T extends Record<string, unknown>>(e: unknown, extra?
 		return fail(e.code === 'forbidden' ? 403 : e.code === 'not_found' ? 404 : 400, {
 			...(extra ?? ({} as T)),
 			message: friendlyError(e),
-			code: e.code
+			code: e.code,
+			/** Per-field messages keyed by input name, when the parser reported them. */
+			fields: fieldErrors(e)
 		});
 	}
 	throw e;
+}
+
+/** `details.fields` of a validation error ({ inputName: message }), or null. */
+export function fieldErrors(e: DomainError): Record<string, string> | null {
+	const f = e.details?.fields;
+	if (!f || typeof f !== 'object') return null;
+	const out: Record<string, string> = {};
+	for (const [k, v] of Object.entries(f)) if (typeof v === 'string') out[k] = v;
+	return Object.keys(out).length ? out : null;
 }
 
 /** For loads: map a DomainError to an HTTP error page (404/403), rethrow anything else. */

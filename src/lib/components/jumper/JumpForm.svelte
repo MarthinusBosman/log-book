@@ -28,10 +28,14 @@
 		action: string;
 		submitLabel: string;
 		error?: string | null;
+		/** Per-field messages from the server ({ inputName: message }), shown next to each field. */
+		fields?: Record<string, string> | null;
 		busy?: boolean;
 		onsubmit?: () => void;
 	};
-	let { values, dropzones, rigs, locked = false, action, submitLabel, error, busy = $bindable(false) }: Props = $props();
+	let { values, dropzones, rigs, locked = false, action, submitLabel, error, fields, busy = $bindable(false) }: Props = $props();
+	const fe = (name: string) => fields?.[name] ?? null;
+	let formEl: HTMLFormElement | undefined = $state();
 
 	// svelte-ignore state_referenced_locally
 	let dz = $state(
@@ -48,17 +52,20 @@
 	{action}
 	class="space-y-5"
 	data-testid="jump-form"
+	bind:this={formEl}
 	use:enhance={() => {
 		busy = true;
-		return async ({ update }) => {
+		return async ({ result, update }) => {
 			await update({ reset: false });
 			busy = false;
+			// Take the jumper to the first field that needs fixing (the alert sits by the button).
+			if (result.type === 'failure') formEl?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 		};
 	}}
 >
 	<div class="grid grid-cols-2 gap-3 sm:gap-4">
-		<Input label="Jump #" name="jumpNumber" type="number" inputmode="numeric" min="1" value={values.jumpNumber} readonly={locked} required />
-		<Input label="Date" name="jumpDate" type="date" min="1900-01-01" value={values.jumpDate} readonly={locked} required />
+		<Input label="Jump #" name="jumpNumber" type="number" inputmode="numeric" min="1" value={values.jumpNumber} readonly={locked} required error={fe('jumpNumber')} />
+		<Input label="Date" name="jumpDate" type="date" min="1900-01-01" value={values.jumpDate} readonly={locked} required error={fe('jumpDate')} />
 	</div>
 
 	<div class="space-y-2">
@@ -67,21 +74,22 @@
 			name="dropzoneId"
 			bind:value={dz}
 			disabled={locked}
+			error={fe('dropzoneId')}
 			options={[...dropzones.map((d) => ({ value: d.id, label: d.name })), { value: '', label: 'Other location…' }]}
 		/>
 		{#if locked}<input type="hidden" name="dropzoneId" value={dz} />{/if}
 		{#if dz === ''}
-			<Input name="location" placeholder="e.g. Skydive Mossel Bay, boogie, demo jump" value={values.location ?? ''} aria-label="Location" required />
+			<Input name="location" placeholder="e.g. Skydive Mossel Bay, boogie, demo jump" value={values.location ?? ''} aria-label="Location" required error={fe('location')} />
 		{/if}
 	</div>
 
 	<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
 		<Input label="Aircraft" name="aircraft" placeholder="C182, Caravan…" value={values.aircraft ?? ''} readonly={locked} class="col-span-2 sm:col-span-1" />
-		<Input label="Altitude (ft)" name="altitudeFt" type="number" inputmode="numeric" min="0" max="40000" step="100" value={values.altitudeFt ?? ''} />
-		<Input label="Freefall (sec)" name="freefallSeconds" inputmode="numeric" placeholder="45 or 0:45" value={ffText(values.freefallSeconds)} />
+		<Input label="Altitude (ft)" name="altitudeFt" type="number" inputmode="numeric" min="0" max="40000" step="100" value={values.altitudeFt ?? ''} error={fe('altitudeFt')} />
+		<Input label="Freefall (sec)" name="freefallSeconds" inputmode="numeric" placeholder="45 or 0:45" value={ffText(values.freefallSeconds)} error={fe('freefallSeconds')} />
 	</div>
 
-	<fieldset class="min-w-0">
+	<fieldset class="min-w-0" aria-describedby={fe('jumpType') ? 'jump-type-error' : undefined}>
 		<legend class="mb-2 text-sm font-medium">Jump type</legend>
 		<div class="flex flex-wrap gap-1.5">
 			{#each JUMP_TYPES as t (t)}
@@ -91,6 +99,7 @@
 				</label>
 			{/each}
 		</div>
+		{#if fe('jumpType')}<p id="jump-type-error" class="mt-1.5 text-sm text-danger">{fe('jumpType')}</p>{/if}
 	</fieldset>
 
 	{#if rigs.length}

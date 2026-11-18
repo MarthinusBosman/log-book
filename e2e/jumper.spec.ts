@@ -226,6 +226,42 @@ test('self-manifest stops at boarding: the jumper can no longer join or leave', 
 	await expect(load2.getByText('You’re on this load')).toHaveCount(0);
 });
 
+test('jump form marks every bad field at once and focuses the first (with and without JS)', async ({ page, browser }) => {
+	await signup(page, 'Typo Prone');
+	await page.goto('/app/logbook/new');
+	await page.waitForLoadState('networkidle');
+	// skip the browser's own checks so the server validation is what we see
+	await page.getByTestId('jump-form').evaluate((f: HTMLFormElement) => (f.noValidate = true));
+	await page.getByLabel('Location').fill('Skydive Test Field');
+	await page.getByLabel('Altitude (ft)').fill('-50');
+	await page.getByLabel('Freefall (sec)').fill('abc');
+	await page.getByTestId('save-jump').click();
+	await expect(page.getByTestId('form-error')).toHaveText('Please fix the 2 highlighted fields');
+	const alt = page.getByLabel('Altitude (ft)');
+	const ff = page.getByLabel('Freefall (sec)');
+	await expect(alt).toHaveAttribute('aria-invalid', 'true');
+	await expect(alt).toHaveAccessibleDescription("Altitude can't be negative");
+	await expect(ff).toHaveAccessibleDescription('Freefall time must be seconds or mm:ss');
+	await expect(alt).toBeFocused();
+	await expect(page.getByLabel('Jump #')).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(page.getByLabel('Location')).toHaveValue('Skydive Test Field');
+	await alt.fill('4000');
+	await ff.fill('0:45');
+	await page.getByTestId('save-jump').click();
+	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]{36}(\?added=1)?$/);
+	await expect(page.getByLabel('Freefall (sec)')).toHaveValue('45');
+
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto('/app/logbook/new');
+	await plain.getByLabel('Location').fill('Skydive Test Field');
+	await plain.getByLabel('Freefall (sec)').fill('12:99');
+	await plain.getByTestId('save-jump').click();
+	await expect(plain.getByLabel('Freefall (sec)')).toHaveAccessibleDescription('Freefall time must be seconds or mm:ss');
+	await expect(plain.getByTestId('form-error')).toHaveText('Freefall time must be seconds or mm:ss');
+	await noJs.close();
+});
+
 async function addLicence(page: Page, licence: string) {
 	await page.goto('/app/profile?tab=credentials');
 	await page.getByLabel('Skydive association').selectOption('pasa');
