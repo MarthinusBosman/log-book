@@ -388,8 +388,13 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await dialog.getByLabel('Airplane name / number').fill('ZS-TWO');
 	await dialog.getByLabel('Slots (pax)').fill('8');
 	await dialog.getByLabel('Number of loads').fill('2');
-	await dialog.getByLabel('Time').fill('08:30');
 	await dialog.getByLabel('Minutes apart').fill('40');
+	// a gap without a first time used to be dropped silently (two untimed loads)
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.locator('[aria-live]').getByText('Set a time for the first load')).toBeVisible();
+	await expect(page.locator('[data-testid=load-card]')).toHaveCount(0);
+	await expect(dialog.getByLabel('Minutes apart')).toHaveValue('40');
+	await dialog.getByLabel('Time').fill('08:30');
 	await dialog.getByRole('button', { name: 'Create load' }).click();
 	const load1 = page.locator('[data-testid=load-card][data-load-number="1"]');
 	await expect(page.locator('[data-testid=load-card][data-load-number="2"]')).toBeVisible();

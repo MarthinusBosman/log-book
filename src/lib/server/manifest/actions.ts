@@ -94,6 +94,9 @@ export const loadActions = {
 				const time = str(form, 'time');
 				const scheduledAt = time ? zonedTime(day, time, ctx.dz.timezone) : null;
 				if (time && scheduledAt == null) throw new DomainError('invalid', 'Enter the time as HH:MM');
+				// "Minutes apart" counts from the first load's time: without one the gap would be silently dropped
+				if (scheduledAt == null && (optNum(form, 'count') ?? 1) > 1 && (optNum(form, 'spacing') ?? 0) > 0)
+					throw new DomainError('invalid', 'Set a time for the first load to space the loads out, or clear Minutes apart');
 				const aircraftId = optStr(form, 'aircraftId');
 				const pilotUserId = optStr(form, 'pilotUserId');
 				const created = await loadsSvc.createLoads(ev.locals.db, {
