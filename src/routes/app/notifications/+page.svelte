@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { Button, EmptyState, cn, toast } from '#lib/ui/index.ts';
 	import type { IconName } from '#lib/ui/Icon.svelte';
 	import { Icon } from '#lib/ui/index.ts';
@@ -66,7 +67,7 @@
 					<button type="submit" class="block w-full text-left">
 						<span class="flex items-baseline justify-between gap-3">
 							<span class={cn('truncate text-sm', n.read ? 'font-medium text-fg' : 'font-semibold text-fg')}>{n.title}</span>
-							<time class="shrink-0 text-xs text-subtle">{relativeTime(n.createdAt, now)}</time>
+							<time class="shrink-0 text-xs text-subtle">{relativeTime(n.createdAt, now, page.data.timezone ?? undefined)}</time>
 						</span>
 						<span class="mt-0.5 block text-sm text-muted">{n.body}</span>
 					</button>

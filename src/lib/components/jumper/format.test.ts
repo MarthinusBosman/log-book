@@ -1,5 +1,15 @@
 import { describe, expect, test } from 'bun:test';
-import { exportQuery, fmtFreefall, loggedScope, walletShortfall } from './format.ts';
+import { exportQuery, fmtFreefall, loggedScope, relativeTime, walletShortfall } from './format.ts';
+
+test('relativeTime prints older instants on the given timezone calendar', () => {
+	const now = Date.parse('2026-11-18T10:00:00Z');
+	const at = Date.parse('2026-11-02T23:30:00Z');
+	expect(relativeTime(at, now, 'Africa/Johannesburg')).toBe('3 Nov');
+	expect(relativeTime(at, now, 'America/New_York')).toBe('2 Nov');
+	expect(relativeTime(at, now, 'UTC')).toBe('2 Nov');
+	expect(relativeTime(at, now, 'Not/AZone')).toMatch(/^[23] Nov$/);
+	expect(relativeTime(now - 3 * 60_000, now, 'UTC')).toBe('3 min ago');
+});
 
 test('exportQuery keeps the logbook filters, drops page and breakdown tab', () => {
 	expect(exportQuery('?q=sunset&type=fun&by=dz&page=3&year=2025')).toBe('q=sunset&type=fun&year=2025');

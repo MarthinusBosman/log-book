@@ -97,7 +97,7 @@
 			<p class="relative mt-1 text-4xl font-semibold tracking-tight tabular-nums {data.account && data.account.availableMinor < 0 ? 'text-danger' : ''}">{money(data.account?.availableMinor ?? 0)}</p>
 			<div class="relative mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
 				<span><span class="font-medium text-fg tabular-nums">{money(data.account?.pendingMinor ?? 0)}</span> reserved</span>
-				{#if data.account?.updatedAt}<span>Updated {relativeTime(data.account.updatedAt)}</span>{/if}
+				{#if data.account?.updatedAt}<span>Updated {relativeTime(data.account.updatedAt, undefined, data.timezone)}</span>{/if}
 			</div>
 			{#if low}
 				<p class="relative mt-4 flex items-center gap-2 rounded-xl bg-warning/10 px-3 py-2 text-sm text-warning"><JIcon name="alert" class="size-4" /> Low balance — you owe {money(unpaidTotal)}</p>
@@ -141,7 +141,7 @@
 						<li class="flex items-center justify-between gap-3 px-5 py-3 text-sm">
 							<span class="min-w-0">
 								<span class="block font-medium tabular-nums">{formatMoney(r.amountMinor, r.currency)}</span>
-								<span class="text-muted">{r.provider === 'manual' ? `Requested ${relativeTime(r.createdAt)} · pay at manifest` : `Started ${relativeTime(r.createdAt)} · not confirmed by ${r.providerLabel} yet`}</span>
+								<span class="text-muted">{r.provider === 'manual' ? `Requested ${relativeTime(r.createdAt, undefined, data.timezone)} · pay at manifest` : `Started ${relativeTime(r.createdAt, undefined, data.timezone)} · not confirmed by ${r.providerLabel} yet`}</span>
 							</span>
 							<span class="flex shrink-0 items-center gap-1">
 								{#if r.provider !== 'manual'}

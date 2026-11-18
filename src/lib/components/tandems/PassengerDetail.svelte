@@ -205,7 +205,7 @@
 					<p class="mt-0.5 text-muted">
 						{c.deposit ? 'Deposit' : 'Payment'} of {money(c.amountMinor)}{c.people > 1 ? ` (part of ${money(c.totalMinor)} for ${c.people} people)` : ''} started on
 						{c.provider}
-						{relativeTime(c.startedAt)}. If the customer pays here instead, ask them to close that checkout first.
+						{relativeTime(c.startedAt, undefined, page.data.timezone ?? undefined)}. If the customer pays here instead, ask them to close that checkout first.
 					</p>
 				</div>
 			</div>

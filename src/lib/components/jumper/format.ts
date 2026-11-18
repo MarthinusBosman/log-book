@@ -26,8 +26,20 @@ export function fmtTime(d: Date | string | number | null | undefined, timeZone?:
 	return new Intl.DateTimeFormat('en-ZA', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone }).format(date);
 }
 
-/** '3 min ago', 'yesterday', '12 Nov'. */
-export function relativeTime(d: Date | string | number, now = Date.now()): string {
+/** Calendar day (`YYYY-MM-DD`) of an instant in a timezone (the runtime's when unset/invalid). */
+function dayIn(t: number, timeZone?: string): string {
+	try {
+		return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit', timeZone }).format(t);
+	} catch {
+		return new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
+	}
+}
+
+/**
+ * '3 min ago', 'yesterday', '12 Nov'. Older instants print the calendar day in `timeZone`
+ * (pass the dropzone's: a 23:30Z event is the next day in Johannesburg).
+ */
+export function relativeTime(d: Date | string | number, now = Date.now(), timeZone?: string): string {
 	const t = (d instanceof Date ? d : new Date(d)).getTime();
 	const s = Math.round((now - t) / 1000);
 	if (s < 45) return 'just now';
@@ -38,7 +50,7 @@ export function relativeTime(d: Date | string | number, now = Date.now()): strin
 	const days = Math.round(h / 24);
 	if (days === 1) return 'yesterday';
 	if (days < 7) return `${days} days ago`;
-	return fmtDate(new Date(t).toISOString().slice(0, 10), { year: days > 300 });
+	return fmtDate(dayIn(t, timeZone), { year: days > 300 });
 }
 
 /** Freefall seconds → '45s', '12m 05s', '3h 02m'. */
