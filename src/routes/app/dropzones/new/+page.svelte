@@ -3,8 +3,8 @@
 	import { enhance } from '$app/forms';
 	import { Button, Card, Input, Select } from '#lib/ui/index.ts';
 	import { CURRENCIES, currencyForCountry } from '#lib/domain/currency.ts';
-	import { countryFromLanguage, countryOptions } from '#lib/domain/countries.ts';
-	import { countryFromTimezone } from '#lib/domain/timezone-countries.ts';
+	import { countryFromLanguage, countryName, countryOptions } from '#lib/domain/countries.ts';
+	import { countryFromTimezone, suggestTimezone } from '#lib/domain/timezone-countries.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -34,9 +34,19 @@
 	let country = $state(untrack(() => form?.country) ?? '');
 	let currency = $state(untrack(() => form?.currency) ?? 'USD');
 	let currencyTouched = $state(untrack(() => !!form?.currency));
+	// Timezone follows the country too (the browser's zone is wrong when an owner sets up a DZ
+	// elsewhere): only when the current zone isn't in that country, and until the owner picks one.
+	let timezoneTouched = $state(untrack(() => !!form?.timezone));
+	let tzCheck = $state('');
 	function onCountry() {
 		const guess = currencyForCountry(country);
 		if (guess && !currencyTouched) currency = guess;
+		if (timezoneTouched) return;
+		const tz = suggestTimezone(country, timezone, data.timezones);
+		if (tz) {
+			timezone = tz.zone;
+			tzCheck = tz.several ? `${countryName(country)} has several timezones: check this is the dropzone's.` : '';
+		} else if (!country) tzCheck = '';
 	}
 	const countryOpts = $derived([{ value: '', label: 'Choose a country' }, ...countryOptions(country)]);
 	const currencyOptions = $derived([...new Set([currency, ...CURRENCIES])].map((c) => ({ value: c, label: c })));
@@ -69,7 +79,7 @@
 					bind:value={country}
 					onchange={onCountry}
 					options={countryOpts}
-					hint="Suggests the currency and the reserve repack interval."
+					hint="Suggests the currency, timezone and reserve repack interval."
 				/>
 				<Select
 					label="Currency"
@@ -83,8 +93,12 @@
 				label="Timezone"
 				name="timezone"
 				bind:value={timezone}
+				onchange={() => {
+					timezoneTouched = true;
+					tzCheck = '';
+				}}
 				options={tzOptions}
-				hint="Local dates, opening hours and the manifest day follow this."
+				hint={tzCheck || 'Local dates, opening hours and the manifest day follow this.'}
 			/>
 			{#if form?.message}
 				<p class="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">

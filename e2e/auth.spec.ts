@@ -81,6 +81,37 @@ test.describe('new dropzone preselects the country from the browser timezone', (
 		await expect(page.locator('select[name=currency]')).toHaveValue('ZAR');
 		await expect(page.locator('select[name=timezone]')).toHaveValue('Africa/Johannesburg');
 	});
+
+	// Owners often set up a DZ while away from it: the timezone follows the chosen country
+	// (main zone + a "check this" hint when it has several) until the owner picks one.
+	test('timezone follows the chosen country until the owner picks one', async ({ page }) => {
+		await page.goto('/signup');
+		await page.getByLabel('Full name').fill('Tess Travel');
+		await page.getByLabel('Email').fill(`e2e-tzc-${Date.now()}-${test.info().project.name}@example.com`);
+		await page.getByLabel('Password').fill('blue-skies-123');
+		await page.getByRole('button', { name: 'Create account' }).click();
+		await expect(page).toHaveURL(/\/app$/);
+		await page.goto('/app/dropzones/new');
+		const country = page.locator('select[name=country]');
+		const tz = page.locator('select[name=timezone]');
+		await expect(country).toHaveValue('ZA'); // hydrated (preselected from the browser zone)
+		await country.selectOption('NA');
+		await expect(tz).toHaveValue('Africa/Windhoek');
+		await expect(page.getByText('has several timezones')).toHaveCount(0);
+		await country.selectOption('US');
+		await expect(tz).toHaveValue('America/New_York');
+		await expect(page.getByText('United States has several timezones')).toBeVisible();
+		await tz.selectOption('America/Denver');
+		await expect(page.getByText('has several timezones')).toHaveCount(0);
+		await country.selectOption('ZA');
+		await expect(tz).toHaveValue('America/Denver');
+		await country.selectOption('US');
+		await page.getByLabel('Dropzone name').fill(`Skydive TZ ${test.info().project.name} ${Date.now()}`);
+		await page.getByRole('button', { name: 'Create dropzone' }).click();
+		await expect(page).toHaveURL(/\/app$/);
+		await page.goto('/app/settings');
+		await expect(page.locator('select[name=timezone]')).toHaveValue('America/Denver');
+	});
 });
 
 test('signup → dashboard → logout → login → dashboard', async ({ page }) => {

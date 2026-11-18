@@ -74,17 +74,75 @@ const DATA =
 	'VU Pacific/Efate|WF Pacific/Wallis|WS Pacific/Apia|YE Asia/Aden|YT Indian/Mayotte|ZA Africa/Johannesburg|' +
 	'ZM Africa/Lusaka|ZW Africa/Harare';
 
+/** The zone most people in a multi-zone country mean (the list is alphabetical: America/Adak first). */
+const MAIN_ZONE: Record<string, string> = {
+	AR: 'America/Argentina/Buenos_Aires',
+	AU: 'Australia/Sydney',
+	BR: 'America/Sao_Paulo',
+	CA: 'America/Toronto',
+	CD: 'Africa/Kinshasa',
+	CL: 'America/Santiago',
+	CN: 'Asia/Shanghai',
+	CY: 'Asia/Nicosia',
+	DE: 'Europe/Berlin',
+	EC: 'America/Guayaquil',
+	ES: 'Europe/Madrid',
+	FM: 'Pacific/Pohnpei',
+	GL: 'America/Nuuk',
+	ID: 'Asia/Jakarta',
+	KI: 'Pacific/Tarawa',
+	KZ: 'Asia/Almaty',
+	MH: 'Pacific/Majuro',
+	MN: 'Asia/Ulaanbaatar',
+	MX: 'America/Mexico_City',
+	MY: 'Asia/Kuala_Lumpur',
+	NZ: 'Pacific/Auckland',
+	PF: 'Pacific/Tahiti',
+	PG: 'Pacific/Port_Moresby',
+	PT: 'Europe/Lisbon',
+	RU: 'Europe/Moscow',
+	UA: 'Europe/Kyiv',
+	US: 'America/New_York',
+	UZ: 'Asia/Tashkent'
+};
+
 let byZone: Map<string, string> | null = null;
+let byCountry: Map<string, string[]> | null = null;
+
+function index() {
+	if (!byZone || !byCountry) {
+		byZone = new Map();
+		byCountry = new Map();
+		for (const group of DATA.split('|')) {
+			const [cc, ...zones] = group.split(' ');
+			for (const z of zones) byZone.set(z, cc);
+			byCountry.set(cc, zones);
+		}
+	}
+	return { byZone, byCountry };
+}
 
 /** ISO country code of an IANA zone ("Africa/Johannesburg" → "ZA"), or null (UTC, Etc/*, unknown). */
 export function countryFromTimezone(zone: string | null | undefined): string | null {
 	if (!zone) return null;
-	if (!byZone) {
-		byZone = new Map();
-		for (const group of DATA.split('|')) {
-			const [cc, ...zones] = group.split(' ');
-			for (const z of zones) byZone.set(z, cc);
-		}
-	}
-	return byZone.get(zone) ?? null;
+	return index().byZone.get(zone) ?? null;
+}
+
+/**
+ * The timezone to suggest when an owner picks `country`: null when `current` already belongs to
+ * that country (keep it), else the country's main zone. Only zones in `known` (the picker's list)
+ * are suggested, so a runtime without e.g. Europe/Kyiv gets its alias Europe/Kiev instead.
+ * `several` = the country spans more than one zone, so the owner should check the guess.
+ */
+export function suggestTimezone(
+	country: string | null | undefined,
+	current: string | null | undefined,
+	known: readonly string[]
+): { zone: string; several: boolean } | null {
+	if (!country || countryFromTimezone(current) === country) return null;
+	const knownSet = new Set(known);
+	const zones = (index().byCountry.get(country) ?? []).filter((z) => knownSet.has(z));
+	if (zones.length === 0) return null;
+	const main = MAIN_ZONE[country];
+	return { zone: main && zones.includes(main) ? main : zones[0], several: zones.length > 1 };
 }
