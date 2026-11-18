@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
+	import { fmtDateTime } from '#lib/components/jumper/format.ts';
 	import { Badge, Button, Card, EmptyState } from '#lib/ui/index.ts';
 	import Icon from '#lib/ui/Icon.svelte';
 	import Glyph from '#lib/components/import/Glyph.svelte';
@@ -8,7 +10,8 @@
 
 	let { data, form }: PageProps = $props();
 	let busy = $state('');
-	const fmt = (d: Date | string | null) => (d ? new Date(d).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : 'not yet');
+	// The active dropzone's timezone (from the app layout), so the server render and the browser print the same time.
+	const fmt = (d: Date | string | null) => (d ? fmtDateTime(d, page.data.timezone ?? undefined) : 'not yet');
 	const submit = (name: string) => () => {
 		busy = name;
 		return async ({ update }: { update: () => Promise<void> }) => {

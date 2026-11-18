@@ -65,4 +65,24 @@ test('logbook CSV import: map columns → preview → import → history → exp
 	expect((await page.request.get('/app/export/dropzone.json')).status()).toBe(403);
 	await page.goto('/app/settings/linked-accounts');
 	await expect(page.getByRole('heading', { name: 'Linked accounts' })).toBeVisible();
+
+	// Import times follow the active dropzone's clock: a viewer on New York time sees the same
+	// Johannesburg time in the server render and after hydration (no viewer/server timezone).
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Import TZ ${test.info().project.name} ${Date.now()}`);
+	await page.locator('select[name=timezone]').selectOption('Africa/Johannesburg');
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	const away = await page.context().browser()!.newContext({ timezoneId: 'America/New_York', storageState: await page.context().storageState() });
+	const awayPage = await away.newPage();
+	const importUrl = new URL('/app/import', page.url()).href;
+	const ssr = await (await awayPage.request.get(importUrl, { headers: { Accept: 'text/html' } })).text();
+	const ssrTime = /<time[^>]*datetime="([^"]+)"[^>]*>([^<]+)<\/time>/.exec(ssr);
+	expect(ssrTime).not.toBeNull();
+	const expected = new Intl.DateTimeFormat('en-ZA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Africa/Johannesburg' }).format(new Date(ssrTime![1]));
+	expect(ssrTime![2]).toBe(expected);
+	await awayPage.goto(importUrl);
+	await awayPage.waitForLoadState('networkidle');
+	await expect(awayPage.getByTestId('job-history').locator('time').first()).toHaveText(expected);
+	await away.close();
 });

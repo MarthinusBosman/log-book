@@ -1,13 +1,15 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { Badge, Card } from '#lib/ui/index.ts';
+	import { fmtDateTime } from '#lib/components/jumper/format.ts';
 	import { COUNT_LABELS } from '#lib/import/bundle.ts';
 	import type { ImportJob } from '#lib/server/db/schema.ts';
 	import Glyph from './Glyph.svelte';
 
 	let { jobs, activeId = null }: { jobs: ImportJob[]; activeId?: string | null } = $props();
 
-	const fmt = (d: Date | string | null) =>
-		d ? new Date(d).toLocaleString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+	// Same timezone on the server render and in the browser: the active dropzone's (app layout data).
+	const fmt = (d: Date | string | null) => (d ? fmtDateTime(d, page.data.timezone ?? undefined) : '');
 	const summary = (c: Record<string, number | undefined>) =>
 		Object.entries(c)
 			.filter(([k, n]) => n && COUNT_LABELS[k] && k !== 'dropzone')
@@ -29,7 +31,7 @@
 					<Badge tone={tone[j.status]} dot>{j.status}</Badge>
 					<span class="text-sm">{j.source === 'jumpmaster' ? 'Jump Master' : 'File'}</span>
 					<span class="min-w-0 flex-1 truncate text-sm text-muted">{j.error ?? summary(j.counts as Record<string, number>) ?? ''}</span>
-					<time class="text-xs text-subtle tabular-nums">{fmt(j.createdAt)}</time>
+					<time class="text-xs text-subtle tabular-nums" datetime={new Date(j.createdAt).toISOString()}>{fmt(j.createdAt)}</time>
 				</li>
 			{/each}
 		</ul>
