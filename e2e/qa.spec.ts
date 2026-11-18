@@ -32,7 +32,8 @@ async function logout(page: Page) {
 	await expect(page).toHaveURL(/\/login$/);
 }
 
-test('owner onboarding → jumper sees only jumper nav, is prompted for the waiver, staff pages say no access', async ({ page }) => {
+test('owner onboarding → jumper sees only jumper nav, is prompted for the waiver, staff pages say no access', async ({ page, browser }) => {
+	test.setTimeout(90_000); // owner setup + jumper signing the waiver twice
 	const mobile = test.info().project.name === 'mobile';
 	const dzName = `Skydive QA ${test.info().project.name} ${Date.now()}`;
 
@@ -94,6 +95,49 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	const alert = page.getByRole('link', { name: new RegExp(`Sign the ${dzName} waiver`) });
 	await expect(alert).toBeVisible();
 	await expect(alert).toHaveAttribute('href', /\/app\/waivers\/sign\//);
+
+	// Sign the waiver, then "Sign again" (a ?again=1 link, so it also works before hydration /
+	// without JS) opens the form with a Cancel back to the covered view; re-signing returns there.
+	await alert.click();
+	await expect(page.getByTestId('sign-form')).toBeVisible();
+	await page.waitForLoadState('networkidle');
+	const sign = async () => {
+		const ack = page.locator('[data-testid="sign-form"] input[name=ack_0]');
+		if (await ack.count()) await ack.check();
+		const canvas = page.locator('[data-testid="sign-form"] [data-pad="signature"] canvas');
+		await canvas.scrollIntoViewIfNeeded();
+		const box = (await canvas.boundingBox())!;
+		await page.mouse.move(box.x + 30, box.y + box.height / 2);
+		await page.mouse.down();
+		for (let i = 1; i < 25; i++) await page.mouse.move(box.x + 30 + i * 8, box.y + box.height / 2 + (i % 4 < 2 ? 18 : -18));
+		await page.mouse.up();
+		await page.getByTestId('sign-submit').click();
+	};
+	await sign();
+	await expect(page.getByTestId('waiver-status')).toContainText('You’re covered');
+	await expect(page.getByTestId('sign-form')).toHaveCount(0);
+	const waiverUrl = page.url().split('?')[0];
+	await page.getByTestId('sign-again').click();
+	await expect(page).toHaveURL(/\?again=1$/);
+	await expect(page.getByTestId('sign-form')).toBeVisible();
+	await page.getByTestId('sign-again-cancel').click();
+	await expect(page).toHaveURL(waiverUrl);
+	await expect(page.getByTestId('sign-form')).toHaveCount(0);
+	await page.getByTestId('sign-again').click();
+	await expect(page.getByTestId('sign-form')).toBeVisible();
+	await sign();
+	await expect(page).toHaveURL(waiverUrl);
+	await expect(page.getByTestId('sign-form')).toHaveCount(0);
+	await expect(page.getByTestId('sign-again')).toBeVisible();
+	{
+		const ctx = await browser.newContext({ javaScriptEnabled: false, storageState: await page.context().storageState() });
+		const nojs = await ctx.newPage();
+		await nojs.goto(waiverUrl);
+		await expect(nojs.getByTestId('sign-form')).toHaveCount(0);
+		await nojs.getByTestId('sign-again').click();
+		await expect(nojs.getByTestId('sign-form')).toBeVisible();
+		await ctx.close();
+	}
 
 	// Staff pages and unknown URLs render inside the app shell
 	await page.goto('/app/pricelist');

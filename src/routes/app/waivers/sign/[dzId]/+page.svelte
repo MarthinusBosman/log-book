@@ -1,12 +1,19 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { Badge, Button, Icon, Input, cn } from '#lib/ui/index.ts';
 	import SignWaiver from '#lib/components/waivers/SignWaiver.svelte';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
 
-	const fmt = (d: Date | string) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-	let resign = $state(false);
+	// Signing instants shown as calendar days in the DZ's timezone (server render and the
+	// hydrated page agree, whatever the server's or the viewer's clock).
+	const fmt = (d: Date | string) =>
+		new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: data.timezone });
+	// "Sign again" is a link (?again=1): works before hydration and without JS, and Back / Cancel
+	// return to the "You're covered" view.
+	const resign = $derived(page.url.searchParams.has('again'));
 	const showForm = $derived(data.dz.active && data.sections.length > 0 && (!data.status?.valid || resign));
 	const myName = () => data.me.name;
 	let signerName = $state(myName());
@@ -40,8 +47,15 @@
 		{#if data.status.valid && !resign}
 			<div class="flex flex-wrap items-center gap-2">
 				<Button href="/app/check-in?dz={data.dz.slug}" data-testid="waiver-next"><Icon name="checkin" class="size-4" /> Check in &amp; join a load</Button>
-				{#if data.dz.active}<Button variant="ghost" size="sm" onclick={() => (resign = true)}>Sign again</Button>{/if}
+				{#if data.dz.active && data.sections.length > 0}
+					<Button variant="ghost" size="sm" href="?again=1" data-sveltekit-reset="false" data-testid="sign-again">Sign again</Button>
+				{/if}
 			</div>
+		{:else if data.status.valid && showForm}
+			<p class="flex flex-wrap items-center gap-x-2 text-sm text-muted">
+				Your current waiver stays valid until you sign the new one.
+				<a href={page.url.pathname} class="font-medium text-primary underline underline-offset-2" data-testid="sign-again-cancel">Cancel</a>
+			</p>
 		{/if}
 	{/if}
 
@@ -59,7 +73,10 @@
 			title="Skydiver Indemnity & Waiver"
 			errorSection={(form as { section?: number | null } | null)?.section ?? null}
 			submitLabel="Sign and save PDF"
-			onSigned={() => (resign = false)}
+			onSigned={() => {
+				// Back to the "You're covered" view (the enhanced post stays on ?again=1).
+				if (resign) void goto(page.url.pathname, { replace: true, reset: false });
+			}}
 		>
 			{#snippet header()}
 				<div class="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-2">

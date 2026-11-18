@@ -24,6 +24,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const latest = mine[0];
 	return {
 		dz: { id: dz.id, name: dz.name, slug: dz.slug, active: dz.indemnitySportActive },
+		timezone: dz.timezone,
 		me: { name: user.name, email: user.email },
 		sections: sections.map((s) => ({ title: s.title, content: s.content, type: s.type })),
 		status: latest
