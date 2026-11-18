@@ -400,6 +400,12 @@ test('public dropzone page: opening days have a text alternative, phone link dia
 	await page.goto('/app/settings');
 	await page.waitForLoadState('networkidle');
 	await page.getByLabel('Phone').fill('+27 21 555 0123');
+	// Hours without open days used to be saved but never shown ("Open by appointment").
+	await page.getByLabel('Opens').fill('08:00');
+	await page.getByLabel('Closes').fill('17:30');
+	await page.getByRole('button', { name: 'Save details' }).click();
+	await expect(page.getByText('Tick the days you’re open, or clear the opening hours.').first()).toBeVisible();
+	await expect(page.getByLabel('Opens')).toHaveValue('08:00');
 	for (const d of ['Wed', 'Sat', 'Sun']) await page.locator(`input[name=openDays][value=${d.toLowerCase()}]`).check({ force: true });
 	await page.getByRole('button', { name: 'Save details' }).click();
 	await expect(page.getByText('Dropzone details saved').first()).toBeVisible();
@@ -413,6 +419,7 @@ test('public dropzone page: opening days have a text alternative, phone link dia
 		// The colour-coded grid is hidden from screen readers; a sentence says which days are open.
 		await expect(page.getByTestId('open-days-grid')).toHaveAttribute('aria-hidden', 'true');
 		await expect(page.locator('main .sr-only', { hasText: 'Open Wednesday, Saturday and Sunday' })).toHaveCount(1);
+		await expect(page.locator('main').getByText('08:00 – 17:30').first()).toBeVisible();
 		await expect(page.locator('main a[href^="tel:"]').first()).toHaveAttribute('href', 'tel:+27215550123');
 	}
 });

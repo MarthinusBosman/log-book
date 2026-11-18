@@ -126,6 +126,21 @@ export function checkDropzoneBasics(input: { country?: string | null; timezone?:
 	return { ok: true, country, timezone, currency };
 }
 
+/**
+ * Checks the opening days/hours pair from the settings form. The public pages show hours only
+ * together with open days and both times, so a half-filled set was saved but never shown
+ * ("Open by appointment") and kept the setup checklist item open with no hint why.
+ */
+export function checkOpeningHours(input: { openDays: readonly string[]; openTime: string | null; closeTime: string | null }):
+	| { ok: true }
+	| { ok: false; message: string } {
+	const { openDays, openTime, closeTime } = input;
+	if (!!openTime !== !!closeTime) return { ok: false, message: 'Enter both the opening and the closing time, or leave both empty.' };
+	if (openTime && closeTime && openTime >= closeTime) return { ok: false, message: 'Closing time must be after opening time.' };
+	if (openTime && openDays.length === 0) return { ok: false, message: 'Tick the days you’re open, or clear the opening hours.' };
+	return { ok: true };
+}
+
 export async function createDropzone(
 	db: Database,
 	input: { name: string; slug?: string; country?: string | null; timezone?: string; currency?: string },

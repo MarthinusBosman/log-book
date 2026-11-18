@@ -5,7 +5,7 @@ import { updateDropzoneSlug } from '#lib/server/domain/staff-admin.ts';
 import { deleteFile, maxBytesFor, saveFile } from '#lib/server/domain/files.ts';
 import { readImageUpload } from '#lib/server/images.ts';
 import { getStorage } from '#lib/server/storage/index.ts';
-import { DZ_COOKIE, checkDropzoneBasics, timezoneList } from '#lib/server/dropzones/index.ts';
+import { DZ_COOKIE, checkDropzoneBasics, checkOpeningHours, timezoneList } from '#lib/server/dropzones/index.ts';
 import { optNum, optStr, requirePage, runAction, str } from '#lib/server/staffadmin/context.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -55,7 +55,8 @@ export const actions: Actions = {
 			const openDays = f.getAll('openDays').map(String).filter((d): d is Weekday => (WEEKDAYS as readonly string[]).includes(d));
 			const openTime = optStr(f, 'openTime');
 			const closeTime = optStr(f, 'closeTime');
-			if (openTime && closeTime && openTime >= closeTime) return fail(400, { message: 'Closing time must be after opening time.' });
+			const hours = checkOpeningHours({ openDays, openTime, closeTime });
+			if (!hours.ok) return fail(400, { message: hours.message });
 
 			const slug = str(f, 'slug');
 			if (slug && slug !== dz.slug) {

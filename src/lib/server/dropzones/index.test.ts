@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from '../db/index.ts';
 import { freshDb, makeUser } from '../domain/testing.ts';
-import { checkDropzoneBasics, createDropzone, timezoneList } from './index.ts';
+import { checkDropzoneBasics, checkOpeningHours, createDropzone, timezoneList } from './index.ts';
 
 describe('checkDropzoneBasics', () => {
 	test('normalises valid values', () => {
@@ -26,6 +26,22 @@ describe('checkDropzoneBasics', () => {
 
 	test('timezone list holds common zones', () => {
 		expect(timezoneList()).toContain('Africa/Johannesburg');
+	});
+});
+
+describe('checkOpeningHours', () => {
+	test('accepts no hours, or days with both times', () => {
+		expect(checkOpeningHours({ openDays: [], openTime: null, closeTime: null })).toEqual({ ok: true });
+		expect(checkOpeningHours({ openDays: ['sat'], openTime: null, closeTime: null })).toEqual({ ok: true });
+		expect(checkOpeningHours({ openDays: ['sat', 'sun'], openTime: '08:00', closeTime: '18:00' })).toEqual({ ok: true });
+	});
+
+	test('refuses hours the public pages would never show', () => {
+		// Hours without open days were saved but the public page said "Open by appointment".
+		expect(checkOpeningHours({ openDays: [], openTime: '08:00', closeTime: '18:00' })).toMatchObject({ ok: false, message: expect.stringContaining('Tick the days') });
+		expect(checkOpeningHours({ openDays: ['sat'], openTime: '08:00', closeTime: null })).toMatchObject({ ok: false, message: expect.stringContaining('both') });
+		expect(checkOpeningHours({ openDays: ['sat'], openTime: null, closeTime: '18:00' })).toMatchObject({ ok: false, message: expect.stringContaining('both') });
+		expect(checkOpeningHours({ openDays: ['sat'], openTime: '17:00', closeTime: '08:00' })).toMatchObject({ ok: false, message: expect.stringContaining('after opening') });
 	});
 });
 
