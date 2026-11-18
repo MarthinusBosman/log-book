@@ -91,7 +91,7 @@
 				{#if load.shutdownMinutes}<Badge tone="warning">Shutdown {load.shutdownMinutes} min</Badge>{/if}
 			</div>
 			<p class="mt-0.5 text-sm text-muted">
-				{load.aircraftName ?? 'Aircraft TBC'}{load.scheduledAt ? ` · ${fmtTime(load.scheduledAt)}` : ''}
+				{load.aircraftName ?? 'Aircraft TBC'}{load.scheduledAt ? ` · ${fmtTime(load.scheduledAt, page.data.timezone ?? undefined)}` : ''}
 			</p>
 		</div>
 		<div class="shrink-0 text-right">

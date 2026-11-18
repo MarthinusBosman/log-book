@@ -235,7 +235,7 @@
 			<p class="mt-2 text-sm">
 				Signed by <span class="font-medium">{detail.signature.signerName}</span>
 				{#if detail.signature.guardianName}and guardian <span class="font-medium">{detail.signature.guardianName}</span>{/if}
-				<span class="text-muted">· {new Date(detail.signature.signedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+				<span class="text-muted">· {new Date(detail.signature.signedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: page.data.timezone ?? undefined })}</span>
 			</p>
 		{:else}
 			<p class="mt-2 text-sm text-muted">Not signed yet. Share the registration link so the passenger can sign on their phone, or hand them a tablet.</p>

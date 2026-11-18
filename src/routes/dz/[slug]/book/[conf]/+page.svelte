@@ -309,7 +309,7 @@
 	{:else if b.signedAt}
 		<section class="mt-4 flex items-center gap-3 rounded-2xl border border-success/30 bg-success/5 p-4 text-sm">
 			<Icon name="check" class="size-5 text-success" />
-			<p class="flex-1">Indemnity signed {new Date(b.signedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}. Your PDF includes the signed form.</p>
+			<p class="flex-1">Indemnity signed {new Date(b.signedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: data.dz.timezone })}. Your PDF includes the signed form.</p>
 		</section>
 	{/if}
 

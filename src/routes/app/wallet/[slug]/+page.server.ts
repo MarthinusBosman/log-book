@@ -60,6 +60,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		pid ? getPayment(locals.db, pid) : Promise.resolve(undefined)
 	]);
 	return {
+		/** This wallet's dropzone (may differ from the active one, which the /app layout sets). */
+		timezone: dz.timezone,
 		dz: { id: dz.id, slug: dz.slug, name: dz.name, currency: dz.currency, walletEnabled: dz.walletEnabled, paymentsOn: dz.paymentsOn, allowNegative: dz.walletAllowNegative },
 		account: account
 			? { availableMinor: account.availableMinor, pendingMinor: account.pendingMinor, currency: account.currency, updatedAt: (account.lastActivityAt ?? account.createdAt).getTime() }

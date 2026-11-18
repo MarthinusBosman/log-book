@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PrintSheet from '#lib/components/staffadmin/PrintSheet.svelte';
 	import { brand } from '#lib/brand.ts';
+	import { fmtTime } from '#lib/components/jumper/format.ts';
 	import {
 		JUMP_TYPE_LABELS,
 		LOAD_STATUS_LABELS,
@@ -14,7 +15,7 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
-	const time = (d: Date | string | null) => (d ? new Date(d).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }) : null);
+	const time = (d: Date | string | null) => (d ? fmtTime(d, data.timezone) : null);
 	const shift = (n: number) => new Date(Date.parse(`${data.day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 </script>
 

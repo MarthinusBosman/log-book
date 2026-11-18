@@ -111,7 +111,7 @@
 					<span class="grid size-10 shrink-0 place-items-center rounded-xl bg-success/15 text-success"><JIcon name="badgeCheck" class="size-5" /></span>
 					<div class="min-w-0 text-sm">
 						<p class="font-semibold">Signed by {j.signerName}</p>
-						<p class="text-muted">{j.signerLicence ? `Licence ${j.signerLicence} · ` : ''}{fmtDateTime(j.signedAt)}</p>
+						<p class="text-muted">{j.signerLicence ? `Licence ${j.signerLicence} · ` : ''}{fmtDateTime(j.signedAt, data.timezone ?? undefined)}</p>
 						{#if j.signatureUrl}
 							<img src={j.signatureUrl} alt="Signature of {j.signerName}" class="mt-2 h-14 max-w-full rounded-lg bg-white object-contain p-1" data-testid="signature-img" />
 						{/if}

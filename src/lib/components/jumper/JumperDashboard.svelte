@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/state';
 	import { JUMP_TYPE_LABELS, LOAD_STATUS_LABELS, formatMoney, type JumpType } from '#lib/domain/constants.ts';
 	import { Badge, Button, Icon, cn } from '#lib/ui/index.ts';
 	import type { IconName } from '#lib/ui/Icon.svelte';
@@ -70,7 +71,7 @@
 							<p class="text-sm text-muted">20 min call · time to gear up</p>
 							<p class="font-mono text-5xl font-semibold tracking-tight text-warning tabular-nums sm:text-6xl" data-testid="countdown">{callLeft}</p>
 						{:else if schedLeft}
-							<p class="text-sm text-muted">Scheduled {fmtTime(next.load.scheduledAt)}</p>
+							<p class="text-sm text-muted">Scheduled {fmtTime(next.load.scheduledAt, page.data.timezone ?? undefined)}</p>
 							<p class="font-mono text-5xl font-semibold tracking-tight tabular-nums sm:text-6xl" data-testid="countdown">{schedLeft}</p>
 						{:else}
 							<p class="text-sm text-muted">Waiting for the call</p>
@@ -137,7 +138,7 @@
 					{#if data.checkin}
 						<span class="block truncate font-medium">Checked in at {data.checkin.dropzone.name}</span>
 						<span class="block truncate text-sm text-muted">
-							Since {fmtTime(data.checkin.checkedInAt)}{data.checkin.weightKg ? ` · ${data.checkin.weightKg} kg` : ''}{data.checkin.gearRental
+							Since {fmtTime(data.checkin.checkedInAt, page.data.timezone ?? undefined)}{data.checkin.weightKg ? ` · ${data.checkin.weightKg} kg` : ''}{data.checkin.gearRental
 								? ' · rental gear'
 								: ''}
 						</span>

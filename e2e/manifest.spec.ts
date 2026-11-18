@@ -442,4 +442,15 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await expect(recent.getByRole('columnheader', { name: 'Day' })).toBeVisible();
 	await expect(recent.locator('tbody tr').first()).toContainText(/\d{1,2} \w{3} \d{4}/);
 	expect(await overflow()).toBeLessThanOrEqual(0);
+
+	// Times are the dropzone's clock, not the viewer's: a browser on New York time (after
+	// hydration) and the server render (UTC on Workers) both print load 1 at 08:30.
+	const away = await page.context().browser()!.newContext({ timezoneId: 'America/New_York', storageState: await page.context().storageState() });
+	const awayPage = await away.newPage();
+	await awayPage.goto(new URL('/app/reports/loadsheet', page.url()).href);
+	await awayPage.waitForLoadState('networkidle');
+	const sheet = awayPage.getByRole('main');
+	await expect(sheet.locator('section').first()).toContainText('· 08:30');
+	await expect(sheet.locator('section').nth(1)).toContainText('· 09:10');
+	await away.close();
 });

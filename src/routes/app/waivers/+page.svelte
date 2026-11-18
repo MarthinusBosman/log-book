@@ -13,8 +13,8 @@
 		{ id: 'signed', label: 'Signed' },
 		{ id: 'jumpers', label: 'Jumper status' }
 	]);
-	const fmt = (d: Date | string | null) => (d ? new Date(d).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
-	const fmtDate = (d: Date | string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { dateStyle: 'medium' }) : '—');
+	const fmt = (d: Date | string | null) => (d ? new Date(d).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: data.timezone ?? undefined }) : '—');
+	const fmtDate = (d: Date | string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { dateStyle: 'medium', timeZone: data.timezone ?? undefined }) : '—');
 	const validCount = $derived(data.jumpers.filter((j) => j.valid).length);
 	const pdfHref = (id: string) => `/app/waivers/signed/${id}/pdf`;
 </script>

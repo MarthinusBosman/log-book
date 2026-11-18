@@ -19,7 +19,7 @@
 	} from '#lib/domain/constants.ts';
 	import { cn } from '#lib/ui/index.ts';
 	import StaffPasaPanel from '#lib/components/memberships/StaffPasaPanel.svelte';
-	import { fmtDate } from '#lib/components/jumper/format.ts';
+	import { fmtDate, fmtDateTime } from '#lib/components/jumper/format.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -36,8 +36,7 @@
 	] as const;
 
 	const memTone = { valid: 'success', expiring: 'warning', expired: 'danger', none: 'neutral' } as const;
-	const fmtTime = (d: Date | string) =>
-		new Date(d).toLocaleString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+	const fmtTime = (d: Date | string) => fmtDateTime(d, data.timezone ?? undefined);
 	const signed = (type: string, amountMinor: number) => (type === 'charge' || type === 'hold' ? -Math.abs(amountMinor) : type === 'hold_release' ? Math.abs(amountMinor) : amountMinor);
 	const assoc = $derived(data.user.association ? (ASSOCIATION_LABELS[data.user.association as Association] ?? data.user.association) : null);
 </script>
@@ -91,7 +90,7 @@
 				<div class="flex items-center justify-between gap-3">
 					<dt class="text-muted">Waiver</dt>
 					<dd>
-						{#if data.waiverSignedAt}<Badge tone="success">Signed {new Date(data.waiverSignedAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}</Badge>{:else}<Badge tone="warning" dot>Not signed</Badge>{/if}
+						{#if data.waiverSignedAt}<Badge tone="success">Signed {new Date(data.waiverSignedAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric', timeZone: data.timezone ?? undefined })}</Badge>{:else}<Badge tone="warning" dot>Not signed</Badge>{/if}
 					</dd>
 				</div>
 			{/if}

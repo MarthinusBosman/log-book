@@ -110,7 +110,7 @@
 					<div class="min-w-0">
 						<p class="text-xs font-medium tracking-wider text-success uppercase">Checked in</p>
 						<h2 class="mt-1 truncate text-xl font-semibold tracking-tight">{c.dropzone.name}</h2>
-						<p class="text-sm text-muted">since {fmtTime(c.checkedInAt)}</p>
+						<p class="text-sm text-muted">since {fmtTime(c.checkedInAt, data.timezone ?? undefined)}</p>
 					</div>
 					{#if c.verified}<Badge tone="success"><JIcon name="badgeCheck" class="size-3.5" /> Verified</Badge>{/if}
 				</div>

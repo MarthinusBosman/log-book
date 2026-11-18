@@ -15,6 +15,7 @@ export const load: PageServerLoad = async (event) => {
 		day,
 		today: ctx.today,
 		dzName: ctx.dz.name,
+		timezone: ctx.dz.timezone,
 		loads: loads.map((l) => {
 			const stats = loadStats(l, l.slots);
 			return {

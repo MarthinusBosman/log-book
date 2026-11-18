@@ -241,7 +241,7 @@
 				<li class="flex items-center gap-3 px-5 py-3">
 					<span class="min-w-0 flex-1">
 						<span class="block font-medium tabular-nums">{p.amount} <span class="font-normal text-muted">· {p.provider}</span></span>
-						<span class="text-xs text-muted">{purposeLabel(p.purpose)} · {new Date(p.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+						<span class="text-xs text-muted">{purposeLabel(p.purpose)} · {new Date(p.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: data.timezone ?? undefined })}</span>
 					</span>
 					<Badge tone={recentTone(p.status)}>{p.status}</Badge>
 				</li>

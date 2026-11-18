@@ -32,6 +32,8 @@ export const load: LayoutServerLoad = async (event) => {
 		instanceMode: instanceMode(),
 		unread,
 		branding,
+		/** Instants are shown in the active dropzone's timezone, so the server render (UTC on Workers) and the browser agree. */
+		timezone: dzRow?.timezone ?? null,
 		/** In-app Feedback (GitHub issues) is configured on this server. */
 		feedbackEnabled: serverFeedbackConfig() !== null
 	};

@@ -233,7 +233,7 @@
 								</span>
 								<span class="min-w-0 flex-1">
 									<span class="block truncate font-medium">{e.title}{e.detail ? ` · ${e.detail}` : ''}</span>
-									<span class="block truncate text-xs text-muted">{#if held && e.loadNumber != null}Load {e.loadNumber}{e.loadDay ? ` on ${fmtDate(e.loadDay)}` : ''}{:else}{e.method ? `${e.method} · ` : ''}{e.loadNumber != null ? `Load ${e.loadNumber} · ` : ''}{fmtDateTime(e.createdAt)}{/if}</span>
+									<span class="block truncate text-xs text-muted">{#if held && e.loadNumber != null}Load {e.loadNumber}{e.loadDay ? ` on ${fmtDate(e.loadDay)}` : ''}{:else}{e.method ? `${e.method} · ` : ''}{e.loadNumber != null ? `Load ${e.loadNumber} · ` : ''}{fmtDateTime(e.createdAt, data.timezone)}{/if}</span>
 								</span>
 								<span class="text-right tabular-nums">
 									{#if held}
