@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { DAY, NOW, freshDb, makeDropzone } from '../domain/testing.ts';
 import { addBookingSlots, createOnlineBooking } from '../domain/tandems.ts';
 import { addDays } from '../domain/time.ts';
-import { bookableDays, nowTime } from './public.ts';
+import { BOOKING_HORIZON_DAYS, bookableDays, bookingOpensOn, nowTime } from './public.ts';
 
 describe('bookableDays', () => {
 	test("drops today's past times and fully booked days", async () => {
@@ -24,5 +24,20 @@ describe('bookableDays', () => {
 			['09:00', 1],
 			['11:00', 1]
 		]);
+	});
+
+	test('a slot shows on the booking page from bookingOpensOn(date)', async () => {
+		const db = freshDb();
+		const { dz } = await makeDropzone(db);
+		const last = addDays(DAY, BOOKING_HORIZON_DAYS);
+		const beyond = addDays(last, 1);
+		for (const date of [last, beyond]) await addBookingSlots(db, { dropzoneId: dz.id, date, time: '09:00', capacity: 2 });
+		const { days } = await bookableDays(db, dz, BOOKING_HORIZON_DAYS, NOW);
+		expect(Object.keys(days)).toEqual([last]);
+		expect(bookingOpensOn(last)).toBe(DAY);
+		expect(bookingOpensOn(beyond)).toBe(addDays(DAY, 1));
+		// The day it opens, it is bookable.
+		const next = await bookableDays(db, dz, BOOKING_HORIZON_DAYS, NOW + 86_400_000);
+		expect(Object.keys(next.days)).toEqual([last, beyond]);
 	});
 });

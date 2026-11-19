@@ -48,6 +48,11 @@ export function nowTime(tz: string, now = Date.now()): string {
 /** How far ahead the public booking page (and the DZ page's "Next available days") looks. */
 export const BOOKING_HORIZON_DAYS = 90;
 
+/** First day (DZ calendar) on which a slot on `date` shows on the booking page. */
+export function bookingOpensOn(date: string): string {
+	return addDays(date, -BOOKING_HORIZON_DAYS);
+}
+
 /** Bookable days from today (DZ time) for `days` days: today's past times are dropped, full days omitted. */
 export async function bookableDays(db: Database, dz: Pick<Dropzone, 'id' | 'timezone'>, days: number, now = Date.now()) {
 	const today = localDate(now, dz.timezone);

@@ -682,3 +682,40 @@ test.describe('South African dropzone', () => {
 		await expect(detail.getByText('Unpaid', { exact: true })).toBeVisible();
 	});
 });
+
+test('slots: dates months ahead stay listed and say when customers can book them', async ({ page }) => {
+	const stamp = `${test.info().project.name}-${Date.now()}`;
+	const day = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString().slice(0, 10);
+	const [d60, d120] = [day(60), day(120)];
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Far Ahead');
+	await page.getByLabel('Email').fill(`farahead-${stamp}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Far DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/tandems/slots');
+	await page.waitForLoadState('networkidle');
+	const toasts = page.locator('[aria-live]');
+	// 60 days out: past the old 45-day list, but bookable now (no "opens" note).
+	await page.getByLabel('Date', { exact: true }).fill(d60);
+	await page.getByLabel('Time', { exact: true }).fill('10:00');
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(toasts.filter({ hasText: '1 slot added.' }).first()).toBeVisible();
+	await expect(toasts.filter({ hasText: 'opens for booking' })).toHaveCount(0);
+	await expect(page.getByTestId('slot-day')).toHaveCount(1);
+	await expect(page.getByTestId('opens-on')).toHaveCount(0);
+	// 120 days out: listed, with the day it appears on the booking page.
+	await page.getByLabel('Date', { exact: true }).fill(d120);
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(toasts.filter({ hasText: 'It opens for booking on' }).first()).toBeVisible();
+	await expect(page.getByTestId('slot-day')).toHaveCount(2);
+	await expect(page.getByTestId('slot-day').nth(1).getByTestId('opens-on')).toContainText('Bookable from');
+	await expect(page.getByText('Customers can book up to 90 days ahead.')).toBeVisible();
+	// The far one can be removed from the list.
+	await page.getByRole('button', { name: `Remove ${d120} 10:00` }).click();
+	await expect(page.getByTestId('slot-day')).toHaveCount(1);
+});

@@ -124,7 +124,7 @@
 				</div>
 			{/each}
 		</section>
-		<p class="text-xs text-subtle">Next {data.horizon} days. Removing a slot keeps existing bookings — they stay on their date and time.</p>
+		<p class="text-xs text-subtle">All upcoming dates. Customers can book up to {data.horizon} days ahead. Removing a slot keeps existing bookings — they stay on their date and time.</p>
 	</aside>
 
 	<div class="flex flex-col gap-6">
@@ -164,8 +164,11 @@
 					{#each visible as d (d.date)}
 						<li class="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[9rem_1fr] sm:items-center" data-testid="slot-day">
 							<p class="text-sm font-medium">
-								{fmtDay(d.date, { weekday: 'short', day: 'numeric', month: 'short' })}
+								{fmtDay(d.date, { weekday: 'short', day: 'numeric', month: 'short', ...(d.date.slice(0, 4) !== data.today.slice(0, 4) && { year: 'numeric' }) })}
 								{#if d.date === data.today}<Badge tone="brand" class="ml-1">Today</Badge>{/if}
+								{#if d.opensOn}
+									<span class="block text-xs font-normal text-muted" data-testid="opens-on">Bookable from {fmtDay(d.opensOn, { day: 'numeric', month: 'short' })}</span>
+								{/if}
 							</p>
 							<ul class="flex flex-wrap gap-2">
 								{#each d.slots as s (s.id)}
