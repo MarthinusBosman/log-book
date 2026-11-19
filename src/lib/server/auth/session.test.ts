@@ -146,17 +146,31 @@ describe('password reset', () => {
 		const t0 = Date.now();
 		const user = await makeUser();
 		const resetToken = await createPasswordResetToken(db, user.id, t0);
-		expect(await passwordResetTokenInfo(db, resetToken, t0)).toEqual({ firstPassword: false, email: user.email });
+		expect(await passwordResetTokenInfo(db, resetToken, t0)).toEqual({ firstPassword: false, email: user.email, name: user.name });
 
 		const invitee = await makeUser('invitee@example.com');
 		await db.update(users).set({ passwordHash: null }).where(eq(users.id, invitee.id));
 		const invite = await createPasswordResetToken(db, invitee.id, t0, INVITE_TOKEN_LIFETIME_MS);
-		expect(await passwordResetTokenInfo(db, invite, t0)).toEqual({ firstPassword: true, email: 'invitee@example.com' });
+		expect(await passwordResetTokenInfo(db, invite, t0)).toEqual({ firstPassword: true, email: 'invitee@example.com', name: invitee.name });
 		// Still usable after the check, and gone once used.
 		await resetPassword(db, invite, 'first-password-1', t0);
 		expect(await passwordResetTokenInfo(db, invite, t0)).toBeNull();
 		expect(await passwordResetTokenInfo(db, 'not-a-token', t0)).toBeNull();
 		expect(await passwordResetTokenInfo(db, '', t0)).toBeNull();
+	});
+
+	test('an invitee sets their name with the password; a bad name leaves the link unused', async () => {
+		const t0 = Date.now();
+		const invitee = await makeUser('pete.pilot@example.com');
+		await db.update(users).set({ passwordHash: null, name: 'pete.pilot' }).where(eq(users.id, invitee.id));
+		const invite = await createPasswordResetToken(db, invitee.id, t0, INVITE_TOKEN_LIFETIME_MS);
+		await expect(resetPassword(db, invite, 'first-password-1', t0, { name: '   ' })).rejects.toThrow(/Enter your name/);
+		await expect(resetPassword(db, invite, 'first-password-1', t0, { name: 'x'.repeat(121) })).rejects.toThrow(/Enter your name/);
+		expect(await passwordResetTokenInfo(db, invite, t0)).not.toBeNull();
+		await resetPassword(db, invite, 'first-password-1', t0, { name: '  Pete Pilot ' });
+		const row = (await db.select().from(users).where(eq(users.id, invitee.id)))[0];
+		expect(row.name).toBe('Pete Pilot');
+		expect((await authenticate(db, invitee.email, 'first-password-1'))?.id).toBe(invitee.id);
 	});
 
 	test('invite links last 7 days, reset links an hour', async () => {

@@ -14,7 +14,13 @@ export function timeGreeting(hour: number | null): string {
  */
 export function emailHi(name: string | null | undefined, email?: string | null): string {
 	const n = name?.trim();
-	if (!n) return 'Hi,';
-	if (email && n.toLowerCase() === email.split('@')[0]?.toLowerCase()) return 'Hi,';
+	if (!n || isPlaceholderName(n, email)) return 'Hi,';
 	return `Hi ${n},`;
+}
+
+/** True when `name` is empty or just the email's local part (the name given to nameless invitees). */
+export function isPlaceholderName(name: string | null | undefined, email?: string | null): boolean {
+	const n = name?.trim().toLowerCase();
+	if (!n) return true;
+	return !!email && n === email.split('@')[0]?.toLowerCase();
 }

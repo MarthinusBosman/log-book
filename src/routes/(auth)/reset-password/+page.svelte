@@ -45,6 +45,18 @@
 		<input type="hidden" name="token" value={data.token} />
 		<!-- Lets password managers save the new password against the right account. -->
 		<input type="email" name="username" value={data.email} autocomplete="username" class="hidden" tabindex="-1" aria-hidden="true" readonly />
+		{#if data.firstPassword}
+			<Input
+				label="Your name"
+				name="name"
+				autocomplete="name"
+				maxlength={120}
+				required
+				value={form?.name ?? data.name}
+				error={form?.field === 'name' ? form.message : undefined}
+				hint="Shown to the dropzone staff and on your logbook."
+			/>
+		{/if}
 		<Input
 			label={data.firstPassword ? 'Password' : 'New password'}
 			name="password"
@@ -54,7 +66,7 @@
 			required
 			hint="At least 8 characters."
 		/>
-		{#if form?.message}
+		{#if form?.message && form.field !== 'name'}
 			<p class="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
 				{form.message}
 			</p>

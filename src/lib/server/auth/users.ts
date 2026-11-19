@@ -121,10 +121,10 @@ export async function passwordResetTokenInfo(
 	db: Database,
 	token: string,
 	now = Date.now()
-): Promise<{ firstPassword: boolean; email: string } | null> {
+): Promise<{ firstPassword: boolean; email: string; name: string } | null> {
 	if (!token) return null;
 	const rows = await db
-		.select({ passwordHash: users.passwordHash, email: users.email, deletedAt: users.deletedAt })
+		.select({ passwordHash: users.passwordHash, email: users.email, name: users.name, deletedAt: users.deletedAt })
 		.from(passwordResetTokens)
 		.innerJoin(users, eq(users.id, passwordResetTokens.userId))
 		.where(
@@ -137,16 +137,23 @@ export async function passwordResetTokenInfo(
 		.limit(1);
 	const row = rows[0];
 	if (!row || row.deletedAt) return null;
-	return { firstPassword: row.passwordHash == null, email: row.email };
+	return { firstPassword: row.passwordHash == null, email: row.email, name: row.name };
 }
 
-/** Consumes a reset token, sets the new password and signs out all sessions. */
+/**
+ * Consumes a reset token, sets the new password and signs out all sessions. `name` (invitees
+ * confirming the name staff typed, or replacing the email-derived placeholder) is checked before
+ * the link is used up and saved with the password.
+ */
 export async function resetPassword(
 	db: Database,
 	token: string,
 	newPassword: string,
-	now = Date.now()
+	now = Date.now(),
+	opts: { name?: string } = {}
 ): Promise<string> {
+	const name = opts.name?.trim();
+	if (opts.name !== undefined && (!name || name.length > 120)) throw new AuthError('Enter your name.', 'name');
 	const pwErr = validatePasswordStrength(newPassword);
 	if (pwErr) throw new AuthError(pwErr, 'password');
 	const id = hashToken(token);
@@ -169,7 +176,7 @@ export async function resetPassword(
 		.where(eq(passwordResetTokens.id, id));
 	await db
 		.update(users)
-		.set({ passwordHash: await hashPassword(newPassword) })
+		.set({ passwordHash: await hashPassword(newPassword), ...(name ? { name, updatedAt: new Date(now) } : {}) })
 		.where(eq(users.id, row.userId));
 	await invalidateAllUserSessions(db, row.userId);
 	return row.userId;

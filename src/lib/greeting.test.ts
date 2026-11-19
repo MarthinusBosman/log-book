@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { emailHi, timeGreeting } from './greeting.ts';
+import { emailHi, isPlaceholderName, timeGreeting } from './greeting.ts';
 
 describe('timeGreeting', () => {
 	test('neutral before dawn and without a timezone', () => {
@@ -27,5 +27,17 @@ describe('emailHi', () => {
 		expect(emailHi('Pete.Pilot', 'pete.pilot@example.com')).toBe('Hi,');
 		expect(emailHi('  ', 'a@b.c')).toBe('Hi,');
 		expect(emailHi(null)).toBe('Hi,');
+	});
+});
+
+describe('isPlaceholderName', () => {
+	test('empty or the email local part', () => {
+		expect(isPlaceholderName('', 'a@b.c')).toBe(true);
+		expect(isPlaceholderName(null)).toBe(true);
+		expect(isPlaceholderName(' Pete.Pilot ', 'pete.pilot@example.com')).toBe(true);
+	});
+	test('a real name is kept', () => {
+		expect(isPlaceholderName('Pete Pilot', 'pete.pilot@example.com')).toBe(false);
+		expect(isPlaceholderName('pete', null)).toBe(false);
 	});
 });
