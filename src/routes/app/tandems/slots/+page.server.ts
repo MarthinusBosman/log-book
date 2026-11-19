@@ -55,7 +55,8 @@ export const actions: Actions = {
 			const opens = bookingOpensOn(date);
 			const later =
 				opens > today ? ` ${r.added > 1 ? 'The first opens' : 'It opens'} for booking on ${fmtDay(opens, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} (customers book up to ${BOOKING_HORIZON_DAYS} days ahead).` : '';
-			return { ok: true, message: `${added}${later}` };
+			// `addedDate` keeps that day in the (collapsed) list so a far-off slot doesn't vanish behind "Show all".
+			return { ok: true, message: `${added}${later}`, addedDate: date };
 		} catch (e) {
 			return failFrom(e);
 		}

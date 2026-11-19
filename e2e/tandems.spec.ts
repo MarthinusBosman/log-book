@@ -718,4 +718,17 @@ test('slots: dates months ahead stay listed and say when customers can book them
 	// The far one can be removed from the list.
 	await page.getByRole('button', { name: `Remove ${d120} 10:00` }).click();
 	await expect(page.getByTestId('slot-day')).toHaveCount(1);
+	// With more than 14 days listed, a far-off day just added still shows (marked) without "Show all".
+	await page.getByLabel('Date', { exact: true }).fill(day(1));
+	await page.getByLabel('Repeat').selectOption('daily');
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(toasts.filter({ hasText: '30 slots added.' }).first()).toBeVisible();
+	await expect(page.getByTestId('slot-day')).toHaveCount(14);
+	await page.getByLabel('Date', { exact: true }).fill(d120);
+	await page.getByLabel('Repeat').selectOption('none');
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(page.getByTestId('slot-day')).toHaveCount(15);
+	await expect(page.getByTestId('slot-day').last().getByTestId('just-added')).toBeVisible();
+	await expect(page.getByTestId('slot-day').last().getByTestId('opens-on')).toContainText('Bookable from');
+	await expect(page.getByRole('link', { name: 'Show all 32 days' })).toBeVisible();
 });

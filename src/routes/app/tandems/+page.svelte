@@ -19,6 +19,7 @@
 		STAGE_TONES,
 		addDaysIso,
 		fmtDay,
+		isFullyPaid,
 		isUnpriced,
 		limitWarnings,
 		tandemStage
@@ -60,7 +61,7 @@
 	const stats = $derived({
 		total: active.length,
 		signed: active.filter((p) => p.indemnitySignedAt).length,
-		paid: active.filter((p) => p.paymentStatus === 'paid').length,
+		paid: active.filter(isFullyPaid).length,
 		manifested: active.filter((p) => p.manifested || p.status === 'completed').length
 	});
 	const groups = $derived.by(() => {

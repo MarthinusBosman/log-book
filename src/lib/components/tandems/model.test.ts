@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { addOnsSuffix, calendarDayLabel, extraToggleLabel, isUnpriced, tandemStage } from './model.ts';
+import { addOnsSuffix, calendarDayLabel, extraToggleLabel, isFullyPaid, isUnpriced, tandemStage } from './model.ts';
 
 describe('booking accessible names', () => {
 	test('calendar days are spoken as dates, with singular/plural places', () => {
@@ -31,5 +31,10 @@ describe('unpriced bookings', () => {
 		expect(isUnpriced({ totalMinor: 0, amountPaidMinor: 320000 })).toBe(false);
 		expect(isUnpriced({ totalMinor: 320000, amountPaidMinor: 0 })).toBe(false);
 		expect(tandemStage({ ...base, paymentStatus: 'deposit_paid', totalMinor: 320000, amountPaidMinor: 50000 })).toBe('deposit_paid');
+	});
+	test('legacy unpriced rows stored as paid are not counted as paid', () => {
+		expect(isFullyPaid({ paymentStatus: 'paid', totalMinor: 0, amountPaidMinor: 0 })).toBe(false);
+		expect(isFullyPaid({ paymentStatus: 'paid', totalMinor: 320000, amountPaidMinor: 320000 })).toBe(true);
+		expect(isFullyPaid({ paymentStatus: 'partially_paid', totalMinor: 320000, amountPaidMinor: 100 })).toBe(false);
 	});
 });

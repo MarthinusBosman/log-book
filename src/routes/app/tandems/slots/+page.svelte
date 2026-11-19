@@ -37,7 +37,14 @@
 	};
 	const removeDone = () => (removingId = null);
 
-	const visible = $derived(showAll ? data.dated : data.dated.slice(0, 14));
+	/** First day of the slots just added (from the add action), so it stays listed even past the first 14 days. */
+	const addedDate = $derived((page.form as { addedDate?: string } | null)?.addedDate ?? null);
+	const visible = $derived.by(() => {
+		if (showAll) return data.dated;
+		const head = data.dated.slice(0, 14);
+		if (!addedDate || head.some((d) => d.date === addedDate)) return head;
+		return [...head, ...data.dated.filter((d) => d.date === addedDate)];
+	});
 	const totals = $derived.by(() => {
 		let cap = 0;
 		let booked = 0;
@@ -166,6 +173,7 @@
 							<p class="text-sm font-medium">
 								{fmtDay(d.date, { weekday: 'short', day: 'numeric', month: 'short', ...(d.date.slice(0, 4) !== data.today.slice(0, 4) && { year: 'numeric' }) })}
 								{#if d.date === data.today}<Badge tone="brand" class="ml-1">Today</Badge>{/if}
+								{#if d.date === addedDate}<span data-testid="just-added"><Badge tone="success" class="ml-1">Just added</Badge></span>{/if}
 								{#if d.opensOn}
 									<span class="block text-xs font-normal text-muted" data-testid="opens-on">Bookable from {fmtDay(d.opensOn, { day: 'numeric', month: 'short' })}</span>
 								{/if}

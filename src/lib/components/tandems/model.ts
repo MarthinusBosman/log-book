@@ -42,6 +42,11 @@ export function isUnpriced(p: { totalMinor?: number; amountPaidMinor?: number })
 	return p.totalMinor === 0 && !p.amountPaidMinor;
 }
 
+/** Fully paid with a real price (legacy unpriced rows stored as 'paid' don't count). */
+export function isFullyPaid(p: { paymentStatus: PaymentStatus; totalMinor?: number; amountPaidMinor?: number }): boolean {
+	return p.paymentStatus === 'paid' && !isUnpriced(p);
+}
+
 export function tandemStage(p: StageInput): TandemStage {
 	if (p.status === 'cancelled') return 'cancelled';
 	if (p.status === 'completed') return 'jumped';
