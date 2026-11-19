@@ -56,6 +56,16 @@ test('privacy policy + terms: linked from footer and signup, no JS', async ({ pa
 	await expect(legal.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
 });
 
+test('a used or expired set-password link says so before asking for a password', async ({ page }) => {
+	await page.goto('/reset-password?token=not-a-real-token');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Choose a new password');
+	await expect(page.getByTestId('link-expired')).toContainText('expired or was already used');
+	await expect(page.getByTestId('link-expired').getByRole('link', { name: 'Get a new link' })).toHaveAttribute('href', '/forgot-password');
+	await expect(page.locator('input[name=password]')).toHaveCount(0);
+	await page.goto('/reset-password');
+	await expect(page.getByText('missing its token')).toBeVisible();
+});
+
 test('common auth URL guesses redirect to the real pages', async ({ page }) => {
 	await page.goto('/register?redirectTo=%2Fapp%2Fwallet');
 	await expect(page).toHaveURL(/\/signup\?redirectTo=%2Fapp%2Fwallet$/);

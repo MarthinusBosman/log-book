@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import { eq } from 'drizzle-orm';
 import type { Database } from '../db';
 import { openSqlite } from '../db/sqlite';
-import { sessions } from '../db/schema';
+import { sessions, users } from '../db/schema';
 import {
 	createSession,
 	generateSessionToken,
@@ -17,6 +17,8 @@ import {
 	AuthError,
 	createPasswordResetToken,
 	createUser,
+	INVITE_TOKEN_LIFETIME_MS,
+	passwordResetTokenInfo,
 	resetPassword,
 	RESET_TOKEN_LIFETIME_MS
 } from './users';
@@ -138,5 +140,38 @@ describe('password reset', () => {
 		await expect(resetPassword(db, token, 'new-password-456', t0 + RESET_TOKEN_LIFETIME_MS + 1)).rejects.toThrow(
 			/expired/
 		);
+	});
+
+	test('passwordResetTokenInfo tells an invite (no password yet) from a reset, without using the link', async () => {
+		const t0 = Date.now();
+		const user = await makeUser();
+		const resetToken = await createPasswordResetToken(db, user.id, t0);
+		expect(await passwordResetTokenInfo(db, resetToken, t0)).toEqual({ firstPassword: false, email: user.email });
+
+		const invitee = await makeUser('invitee@example.com');
+		await db.update(users).set({ passwordHash: null }).where(eq(users.id, invitee.id));
+		const invite = await createPasswordResetToken(db, invitee.id, t0, INVITE_TOKEN_LIFETIME_MS);
+		expect(await passwordResetTokenInfo(db, invite, t0)).toEqual({ firstPassword: true, email: 'invitee@example.com' });
+		// Still usable after the check, and gone once used.
+		await resetPassword(db, invite, 'first-password-1', t0);
+		expect(await passwordResetTokenInfo(db, invite, t0)).toBeNull();
+		expect(await passwordResetTokenInfo(db, 'not-a-token', t0)).toBeNull();
+		expect(await passwordResetTokenInfo(db, '', t0)).toBeNull();
+	});
+
+	test('invite links last 7 days, reset links an hour', async () => {
+		const t0 = Date.now();
+		const invitee = await makeUser('invitee@example.com');
+		await db.update(users).set({ passwordHash: null }).where(eq(users.id, invitee.id));
+		const invite = await createPasswordResetToken(db, invitee.id, t0, INVITE_TOKEN_LIFETIME_MS);
+		// The next morning (well past the reset lifetime) the invite still works...
+		expect(await passwordResetTokenInfo(db, invite, t0 + DAY)).not.toBeNull();
+		expect(await passwordResetTokenInfo(db, invite, t0 + 7 * DAY + 1)).toBeNull();
+		await resetPassword(db, invite, 'first-password-1', t0 + DAY);
+		expect((await authenticate(db, invitee.email, 'first-password-1'))?.id).toBe(invitee.id);
+
+		const user = await makeUser();
+		const reset = await createPasswordResetToken(db, user.id, t0);
+		expect(await passwordResetTokenInfo(db, reset, t0 + RESET_TOKEN_LIFETIME_MS + 1)).toBeNull();
 	});
 });

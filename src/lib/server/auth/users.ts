@@ -7,6 +7,8 @@ import { invalidateAllUserSessions } from './session';
 import { generateToken, hashToken, newId } from './token';
 
 export const RESET_TOKEN_LIFETIME_MS = 60 * 60 * 1000;
+/** Staff invites to people without a password: they may not read the email the same hour. */
+export const INVITE_TOKEN_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -97,17 +99,45 @@ export async function authenticate(
 export async function createPasswordResetToken(
 	db: Database,
 	userId: string,
-	now = Date.now()
+	now = Date.now(),
+	lifetimeMs = RESET_TOKEN_LIFETIME_MS
 ): Promise<string> {
 	await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, userId));
 	const token = generateToken(32);
 	await db.insert(passwordResetTokens).values({
 		id: hashToken(token),
 		userId,
-		expiresAt: new Date(now + RESET_TOKEN_LIFETIME_MS),
+		expiresAt: new Date(now + lifetimeMs),
 		createdAt: new Date(now)
 	});
 	return token;
+}
+
+/**
+ * What a set-password link is for, without consuming it: `null` when it's unknown, used or expired;
+ * `firstPassword` when the account has no password yet (an invite), so the page can say so.
+ */
+export async function passwordResetTokenInfo(
+	db: Database,
+	token: string,
+	now = Date.now()
+): Promise<{ firstPassword: boolean; email: string } | null> {
+	if (!token) return null;
+	const rows = await db
+		.select({ passwordHash: users.passwordHash, email: users.email, deletedAt: users.deletedAt })
+		.from(passwordResetTokens)
+		.innerJoin(users, eq(users.id, passwordResetTokens.userId))
+		.where(
+			and(
+				eq(passwordResetTokens.id, hashToken(token)),
+				isNull(passwordResetTokens.usedAt),
+				gt(passwordResetTokens.expiresAt, new Date(now))
+			)
+		)
+		.limit(1);
+	const row = rows[0];
+	if (!row || row.deletedAt) return null;
+	return { firstPassword: row.passwordHash == null, email: row.email };
 }
 
 /** Consumes a reset token, sets the new password and signs out all sessions. */

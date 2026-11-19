@@ -2,7 +2,7 @@ import { fail, type RequestEvent } from '@sveltejs/kit';
 import { brand } from '#lib/brand.ts';
 import { publicOrigin } from '#lib/server/config.ts';
 import { getMailer, idempotencyKey } from '#lib/server/email/index.ts';
-import { createPasswordResetToken } from '#lib/server/auth/users.ts';
+import { createPasswordResetToken, INVITE_TOKEN_LIFETIME_MS } from '#lib/server/auth/users.ts';
 import { listMembers, removeMember, setRoleColour } from '#lib/server/domain/dropzone-admin.ts';
 import { grantRole, revokeRole } from '#lib/server/domain/permissions.ts';
 import { inviteMember } from '#lib/server/domain/staff-admin.ts';
@@ -15,18 +15,18 @@ const parseRoles = (f: FormData) =>
 
 const COLOUR_RE = /^#[0-9a-f]{6}$/i;
 
-/** Emails a fresh single-use set-password link (valid 1 hour). Resolves false when sending failed. */
+/** Emails a fresh single-use set-password link (valid 7 days). Resolves false when sending failed. */
 async function sendSetPasswordInvite(
 	event: RequestEvent,
 	o: { dzName: string; inviter: string; member: { userId: string; name: string; email: string }; roleText: string }
 ): Promise<boolean> {
-	const token = await createPasswordResetToken(event.locals.db, o.member.userId);
+	const token = await createPasswordResetToken(event.locals.db, o.member.userId, Date.now(), INVITE_TOKEN_LIFETIME_MS);
 	const origin = publicOrigin(event.url.origin);
 	return getMailer()
 		.send({
 			to: o.member.email,
 			subject: `You're invited to ${o.dzName} on ${brand.name}`,
-			text: `Hi ${o.member.name},\n\n${o.inviter} added you to ${o.dzName} as: ${o.roleText}.\n\nSet your password to get started (link valid for 1 hour — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`,
+			text: `Hi ${o.member.name},\n\n${o.inviter} added you to ${o.dzName} as: ${o.roleText}.\n\nSet your password to get started (link valid for 7 days — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`,
 			// One per invite: the invite's single-use password link.
 			idempotencyKey: await idempotencyKey('invite', token)
 		})
@@ -48,7 +48,7 @@ export const actions: Actions = {
 			const res = await inviteMember(event.locals.db, { dropzoneId: dz.id, email: str(f, 'email'), name: optStr(f, 'name'), roles, by: user.id });
 			const origin = publicOrigin(event.url.origin);
 			const roleText = roles.map((r) => ROLE_LABELS[r]).join(', ');
-			// New people, and earlier invitees who never set a password (the 1-hour link ran out),
+			// New people, and earlier invitees who never set a password (the 7-day link ran out),
 			// get a fresh set-password link.
 			if (res.created || !res.hasLogin) {
 				const sent = await sendSetPasswordInvite(event, { dzName: dz.name, inviter: user.name, member: res, roleText });
