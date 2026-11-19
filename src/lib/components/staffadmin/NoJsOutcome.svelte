@@ -12,14 +12,14 @@
 	 * enhanced submits keep using toasts only (a message from a pre-hydration post moves into a
 	 * toast). Use it on pages whose forms don't show `form` inline.
 	 */
-	let { class: className = 'mt-4' }: { class?: string } = $props();
+	let { class: className = 'mt-4', untaggedOnly = false }: { class?: string; untaggedOnly?: boolean } = $props();
 	let hydrated = $state(false);
 	onMount(() => {
-		const o = formOutcome(page.form, page.status);
+		const o = formOutcome(page.form, page.status, { untaggedOnly });
 		if (o) (o.ok ? toast.success : toast.error)(o.text);
 		hydrated = true;
 	});
-	const outcome = $derived(hydrated ? null : formOutcome(page.form, page.status));
+	const outcome = $derived(hydrated ? null : formOutcome(page.form, page.status, { untaggedOnly }));
 </script>
 
 {#if outcome}

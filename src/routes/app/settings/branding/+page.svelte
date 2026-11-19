@@ -5,6 +5,7 @@
 	import { IMAGE_PRESETS } from '#lib/client/resize-image.ts';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
+	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { DEFAULT_BRAND_COLOR, brandTheme, modeVars, normalizeHex, type ThemeChoice } from '#lib/branding.ts';
 	import type { PageProps } from './$types';
 
@@ -48,6 +49,9 @@
 </script>
 
 <svelte:head><title>Settings · Branding</title></svelte:head>
+
+<!-- The colour and logo cards show their own (tagged) answers; this covers the rest without JS. -->
+<NoJsOutcome class="mb-4" untaggedOnly />
 
 <div class="grid grid-cols-1 gap-6 xl:grid-cols-5">
 	<div class="min-w-0 space-y-6 xl:col-span-2">
