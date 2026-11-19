@@ -21,3 +21,11 @@ export async function bookingOptions(db: Database, dz: Dropzone, secretsKey: str
 	const manual = !dz.paymentsOn || dz.payAtManifest || usable.length === 0;
 	return { options: [...providerChoices(usable), ...(manual ? [MANUAL_OPTION] : [])], online: usable, manual };
 }
+
+/**
+ * The choices a booking may offer. With no tandem price there is nothing to charge online (a
+ * checkout of 0 fails at every provider), so the booking is always "pay at the dropzone".
+ */
+export function payChoices(pay: { options: BookingOption[] }, priced: boolean): BookingOption[] {
+	return priced ? pay.options : [MANUAL_OPTION];
+}

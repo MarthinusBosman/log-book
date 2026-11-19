@@ -88,6 +88,9 @@
 	const extraPrice = (code: SlotExtra) => data.offer.extras.find((e) => e.code === code)?.priceMinor ?? 0;
 	const perJumper = $derived(jumpers.map((j) => data.offer.baseMinor + j.extras.reduce((n, e) => n + extraPrice(e), 0)));
 	const total = $derived(perJumper.reduce((a, b) => a + b, 0));
+	// No tandem price in the DZ's pricelist yet: don't quote R 0,00 (the server only offers pay at the DZ).
+	const priced = $derived(data.offer.baseMinor > 0);
+	const UNPRICED = 'Price at the dropzone';
 	const deposit = $derived(data.offer.depositMinor * count);
 	const online = $derived(provider !== 'manual');
 	const dueNow = $derived(!online ? 0 : payWhat === 'full' || deposit === 0 ? total : deposit);
@@ -447,12 +450,12 @@
 					{#each jumpers as j, i (i)}
 						<div class="flex justify-between gap-2">
 							<dt class="truncate text-muted">{count > 1 || j.name ? first(j, i) : 'Tandem skydive'}{addOnsSuffix(j.extras.length)}</dt>
-							<dd class="tabular-nums">{money(perJumper[i])}</dd>
+							<dd class="tabular-nums">{priced ? money(perJumper[i]) : ''}</dd>
 						</div>
 					{/each}
 					<div class="flex justify-between border-t border-border pt-2 text-base font-semibold">
 						<dt>Total</dt>
-						<dd class="tabular-nums" data-testid="total">{money(total)}</dd>
+						<dd class="text-right tabular-nums" data-testid="total">{priced ? money(total) : UNPRICED}</dd>
 					</div>
 					{#if deposit > 0}
 						<div class="flex justify-between text-xs text-muted"><dt>Deposit</dt><dd class="tabular-nums">{money(deposit)}</dd></div>
@@ -469,7 +472,7 @@
 					<Button variant="secondary" size="icon" onclick={() => go(step - 1)} aria-label="Back"><span aria-hidden="true">‹</span></Button>
 				{/if}
 				<div class="min-w-0 flex-1 leading-tight">
-					<p class="text-base font-semibold tabular-nums">{money(total)}</p>
+					<p class="text-base font-semibold tabular-nums" data-testid="bar-total">{priced ? money(total) : UNPRICED}</p>
 					<!-- wraps instead of truncating: the jump time must stay readable next to a wide pay button -->
 					<p class="text-xs text-muted" data-testid="bar-summary">
 						{count} jumper{count === 1 ? '' : 's'}{#if date}{' · '}<span class="whitespace-nowrap">{fmtDay(date)}{time ? ` ${time}` : ''}</span>{/if}

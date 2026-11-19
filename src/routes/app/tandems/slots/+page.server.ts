@@ -1,5 +1,6 @@
 import { addBookingSlots, addWeeklySlot, availabilityRange, deleteBookingSlot, listBookingSlots, updateBookingSlotCapacity } from '#lib/server/domain/tandems.ts';
 import { addDays, localDate } from '#lib/server/domain/time.ts';
+import { tandemExtrasOffer } from '#lib/server/tandems/detail.ts';
 import { failFrom, optNum, staffContext, str } from '#lib/server/tandems/http.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -10,7 +11,11 @@ export const load: PageServerLoad = async (event) => {
 	const db = event.locals.db;
 	const today = localDate(Date.now(), dz.timezone);
 	const to = addDays(today, HORIZON_DAYS);
-	const [{ dated, recurring }, avail] = await Promise.all([listBookingSlots(db, dz.id, today, to), availabilityRange(db, dz.id, today, to)]);
+	const [{ dated, recurring }, avail, offer] = await Promise.all([
+		listBookingSlots(db, dz.id, today, to),
+		availabilityRange(db, dz.id, today, to),
+		tandemExtrasOffer(db, dz.id)
+	]);
 	const bookedAt = (date: string, time: string) => avail[date]?.find((a) => a.time === time)?.booked ?? 0;
 	const days = new Map<string, { id: string; time: string; capacity: number; booked: number }[]>();
 	for (const s of dated) {
@@ -22,6 +27,8 @@ export const load: PageServerLoad = async (event) => {
 		dz: { name: dz.name, slug: dz.slug },
 		today,
 		horizon: HORIZON_DAYS,
+		/** No tandem price yet: the booking page can't quote one (customers pay what's set on the day). */
+		priced: offer.baseMinor > 0,
 		dated: [...days.entries()].map(([date, slots]) => ({ date, slots })),
 		recurring: recurring.map((s) => ({ id: s.id, weekday: s.weekday ?? 0, time: s.time, capacity: s.capacity }))
 	};

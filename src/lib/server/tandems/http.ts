@@ -97,7 +97,10 @@ export async function sendConfirmationEmail(dz: Dropzone, p: TandemPassenger, or
 		`Confirmation number: ${p.confirmationNumber}`,
 		`Date: ${p.jumpDate ? formatDay(p.jumpDate) : 'to be confirmed'}${p.bookingTime ? ` at ${p.bookingTime}` : ''}`,
 		extras ? `Add-ons: ${extras}` : null,
-		`Total: ${formatMoney(p.totalMinor, p.currency)} · Paid: ${formatMoney(p.amountPaidMinor, p.currency)} · Due: ${formatMoney(tandemOutstanding(p), p.currency)}`,
+		p.totalMinor > 0 || p.amountPaidMinor > 0
+			? `Total: ${formatMoney(p.totalMinor, p.currency)} · Paid: ${formatMoney(p.amountPaidMinor, p.currency)} · Due: ${formatMoney(tandemOutstanding(p), p.currency)}`
+			: // No tandem price in the DZ's pricelist when this was booked: don't quote R 0,00.
+				'Price: at the dropzone',
 		'',
 		`View your booking and download the confirmation PDF: ${link}`,
 		p.indemnitySignedAt ? null : `Please sign your indemnity before the jump: ${link}#indemnity`,

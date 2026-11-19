@@ -8,7 +8,7 @@ import { addDays, ageOn, isIsoDate, localDate } from '#lib/server/domain/time.ts
 import { tandemExtrasOffer, tandemLimits } from '#lib/server/tandems/detail.ts';
 import { parsePassengerForm } from '#lib/server/tandems/forms.ts';
 import { failFrom, publicOrigin, sendAdminBookingEmail, sendConfirmationEmail, str } from '#lib/server/tandems/http.ts';
-import { bookingOptions } from '#lib/server/tandems/payments.ts';
+import { bookingOptions, payChoices } from '#lib/server/tandems/payments.ts';
 import { startTandemCheckout, isOnlineProvider } from '#lib/server/payments/index.ts';
 import { paymentsContext, secretsKey } from '#lib/server/payments/runtime.ts';
 import { BOOKING_HORIZON_DAYS as HORIZON_DAYS, bookableDays, publicDropzone } from '#lib/server/tandems/public.ts';
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		initialDate: qDate && days[qDate] ? qDate : null,
 		offer,
 		limits: tandemLimits(dz),
-		providers: pay.options,
+		providers: payChoices(pay, offer.baseMinor > 0),
 		waiver: dz.indemnityTandemActive && sections.length > 0,
 		heardFrom: HEARD_FROM as readonly string[],
 		maxJumpers: MAX_JUMPERS,
@@ -65,8 +65,9 @@ export const actions: Actions = {
 			if (count < 1 || count > MAX_JUMPERS) throw new DomainError('invalid', `Book between 1 and ${MAX_JUMPERS} jumpers`);
 			if (f.get('terms') !== 'on') throw new DomainError('invalid', 'Please accept the booking terms');
 			const pay = await bookingOptions(locals.db, dz, secretsKey());
-			const providerId = str(f, 'provider') || pay.options[0]?.id || 'manual';
-			if (!pay.options.some((o) => o.id === providerId)) throw new DomainError('invalid', 'Please choose how you would like to pay');
+			const options = payChoices(pay, (await tandemExtrasOffer(locals.db, dz.id)).baseMinor > 0);
+			const providerId = str(f, 'provider') || options[0]?.id || 'manual';
+			if (!options.some((o) => o.id === providerId)) throw new DomainError('invalid', 'Please choose how you would like to pay');
 			const payFull = str(f, 'pay') === 'full';
 
 			const limits = tandemLimits(dz);

@@ -153,11 +153,16 @@
 				<dt class="text-muted">Add-ons</dt>
 				<dd class="text-right">{b.extras.length ? b.extras.map((e) => SLOT_EXTRA_LABELS[e]).join(', ') : 'None'}</dd>
 				<dt class="text-muted">Total</dt>
-				<dd class="text-right tabular-nums">{money(b.totalMinor)}</dd>
-				<dt class="text-muted">Paid</dt>
-				<dd class="text-right tabular-nums">{money(b.amountPaidMinor)}</dd>
-				<dt class="font-medium">{b.outstandingMinor > 0 ? 'Due at the dropzone' : 'Balance'}</dt>
-				<dd class="text-right font-semibold tabular-nums">{money(b.outstandingMinor)}</dd>
+				{#if b.totalMinor > 0 || b.amountPaidMinor > 0}
+					<dd class="text-right tabular-nums" data-testid="booking-total">{money(b.totalMinor)}</dd>
+					<dt class="text-muted">Paid</dt>
+					<dd class="text-right tabular-nums">{money(b.amountPaidMinor)}</dd>
+					<dt class="font-medium">{b.outstandingMinor > 0 ? 'Due at the dropzone' : 'Balance'}</dt>
+					<dd class="text-right font-semibold tabular-nums">{money(b.outstandingMinor)}</dd>
+				{:else}
+					<!-- The DZ had no tandem price when this was booked: don't print R 0,00 / "Balance R 0,00". -->
+					<dd class="text-right" data-testid="booking-total">Price at the dropzone</dd>
+				{/if}
 				<dt class="text-muted">Indemnity</dt>
 				<dd class="text-right">
 					{#if b.signedAt}<Badge tone="success">Signed</Badge>{:else if data.waiver}<Badge tone="warning">Not signed yet</Badge>{:else}<span class="text-muted">At the DZ</span>{/if}

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { confirmationUrl, moneyToMinor, sendConfirmationEmail } from './http.ts';
+import { MANUAL_OPTION, payChoices } from './payments.ts';
 import { setMailer, type EmailMessage } from '../email/index.ts';
 import type { Dropzone, TandemPassenger } from '../db/schema.ts';
 
@@ -67,5 +68,23 @@ describe('booking confirmation email for a group', () => {
 		expect(text).toContain('https://dz.example/dz/demo/book/BBBB-2222\n');
 		expect(text).not.toContain('?g=');
 		expect(text).not.toContain('Your group');
+	});
+
+	test('an unpriced booking says the price is set at the dropzone instead of R 0,00', async () => {
+		capture();
+		await sendConfirmationEmail(dz, { ...sam, totalMinor: 0 }, origin);
+		const text = sent[0].text ?? '';
+		expect(text).toContain('Price: at the dropzone');
+		expect(text).not.toContain('Total:');
+		await sendConfirmationEmail(dz, sam, origin);
+		expect(sent[1].text).toMatch(/Total: R\s?3\s?400,00 · Paid: R\s?0,00/);
+	});
+});
+
+describe('payChoices (public booking payment options)', () => {
+	const stripe = { id: 'stripe' as const, label: 'Card', description: '' };
+	test('an unpriced tandem is always pay at the dropzone, a priced one keeps the DZ options', () => {
+		expect(payChoices({ options: [stripe] }, false)).toEqual([MANUAL_OPTION]);
+		expect(payChoices({ options: [stripe] }, true)).toEqual([stripe]);
 	});
 });

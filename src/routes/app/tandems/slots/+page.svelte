@@ -60,6 +60,17 @@
 	<Button variant="secondary" href="/dz/{data.dz.slug}/book" target="_blank"><Icon name="globe" class="size-4" /> View booking page</Button>
 </div>
 <NoJsOutcome />
+{#if !data.priced}
+	<div class="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm" role="note" data-testid="no-tandem-price">
+		<p class="min-w-0 flex-1">
+			<span class="font-medium">No tandem price yet.</span>
+			Customers can book, but the booking page can’t show a price or take payment online until “Tandem jump” has one in the pricelist.
+		</p>
+		{#if page.data.caps?.includes('pricing.manage')}
+			<Button variant="secondary" size="sm" href="/app/pricelist"><Icon name="tag" class="size-4" /> Set prices</Button>
+		{/if}
+	</div>
+{/if}
 
 <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[22rem_1fr]">
 	<!-- add -->
@@ -227,7 +238,7 @@
 					<Button variant="ghost" size="sm" class="mt-2" href={viewHref({ all: '1' })} onclick={openInPlace(() => (showAll = true))}>Show all {data.dated.length} days</Button>
 				{/if}
 			{:else}
-				<EmptyState title="No dated booking slots" description="Add slots on the left so customers can book online.">
+				<EmptyState title="No dated booking slots" description="Add booking slots so customers can book online.">
 					{#snippet icon()}<Icon name="calendar" class="size-6" />{/snippet}
 				</EmptyState>
 			{/if}
