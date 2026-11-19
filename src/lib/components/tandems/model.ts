@@ -100,6 +100,9 @@ export const TANDEM_EXTRA_PRICE_CODE: Partial<Record<SlotExtra, string>> = {
 	max_altitude: 'tandem_max_altitude'
 };
 
+/** The booking-slot add forms' starting time. */
+export const DEFAULT_SLOT_TIME = '09:00';
+
 export const SECTION_TYPE_LABELS: Record<IndemnitySectionType, string> = {
 	text: 'Text (read only)',
 	acknowledgement: 'Checkbox — must accept',

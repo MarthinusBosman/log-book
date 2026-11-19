@@ -732,3 +732,34 @@ test('slots: dates months ahead stay listed and say when customers can book them
 	await expect(page.getByTestId('slot-day').last().getByTestId('opens-on')).toContainText('Bookable from');
 	await expect(page.getByRole('link', { name: 'Show all 32 days' })).toBeVisible();
 });
+
+test('slots: a time that has already passed today is refused, repeats start on the next date', async ({ page }) => {
+	const stamp = `${test.info().project.name}-${Date.now()}`;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Past Times');
+	await page.getByLabel('Email').fill(`pasttimes-${stamp}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Past DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/tandems/slots');
+	await page.waitForLoadState('networkidle');
+	const toasts = page.locator('[aria-live]');
+	const dateInput = page.getByLabel('Date', { exact: true });
+	// The dropzone's today (the field's min); 00:00 today is always over.
+	const today = (await dateInput.getAttribute('min'))!;
+	await dateInput.fill(today);
+	await page.getByLabel('Time', { exact: true }).fill('00:00');
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(toasts.filter({ hasText: '00:00 today has already passed. Pick a later time or another day.' }).first()).toBeVisible();
+	await expect(page.getByTestId('slot-day')).toHaveCount(0);
+	// Weekly from today: today's passed time is skipped, the other four weeks are added.
+	await page.getByLabel('Repeat').selectOption('weekly');
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(toasts.filter({ hasText: '4 slots added. Today’s 00:00 has already passed, so they start' }).first()).toBeVisible();
+	await expect(page.getByTestId('slot-day')).toHaveCount(4);
+	await expect(page.getByTestId('slot-day').filter({ hasText: 'Today' })).toHaveCount(0);
+});

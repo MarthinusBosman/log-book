@@ -7,7 +7,7 @@
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { Badge, Button, EmptyState, Icon, Input, Select, cn } from '#lib/ui/index.ts';
 	import { toastEnhance } from '#lib/components/tandems/enhance.ts';
-	import { WEEKDAY_LABELS, fmtDay } from '#lib/components/tandems/model.ts';
+	import { DEFAULT_SLOT_TIME, WEEKDAY_LABELS, fmtDay } from '#lib/components/tandems/model.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -96,8 +96,8 @@
 			</nav>
 			{#if mode === 'dated'}
 				<form method="POST" action={actionHref('add')} use:enhance={toastEnhance({ pending: (on) => (busy = on) })} class="mt-4 grid grid-cols-2 gap-3">
-					<Input label="Date" name="date" type="date" min={data.today} value={data.today} required class="col-span-2" />
-					<Input label="Time" name="time" type="time" value="09:00" required />
+					<Input label="Date" name="date" type="date" min={data.today} value={data.defaultDate} required class="col-span-2" />
+					<Input label="Time" name="time" type="time" value={DEFAULT_SLOT_TIME} required />
 					<Input label="Places" name="capacity" type="number" min="1" max="99" value="4" required />
 					<Select
 						label="Repeat"
@@ -115,7 +115,7 @@
 			{:else}
 				<form method="POST" action={actionHref('weekly')} use:enhance={toastEnhance({ pending: (on) => (busy = on) })} class="mt-4 grid grid-cols-2 gap-3">
 					<Select label="Weekday" name="weekday" value="5" options={weekdayOptions} class="col-span-2" />
-					<Input label="Time" name="time" type="time" value="09:00" required />
+					<Input label="Time" name="time" type="time" value={DEFAULT_SLOT_TIME} required />
 					<Input label="Places" name="capacity" type="number" min="1" max="99" value="4" required />
 					<p class="col-span-2 text-xs text-muted">Recurring slots apply every week. A dated slot at the same time overrides it for that day.</p>
 					<Button type="submit" loading={busy} class="col-span-2"><Icon name="plus" class="size-4" /> Add weekly slot</Button>
@@ -181,13 +181,16 @@
 							<ul class="flex flex-wrap gap-2">
 								{#each d.slots as s (s.id)}
 									{@const full = s.booked >= s.capacity}
+									{@const over = d.date === data.today && s.time <= data.nowTime}
 									<li
 										class={cn(
 											'flex items-center gap-1.5 rounded-xl border py-1 pr-1 pl-2.5 text-sm',
-											full ? 'border-warning/40 bg-warning/10' : 'border-border bg-surface-2/50'
+											over ? 'border-dashed border-border text-muted' : full ? 'border-warning/40 bg-warning/10' : 'border-border bg-surface-2/50'
 										)}
+										data-testid={over ? 'slot-passed' : undefined}
 									>
 										<span class="font-mono font-medium tabular-nums">{s.time}</span>
+										{#if over}<span class="text-xs">Passed</span>{/if}
 										<form method="POST" action={actionHref('capacity')} use:enhance={toastEnhance()} class="group flex items-center gap-1">
 											<input type="hidden" name="id" value={s.id} />
 											<span class="text-xs text-muted tabular-nums" title="booked / places">{s.booked} /</span>

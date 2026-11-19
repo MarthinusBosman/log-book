@@ -104,10 +104,23 @@ describe('teams', () => {
 });
 
 describe('tandems & online booking', () => {
+	test('booking slots: times that have already passed are skipped, never added', async () => {
+		const { dz } = await makeDropzone(db);
+		const notBefore = { date: DAY, time: '10:30' };
+		const err = await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '09:00', capacity: 2, notBefore }).catch((e) => e);
+		expect(isDomainError(err) && err.message).toBe('09:00 today has already passed. Pick a later time or another day.');
+		const old = await addBookingSlots(db, { dropzoneId: dz.id, date: '2026-11-13', time: '12:00', capacity: 2, notBefore }).catch((e) => e);
+		expect(isDomainError(old) && old.message).toBe('That date has already passed. Pick today or a later date.');
+		// A repeat starting today drops only today's passed time; a later time today stays.
+		expect(await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '09:00', capacity: 2, repeat: 'weekly', notBefore })).toEqual({ added: 4, existing: 0, past: 1, first: '2026-11-21' });
+		expect(await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '11:00', capacity: 2, notBefore })).toEqual({ added: 1, existing: 0, past: 0, first: DAY });
+		expect((await availabilityForDate(db, dz.id, DAY)).map((s) => s.time)).toEqual(['11:00']);
+	});
+
 	test('booking slots: repeats dedupe, capacity enforced, deposit per jumper', async () => {
 		const { dz } = await makeDropzone(db);
-		expect(await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '09:00', capacity: 3, repeat: 'weekly' })).toEqual({ added: 5, existing: 0 });
-		expect(await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '09:00', capacity: 3, repeat: 'daily' })).toEqual({ added: 25, existing: 5 });
+		expect(await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '09:00', capacity: 3, repeat: 'weekly' })).toEqual({ added: 5, existing: 0, past: 0, first: DAY });
+		expect(await addBookingSlots(db, { dropzoneId: dz.id, date: DAY, time: '09:00', capacity: 3, repeat: 'daily' })).toEqual({ added: 25, existing: 5, past: 0, first: DAY });
 		const r = await createOnlineBooking(db, {
 			dropzoneId: dz.id,
 			date: DAY,

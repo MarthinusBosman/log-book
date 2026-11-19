@@ -211,17 +211,34 @@ export function tandemOutstanding(p: Pick<TandemPassenger, 'totalMinor' | 'amoun
  */
 export async function addBookingSlots(
 	db: Database,
-	input: { dropzoneId: string; date: string; time: string; capacity: number; repeat?: 'none' | 'daily' | 'weekly' }
-): Promise<{ added: number; existing: number }> {
+	input: {
+		dropzoneId: string;
+		date: string;
+		time: string;
+		capacity: number;
+		repeat?: 'none' | 'daily' | 'weekly';
+		/** "Now" in DZ time: dates before it, and today's times not after it, are skipped (customers can't book them). */
+		notBefore?: { date: string; time: string };
+	}
+): Promise<{ added: number; existing: number; past: number; first: string }> {
 	if (!/^\d{2}:\d{2}$/.test(input.time)) throw new DomainError('invalid', 'Please set a time for the booking slot');
 	if (!isIsoDate(input.date)) throw new DomainError('invalid', 'Please choose a date');
 	if (!Number.isInteger(input.capacity) || input.capacity < 1) throw new DomainError('invalid', 'Amount of slots must be at least 1');
-	const dates =
+	const all =
 		input.repeat === 'daily'
 			? Array.from({ length: 30 }, (_, i) => addDays(input.date, i))
 			: input.repeat === 'weekly'
 				? Array.from({ length: 5 }, (_, i) => addDays(input.date, i * 7))
 				: [input.date];
+	const nb = input.notBefore;
+	const dates = nb ? all.filter((d) => d > nb.date || (d === nb.date && input.time > nb.time)) : all;
+	const past = all.length - dates.length;
+	if (!dates.length) {
+		throw new DomainError(
+			'invalid',
+			nb && input.date === nb.date ? `${input.time} today has already passed. Pick a later time or another day.` : 'That date has already passed. Pick today or a later date.'
+		);
+	}
 	let added = 0;
 	for (const date of dates) {
 		const r = await db
@@ -232,7 +249,7 @@ export async function addBookingSlots(
 			.returning({ id: bookingSlots.id });
 		added += r.length;
 	}
-	return { added, existing: dates.length - added };
+	return { added, existing: dates.length - added, past, first: dates[0] };
 }
 
 /** Delete a booking slot (scoped to the dropzone when given). Existing bookings keep their date/time. */

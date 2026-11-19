@@ -1,8 +1,8 @@
 import { addBookingSlots, addWeeklySlot, availabilityRange, deleteBookingSlot, listBookingSlots, updateBookingSlotCapacity } from '#lib/server/domain/tandems.ts';
 import { addDays, localDate } from '#lib/server/domain/time.ts';
 import { tandemExtrasOffer } from '#lib/server/tandems/detail.ts';
-import { fmtDay } from '#lib/components/tandems/model.ts';
-import { BOOKING_HORIZON_DAYS, bookingOpensOn } from '#lib/server/tandems/public.ts';
+import { DEFAULT_SLOT_TIME, fmtDay } from '#lib/components/tandems/model.ts';
+import { BOOKING_HORIZON_DAYS, bookingOpensOn, nowTime } from '#lib/server/tandems/public.ts';
 import { failFrom, optNum, staffContext, str } from '#lib/server/tandems/http.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -23,9 +23,14 @@ export const load: PageServerLoad = async (event) => {
 		days.set(s.date!, list);
 	}
 	const bookableUntil = addDays(today, BOOKING_HORIZON_DAYS);
+	const now = nowTime(dz.timezone);
 	return {
 		dz: { name: dz.name, slug: dz.slug },
 		today,
+		/** Today's slots at or before this time are over (the booking page no longer offers them). */
+		nowTime: now,
+		/** The add form's default date: tomorrow once its default 09:00 has gone today. */
+		defaultDate: now >= DEFAULT_SLOT_TIME ? addDays(today, 1) : today,
 		horizon: BOOKING_HORIZON_DAYS,
 		/** No tandem price yet: the booking page can't quote one (customers pay what's set on the day). */
 		priced: offer.baseMinor > 0,
@@ -41,22 +46,26 @@ export const actions: Actions = {
 		const f = await event.request.formData();
 		try {
 			const repeat = str(f, 'repeat');
-			const date = str(f, 'date');
+			const today = localDate(Date.now(), dz.timezone);
 			const r = await addBookingSlots(event.locals.db, {
 				dropzoneId: dz.id,
-				date,
+				date: str(f, 'date'),
 				time: str(f, 'time'),
 				capacity: optNum(f, 'capacity') ?? 0,
-				repeat: repeat === 'daily' || repeat === 'weekly' ? repeat : 'none'
+				repeat: repeat === 'daily' || repeat === 'weekly' ? repeat : 'none',
+				notBefore: { date: today, time: nowTime(dz.timezone) }
 			});
+			const date = r.first;
 			const added = r.existing ? `${r.added} more slots added, ${r.existing} already existed.` : `${r.added} slot${r.added === 1 ? '' : 's'} added.`;
+			// A repeat that starts on a time already gone today begins on the next date instead.
+			const from = fmtDay(date, { weekday: 'short', day: 'numeric', month: 'short' });
+			const skipped = r.past ? ` ${r.past === 1 && str(f, 'date') === today ? `Today’s ${str(f, 'time')} has` : `${r.past} of the dates had`} already passed, so they start ${from}.` : '';
 			// Customers see slots up to BOOKING_HORIZON_DAYS ahead: say when a far-off one opens.
-			const today = localDate(Date.now(), dz.timezone);
 			const opens = bookingOpensOn(date);
 			const later =
 				opens > today ? ` ${r.added > 1 ? 'The first opens' : 'It opens'} for booking on ${fmtDay(opens, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })} (customers book up to ${BOOKING_HORIZON_DAYS} days ahead).` : '';
 			// `addedDate` keeps that day in the (collapsed) list so a far-off slot doesn't vanish behind "Show all".
-			return { ok: true, message: `${added}${later}`, addedDate: date };
+			return { ok: true, message: `${added}${skipped}${later}`, addedDate: date };
 		} catch (e) {
 			return failFrom(e);
 		}
