@@ -121,6 +121,24 @@ test.describe('new dropzone preselects the country from the browser timezone', (
 		await expect(page).toHaveURL(/\/app$/);
 		await page.goto('/app/settings');
 		await expect(page.locator('select[name=timezone]')).toHaveValue('America/Denver');
+		// Settings: changing the country doesn't move the zone, but a zone outside it is flagged.
+		await page.waitForLoadState('networkidle');
+		await expect(page.getByTestId('tz-mismatch')).toHaveCount(0);
+		await page.locator('select[name=country]').selectOption('NA');
+		const warn = page.getByTestId('tz-mismatch');
+		await expect(warn).toContainText("America/Denver isn't in Namibia");
+		await expect(page.locator('select[name=timezone]')).toHaveValue('America/Denver');
+		await warn.getByRole('button', { name: 'Use Africa/Windhoek' }).click();
+		await expect(page.locator('select[name=timezone]')).toHaveValue('Africa/Windhoek');
+		await expect(warn).toHaveCount(0);
+		// A saved mismatch is flagged on load (server-rendered too).
+		await page.locator('select[name=country]').selectOption('ZA');
+		await expect(warn).toContainText("Africa/Windhoek isn't in South Africa");
+		await page.getByRole('button', { name: 'Save details' }).click();
+		await expect(page.getByText('Dropzone details saved').first()).toBeVisible();
+		await page.reload();
+		await expect(page.getByTestId('tz-mismatch')).toContainText("Africa/Windhoek isn't in South Africa");
+		await expect(page.getByTestId('tz-mismatch').getByRole('button', { name: 'Use Africa/Johannesburg' })).toBeVisible();
 	});
 });
 

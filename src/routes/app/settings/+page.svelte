@@ -6,7 +6,8 @@
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
 	import { IMAGE_PRESETS, downscaleInput } from '#lib/client/resize-image.ts';
 	import { CURRENCIES } from '#lib/domain/currency.ts';
-	import { countryOptions } from '#lib/domain/countries.ts';
+	import { countryName, countryOptions } from '#lib/domain/countries.ts';
+	import { suggestTimezone } from '#lib/domain/timezone-countries.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -29,6 +30,18 @@
 	);
 	const tzOptions = $derived(data.timezones.map((t) => ({ value: t, label: t.replace(/_/g, ' ') })));
 	const countryOpts = $derived([{ value: '', label: 'Not set' }, ...countryOptions(data.dz.country)]);
+	// Country and timezone are separate fields here (unlike setup, nothing follows the country):
+	// flag a zone outside the chosen country, since local dates and the manifest day use the zone.
+	let country = $state(initCountry());
+	let timezone = $state(initTimezone());
+	function initCountry() {
+		return data.dz.country ?? '';
+	}
+	function initTimezone() {
+		return data.dz.timezone;
+	}
+	const tzFix = $derived(suggestTimezone(country, timezone, data.timezones));
+	const zoneLabel = (z: string) => z.replace(/_/g, ' ');
 
 	let resizing = $state(false);
 	async function onPick(e: Event) {
@@ -66,8 +79,25 @@
 				<Input label="Address" name="address" value={data.dz.address ?? ''} class="sm:col-span-2" autocomplete="street-address" />
 				<Input label="Latitude" name="lat" inputmode="decimal" value={data.dz.lat ?? ''} placeholder="-33.0286" />
 				<Input label="Longitude" name="lng" inputmode="decimal" value={data.dz.lng ?? ''} placeholder="18.1667" />
-				<Select label="Country" name="country" autocomplete="country" value={data.dz.country ?? ''} options={countryOpts} />
-				<Select label="Timezone" name="timezone" value={data.dz.timezone} options={tzOptions} />
+				<Select label="Country" name="country" autocomplete="country" bind:value={country} options={countryOpts} />
+				<div class="flex min-w-0 flex-col gap-2">
+					<Select label="Timezone" name="timezone" bind:value={timezone} options={tzOptions} aria-describedby={tzFix ? 'tz-mismatch' : undefined} />
+					{#if tzFix}
+						<div id="tz-mismatch" class="rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-fg" data-testid="tz-mismatch">
+							<p>
+								{zoneLabel(timezone)} isn't in {countryName(country)}. Local dates and the manifest day follow the timezone.
+								{#if tzFix.several}{countryName(country)} has several timezones: pick the dropzone's.{/if}
+							</p>
+							<button
+								type="button"
+								class="mt-1 font-medium text-primary underline underline-offset-2"
+								onclick={() => (timezone = tzFix?.zone ?? timezone)}
+							>
+								Use {zoneLabel(tzFix.zone)}
+							</button>
+						</div>
+					{/if}
+				</div>
 				<Select
 					label="Currency"
 					name="currency"
