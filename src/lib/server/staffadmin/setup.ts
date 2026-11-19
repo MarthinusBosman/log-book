@@ -4,7 +4,8 @@
  */
 import { sql, type SQL } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
-import { aircraft, bookingSlots, dropzoneMemberRoles, indemnitySections, pricelistItems, type Dropzone } from '../db/schema.ts';
+import { aircraft, bookingSlots, dropzoneMemberRoles, indemnitySections, pricelistItems, tandemPassengers, type Dropzone } from '../db/schema.ts';
+import { localDate } from '../domain/time.ts';
 
 export type SetupStep = { id: string; title: string; body: string; href: string; done: boolean; optional?: boolean };
 
@@ -13,8 +14,10 @@ export const setupPending = (steps: SetupStep[]) => steps.some((s) => !s.done &&
 
 export async function setupChecklist(
 	db: Database,
-	dz: Pick<Dropzone, 'id' | 'slug' | 'description' | 'openDays' | 'photoFileId'>
+	dz: Pick<Dropzone, 'id' | 'slug' | 'description' | 'openDays' | 'photoFileId' | 'timezone'>,
+	now: number = Date.now()
 ): Promise<SetupStep[]> {
+	const today = localDate(now, dz.timezone);
 	// One statement (a D1 round trip each otherwise): EXISTS per step.
 	const has = (q: SQL) => sql<number>`exists(${q})`;
 	const rows = await db
@@ -25,7 +28,13 @@ export async function setupChecklist(
 				sql`select 1 from ${dropzoneMemberRoles} where ${dropzoneMemberRoles.dropzoneId} = ${dz.id} and ${dropzoneMemberRoles.role} not in ('owner', 'jumper')`
 			),
 			waiver: has(sql`select 1 from ${indemnitySections} where ${indemnitySections.dropzoneId} = ${dz.id}`),
-			slots: has(sql`select 1 from ${bookingSlots} where ${bookingSlots.dropzoneId} = ${dz.id}`)
+			// Bookings are open while a weekly or upcoming slot exists. Once someone has booked a
+			// slot online the step stays done, so an established DZ between seasons isn't nagged.
+			slots: sql<number>`(${has(
+				sql`select 1 from ${bookingSlots} where ${bookingSlots.dropzoneId} = ${dz.id} and (${bookingSlots.date} is null or ${bookingSlots.date} >= ${today})`
+			)} or ${has(
+				sql`select 1 from ${tandemPassengers} where ${tandemPassengers.dropzoneId} = ${dz.id} and ${tandemPassengers.bookingSlotId} is not null`
+			)})`
 		})
 		.from(sql`(select 1)`);
 	const r = rows[0];

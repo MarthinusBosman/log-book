@@ -23,7 +23,7 @@ export const load: PageServerLoad = async (event) => {
 	const canCollect = !!ctx && ctx.caps.includes('payments.manage') && ctx.dz.walletEnabled;
 	const [jumper, setup, gear, topUps] = await Promise.all([
 		loadJumperDashboard(event.locals.db, user.id, current?.dropzone.id ?? null, now, (id) => requestDropzone(event.locals, id)),
-		ctx && ctx.caps.includes('dz.settings') ? setupChecklist(event.locals.db, ctx.dz) : Promise.resolve(null),
+		ctx && ctx.caps.includes('dz.settings') ? setupChecklist(event.locals.db, ctx.dz, now) : Promise.resolve(null),
 		ctx && ctx.caps.includes('gear.manage') ? gearAttention(event.locals.db, ctx.dz, localDate(now, ctx.dz.timezone)) : Promise.resolve(null),
 		canCollect ? listPendingTopUpsForDropzone(event.locals.db, ctx.dz.id) : Promise.resolve([])
 	]);
