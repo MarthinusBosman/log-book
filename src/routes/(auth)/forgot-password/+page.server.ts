@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import { brand } from '#lib/brand.ts';
+import { emailHi } from '#lib/greeting.ts';
 import { publicOrigin } from '#lib/server/config.ts';
 import { getMailer, idempotencyKey } from '#lib/server/email/index.ts';
 import { createPasswordResetToken, findUserByEmail, validateEmail, normalizeEmail } from '#lib/server/auth/users.ts';
@@ -19,7 +20,7 @@ export const actions: Actions = {
 				await getMailer().send({
 					to: user.email,
 					subject: `Reset your ${brand.name} password`,
-					text: `Hi ${user.name},\n\nReset your password (valid for 1 hour):\n${link}\n\nIf you didn't ask for this, ignore this email.`,
+					text: `${emailHi(user.name, user.email)}\n\nReset your password (valid for 1 hour):\n${link}\n\nIf you didn't ask for this, ignore this email.`,
 					idempotencyKey: await idempotencyKey('password-reset', token)
 				});
 			} catch (e) {

@@ -5,6 +5,7 @@
 	import JumperDashboard from '#lib/components/jumper/JumperDashboard.svelte';
 	import SetupChecklist from '#lib/components/staffadmin/SetupChecklist.svelte';
 	import { openToday } from '#lib/components/jumper/hours.ts';
+	import { timeGreeting } from '#lib/greeting.ts';
 	import { ROLE_LABELS, formatMoney } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
 
@@ -18,7 +19,7 @@
 			? Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: data.hours.timezone }).format(data.serverNow))
 			: null
 	);
-	const greeting = $derived(hour === null ? 'Welcome' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening');
+	const greeting = $derived(timeGreeting(hour));
 	// Loads on the board beat the configured opening days (boogies, weather days, special openings).
 	const open = $derived(
 		data.hours ? openToday(data.hours, data.serverNow, !!data.staffToday?.loadsPlanned || data.jumper.loadsToday) : null

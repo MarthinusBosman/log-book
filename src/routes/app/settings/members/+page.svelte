@@ -14,7 +14,7 @@
 	let { data }: PageProps = $props();
 
 	const ROLE_HELP: Record<DropzoneRole, string> = {
-		owner: 'Everything, incl. billing and owners',
+		owner: 'Everything, incl. payment settings and owners',
 		admin: 'Everything except owners',
 		manifest: 'Loads, check-in, tandems, payments, reports',
 		staff: 'Check-in and view loads',

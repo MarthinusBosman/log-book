@@ -92,7 +92,7 @@
 			<Input label="Time" name="time" type="time" hint="Optional" />
 		</div>
 		<div class="grid grid-cols-2 gap-3">
-			<Input label="Number of loads" name="count" type="number" min="1" max="20" value="1" />
+			<Input label="Number of loads" name="count" type="number" min="1" max="50" value="1" />
 			<Input label="Minutes apart" name="spacing" type="number" min="0" max="600" placeholder="0" hint="From the first load's time" />
 		</div>
 		<div class="flex flex-col gap-1.5">

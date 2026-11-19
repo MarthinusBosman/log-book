@@ -1,5 +1,6 @@
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import { brand } from '#lib/brand.ts';
+import { emailHi } from '#lib/greeting.ts';
 import { publicOrigin } from '#lib/server/config.ts';
 import { getMailer, idempotencyKey } from '#lib/server/email/index.ts';
 import { createPasswordResetToken, INVITE_TOKEN_LIFETIME_MS } from '#lib/server/auth/users.ts';
@@ -26,7 +27,7 @@ async function sendSetPasswordInvite(
 		.send({
 			to: o.member.email,
 			subject: `You're invited to ${o.dzName} on ${brand.name}`,
-			text: `Hi ${o.member.name},\n\n${o.inviter} added you to ${o.dzName} as: ${o.roleText}.\n\nSet your password to get started (link valid for 7 days — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`,
+			text: `${emailHi(o.member.name, o.member.email)}\n\n${o.inviter} added you to ${o.dzName} as: ${o.roleText}.\n\nSet your password to get started (link valid for 7 days — use "Forgot password" for a new one):\n${origin}/reset-password?token=${token}\n`,
 			// One per invite: the invite's single-use password link.
 			idempotencyKey: await idempotencyKey('invite', token)
 		})
@@ -63,7 +64,7 @@ export const actions: Actions = {
 				.send({
 					to: res.email,
 					subject: `You've been added to ${dz.name}`,
-					text: `Hi ${res.name},\n\n${user.name} added you to ${dz.name} as: ${roleText}.\n\n${origin}/app\n`
+					text: `${emailHi(res.name, res.email)}\n\n${user.name} added you to ${dz.name} as: ${roleText}.\n\n${origin}/app\n`
 				})
 				.then(() => true, () => false);
 			const msg = res.granted.length ? `${res.name} added` : `${res.name} already has those roles`;
