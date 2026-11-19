@@ -49,10 +49,15 @@
 	// svelte-ignore state_referenced_locally
 	let teamId = $state(teams[0]?.id ?? '');
 	const team = $derived(teams.find((t) => t.id === teamId));
-	let memberIds = $state<string[]>([]);
-	$effect(() => {
-		memberIds = team?.members.map((m) => m.id) ?? [];
-	});
+	const allMembers = (id: string) => teams.find((t) => t.id === id)?.members.map((m) => m.id) ?? [];
+	// Initialised (not set in an $effect) so the server render already has everyone ticked:
+	// otherwise pre-hydration / no-JS the price reads "0 × …" and the submit stays disabled.
+	// svelte-ignore state_referenced_locally
+	let memberIds = $state<string[]>(allMembers(teams[0]?.id ?? ''));
+	function pickTeam(id: string) {
+		teamId = id;
+		memberIds = allMembers(id);
+	}
 	let busy = $state(false);
 
 	const base = $derived(prices.base[jumpType as JumpType] ?? 0);
@@ -98,7 +103,7 @@
 			{#if teams.length}
 				<div class="flex flex-col gap-1.5">
 					<label for="team-{loadId}" class="text-sm font-medium">Team</label>
-					<select id="team-{loadId}" name="teamId" bind:value={teamId} class="h-11 rounded-xl border border-border bg-surface px-3 text-[15px] outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
+					<select id="team-{loadId}" name="teamId" value={teamId} onchange={(e) => pickTeam(e.currentTarget.value)} class="h-11 rounded-xl border border-border bg-surface px-3 text-[15px] outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
 						{#each teams as t (t.id)}<option value={t.id}>{t.name} ({t.members.length})</option>{/each}
 					</select>
 				</div>

@@ -236,6 +236,56 @@ test('self-manifest stops at boarding: the jumper can no longer join or leave', 
 	await expect(load2.getByText('You’re on this load')).toHaveCount(0);
 });
 
+test('team jump works before hydration / without JS: members start ticked, switching team takes the chosen team', async ({ page, browser }) => {
+	const project = test.info().project.name;
+	await signup(page, 'Tia Teams');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`NoJS Team E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-TMS');
+	await dialog.getByLabel('Slots (pax)').fill('6');
+	await dialog.getByLabel('Weight limit (kg)').fill('600');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.locator('[data-testid=load-card][data-load-number="1"]')).toBeVisible();
+	for (const name of ['Alpha 4-way', 'Bravo 4-way']) {
+		await page.goto('/app/team?new=1');
+		await page.waitForLoadState('networkidle');
+		await page.getByTestId('create-team').getByLabel('Team name').fill(name);
+		await page.getByTestId('create-team').getByRole('button', { name: 'Create team' }).click();
+		await expect(page).not.toHaveURL(/new=1/);
+	}
+	await page.goto('/app/check-in');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toBeVisible();
+	const loadId = new URLSearchParams(
+		(await page.locator('[data-testid=load-card][data-load="1"]').getByTestId('join-team').getAttribute('href'))!.slice(1)
+	).get('team')!;
+
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const p = await noJs.newPage();
+	await p.goto(`/app/check-in?team=${loadId}`);
+	const card = p.locator('[data-testid=load-card][data-load="1"]');
+	// Server render: the first team's members are ticked, the price counts them, the button is live.
+	await expect(card.locator('input[name=memberIds]').first()).toBeChecked();
+	await expect(card.getByText(/^1 × /)).toBeVisible();
+	await expect(card.getByRole('button', { name: 'Join load now' })).toBeEnabled();
+	// Picking the other team without JS keeps the first team's (server-rendered) ticks: the
+	// server takes the whole chosen team instead of refusing with "Select at least one".
+	const select = card.getByLabel('Team', { exact: true });
+	const first = (await select.locator('option').first().textContent())!;
+	const other = (await select.locator('option').allTextContents()).find((t) => t !== first)!;
+	await select.selectOption({ label: other });
+	await card.getByRole('button', { name: 'Join load now' }).click();
+	await expect(p.locator('[data-testid=load-card][data-load="1"]').getByText('You’re on this load')).toBeVisible();
+	await noJs.close();
+});
+
 test('jump form marks every bad field at once and focuses the first (with and without JS)', async ({ page, browser }) => {
 	await signup(page, 'Typo Prone');
 	await page.goto('/app/logbook/new');

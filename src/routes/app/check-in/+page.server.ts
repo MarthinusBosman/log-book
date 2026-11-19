@@ -204,7 +204,11 @@ export const actions: Actions = {
 			const team = await teams.getTeam(locals.db, teamId);
 			const isMember = team.ownerUserId === user.id || team.members.some((m) => m.id === user.id);
 			if (!isMember) throw new DomainError('forbidden', 'Not your team');
-			const memberIds = form.getAll('memberIds').map(String).filter((id) => team.members.some((m) => m.id === id));
+			const submitted = form.getAll('memberIds').map(String);
+			let memberIds = submitted.filter((id) => team.members.some((m) => m.id === id));
+			// Ticks that all belong to another team = the team was switched without JS (the
+			// server-rendered member list is the first team's): take the whole chosen team.
+			if (memberIds.length === 0 && submitted.length > 0) memberIds = team.members.map((m) => m.id);
 			if (memberIds.length === 0) throw new DomainError('invalid', 'Select at least one team member');
 			if (!load.isOpen) throw new DomainError('load_locked', 'This load is not open for jumpers');
 			if (await indemnity.needsSportIndemnity(locals.db, load.dropzoneId, user.id)) {
