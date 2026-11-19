@@ -597,83 +597,88 @@ test('booking: Continue marks every missing field at once; too young shows inlin
 	await expect(page.locator('input[name=j0_guardianName]')).toBeVisible();
 });
 
-test('booking without a tandem price: staff are told, customers see "Price at the dropzone", not R 0,00', async ({ page }) => {
-	const stamp = `${test.info().project.name}-${Date.now()}`;
-	const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
-	await page.goto('/signup');
-	await page.getByLabel('Full name').fill('Una Priced');
-	await page.getByLabel('Email').fill(`unpriced-${stamp}@example.com`);
-	await page.getByLabel('Password').fill('blue-skies-123');
-	await page.getByRole('button', { name: 'Create account' }).click();
-	await expect(page).toHaveURL(/\/app$/);
-	await page.goto('/app/dropzones/new');
-	await page.getByLabel('Dropzone name').fill(`Unpriced DZ ${stamp}`);
-	await page.getByRole('button', { name: 'Create dropzone' }).click();
-	await expect(page).toHaveURL(/\/app$/);
-	await page.goto('/app/tandems/slots');
-	await expect(page.getByTestId('no-tandem-price')).toContainText('No tandem price yet');
-	await expect(page.getByTestId('no-tandem-price').getByRole('link', { name: 'Set prices' })).toHaveAttribute('href', '/app/pricelist');
-	await page.getByLabel('Date', { exact: true }).fill(tomorrow);
-	await page.getByLabel('Time', { exact: true }).fill('10:00');
-	await page.getByLabel('Places', { exact: true }).fill('2');
-	await page.getByRole('button', { name: 'Add slots' }).click();
-	await expect(page.locator('[data-testid="slot-day"]').first()).toContainText('10:00');
-	await page.goto('/app/tandems');
-	const href = (await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href'))!;
+// New dropzones take their country (and so currency) from the browser timezone: pin it so CI (UTC) quotes rand too.
+test.describe('South African dropzone', () => {
+	test.use({ timezoneId: 'Africa/Johannesburg' });
 
-	const visibleTotal = page.locator('[data-testid="total"]:visible, [data-testid="bar-total"]:visible').first();
-	await page.goto(href);
-	await page.waitForLoadState('networkidle');
-	await expect(visibleTotal).toHaveText('Price at the dropzone');
-	await page.locator(`[data-date="${tomorrow}"]`).click();
-	await page.locator('[data-time="10:00"]').click();
-	await clickVisible(page, ['next', 'next-mobile']);
-	await page.locator('input[name=j0_name]').fill('Pat Unpriced');
-	await page.locator('input[name=j0_email]').fill('pat-unpriced@example.com');
-	await page.locator('input[name=j0_phone]').fill('0820001111');
-	await page.locator('input[name=j0_dob]').fill('1990-05-05');
-	await page.locator('input[name=j0_weightKg]').fill('72');
-	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
-	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
-	await clickVisible(page, ['next', 'next-mobile']);
-	await expect(page.getByTestId('step-heading')).toHaveText('Make it yours');
-	await page.getByTestId('terms').check();
-	await clickVisible(page, ['confirm', 'confirm-mobile']);
-	await expect(page).toHaveURL(/\/book\/[A-Z0-9]{4}-[A-Z0-9]{4}/);
-	// The confirmation page doesn't print "Total R 0,00 · Balance R 0,00" either.
-	await expect(page.getByTestId('booking-total')).toHaveText('Price at the dropzone');
+	test('booking without a tandem price: staff are told, customers see "Price at the dropzone", not R 0,00', async ({ page }) => {
+		const stamp = `${test.info().project.name}-${Date.now()}`;
+		const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+		await page.goto('/signup');
+		await page.getByLabel('Full name').fill('Una Priced');
+		await page.getByLabel('Email').fill(`unpriced-${stamp}@example.com`);
+		await page.getByLabel('Password').fill('blue-skies-123');
+		await page.getByRole('button', { name: 'Create account' }).click();
+		await expect(page).toHaveURL(/\/app$/);
+		await page.goto('/app/dropzones/new');
+		await page.getByLabel('Dropzone name').fill(`Unpriced DZ ${stamp}`);
+		await page.getByRole('button', { name: 'Create dropzone' }).click();
+		await expect(page).toHaveURL(/\/app$/);
+		await page.goto('/app/tandems/slots');
+		await expect(page.getByTestId('no-tandem-price')).toContainText('No tandem price yet');
+		await expect(page.getByTestId('no-tandem-price').getByRole('link', { name: 'Set prices' })).toHaveAttribute('href', '/app/pricelist');
+		await page.getByLabel('Date', { exact: true }).fill(tomorrow);
+		await page.getByLabel('Time', { exact: true }).fill('10:00');
+		await page.getByLabel('Places', { exact: true }).fill('2');
+		await page.getByRole('button', { name: 'Add slots' }).click();
+		await expect(page.locator('[data-testid="slot-day"]').first()).toContainText('10:00');
+		await page.goto('/app/tandems');
+		const href = (await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href'))!;
 
-	// Staff don't see the unpriced booking as "Paid" / "Deposit paid".
-	await page.goto(`/app/tandems?day=${tomorrow}`);
-	await expect(page.getByTestId('row-no-price')).toHaveCount(1);
-	const rowHref = (await page.getByTestId('tandem-row').first().getAttribute('href'))!;
-	const passengerId = new URLSearchParams(rowHref.split('?')[1]).get('p')!;
-	await page.goto(`/app/tandems/${passengerId}`);
-	const detail = page.getByTestId('tandem-detail');
-	await expect(detail.getByText('No price', { exact: true }).first()).toBeVisible();
-	await expect(detail.getByText('Paid', { exact: true })).toHaveCount(0);
-	await expect(page.getByTestId('no-price')).toContainText('no Tandem jump price yet');
+		const visibleTotal = page.locator('[data-testid="total"]:visible, [data-testid="bar-total"]:visible').first();
+		await page.goto(href);
+		await page.waitForLoadState('networkidle');
+		await expect(visibleTotal).toHaveText('Price at the dropzone');
+		await page.locator(`[data-date="${tomorrow}"]`).click();
+		await page.locator('[data-time="10:00"]').click();
+		await clickVisible(page, ['next', 'next-mobile']);
+		await page.locator('input[name=j0_name]').fill('Pat Unpriced');
+		await page.locator('input[name=j0_email]').fill('pat-unpriced@example.com');
+		await page.locator('input[name=j0_phone]').fill('0820001111');
+		await page.locator('input[name=j0_dob]').fill('1990-05-05');
+		await page.locator('input[name=j0_weightKg]').fill('72');
+		await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
+		await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
+		await clickVisible(page, ['next', 'next-mobile']);
+		await expect(page.getByTestId('step-heading')).toHaveText('Make it yours');
+		await page.getByTestId('terms').check();
+		await clickVisible(page, ['confirm', 'confirm-mobile']);
+		await expect(page).toHaveURL(/\/book\/[A-Z0-9]{4}-[A-Z0-9]{4}/);
+		// The confirmation page doesn't print "Total R 0,00 · Balance R 0,00" either.
+		await expect(page.getByTestId('booking-total')).toHaveText('Price at the dropzone');
 
-	// Once the DZ prices a tandem the note goes and the booking page quotes it.
-	await page.goto('/app/pricelist');
-	await page.waitForLoadState('networkidle');
-	await page.locator('input[name=tandem_slot]').first().fill('3200');
-	await page.getByRole('button', { name: 'Save all' }).first().click();
-	await expect(page.locator('[aria-live]').filter({ hasText: 'Price list updated' }).first()).toBeVisible();
-	await page.goto('/app/tandems/slots');
-	await expect(page.getByRole('heading', { name: 'Booking slots', exact: true })).toBeVisible();
-	await expect(page.getByTestId('no-tandem-price')).toHaveCount(0);
-	await page.goto(href);
-	await page.waitForLoadState('networkidle');
-	await expect(visibleTotal).toHaveText(/R\s?3\s?200,00/);
+		// Staff don't see the unpriced booking as "Paid" / "Deposit paid".
+		await page.goto(`/app/tandems?day=${tomorrow}`);
+		await expect(page.getByTestId('row-no-price')).toHaveCount(1);
+		const rowHref = (await page.getByTestId('tandem-row').first().getAttribute('href'))!;
+		const passengerId = new URLSearchParams(rowHref.split('?')[1]).get('p')!;
+		await page.goto(`/app/tandems/${passengerId}`);
+		const detail = page.getByTestId('tandem-detail');
+		await expect(detail.getByText('No price', { exact: true }).first()).toBeVisible();
+		await expect(detail.getByText('Paid', { exact: true })).toHaveCount(0);
+		await expect(page.getByTestId('no-price')).toContainText('no Tandem jump price yet');
 
-	// The early booking can now take today's price.
-	await page.goto(`/app/tandems/${passengerId}`);
-	await page.waitForLoadState('networkidle');
-	const usePrice = page.getByRole('button', { name: /Use current price · R\s?3\s?200,00/ });
-	await expect(usePrice).toBeVisible();
-	await usePrice.click();
-	await expect(page.locator('[aria-live]').filter({ hasText: 'Price added to the booking' }).first()).toBeVisible();
-	await expect(page.getByTestId('no-price')).toHaveCount(0);
-	await expect(detail.getByText('Unpaid', { exact: true })).toBeVisible();
+		// Once the DZ prices a tandem the note goes and the booking page quotes it.
+		await page.goto('/app/pricelist');
+		await page.waitForLoadState('networkidle');
+		await page.locator('input[name=tandem_slot]').first().fill('3200');
+		await page.getByRole('button', { name: 'Save all' }).first().click();
+		await expect(page.locator('[aria-live]').filter({ hasText: 'Price list updated' }).first()).toBeVisible();
+		await page.goto('/app/tandems/slots');
+		await expect(page.getByRole('heading', { name: 'Booking slots', exact: true })).toBeVisible();
+		await expect(page.getByTestId('no-tandem-price')).toHaveCount(0);
+		await page.goto(href);
+		await page.waitForLoadState('networkidle');
+		await expect(visibleTotal).toHaveText(/R\s?3\s?200,00/);
+
+		// The early booking can now take today's price.
+		await page.goto(`/app/tandems/${passengerId}`);
+		await page.waitForLoadState('networkidle');
+		const usePrice = page.getByRole('button', { name: /Use current price · R\s?3\s?200,00/ });
+		await expect(usePrice).toBeVisible();
+		await usePrice.click();
+		await expect(page.locator('[aria-live]').filter({ hasText: 'Price added to the booking' }).first()).toBeVisible();
+		await expect(page.getByTestId('no-price')).toHaveCount(0);
+		await expect(detail.getByText('Unpaid', { exact: true })).toBeVisible();
+	});
 });
