@@ -8,7 +8,7 @@ import { getSignature } from '../domain/indemnity.ts';
 import { listLoadsForDay } from '../domain/loads.ts';
 import { listUsersWithRole } from '../domain/permissions.ts';
 import { getPriceMap, quoteTandem } from '../domain/pricing.ts';
-import { getPassenger, tandemGroup, tandemOutstanding } from '../domain/tandems.ts';
+import { currentTandemPrice, getPassenger, tandemGroup, tandemOutstanding } from '../domain/tandems.ts';
 import { localDate } from '../domain/time.ts';
 
 export function tandemLimits(dz: Pick<Dropzone, 'settings'>) {
@@ -66,6 +66,8 @@ export async function passengerDetail(db: Database, dz: Dropzone, id: string) {
 	return {
 		passenger: p,
 		outstandingMinor: tandemOutstanding(p),
+		/** The DZ's price for this tandem today, offered when the booking has none (booked before prices were set). */
+		currentPriceMinor: p.totalMinor === 0 && p.status !== 'cancelled' ? await currentTandemPrice(db, p) : null,
 		pendingCheckout: checkout ? checkoutSummary(checkout, p.id) : null,
 		group,
 		signature: signature

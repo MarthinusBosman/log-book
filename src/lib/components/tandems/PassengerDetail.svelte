@@ -18,6 +18,7 @@
 		STAGE_TONES,
 		ageOn,
 		fmtDay,
+		isUnpriced,
 		limitWarnings,
 		tandemStage,
 		type TandemLimits
@@ -39,6 +40,7 @@
 	const p = $derived(detail.passenger);
 	const action = (name: string) => `/app/tandems/${p.id}?/${name}`;
 	const stage = $derived(tandemStage(p));
+	const noPrice = $derived(isUnpriced(p) && p.status !== 'cancelled');
 	const minor = $derived(!!p.dob && !!p.jumpDate && ageOn(p.dob, p.jumpDate) < 18);
 	const warnings = $derived(limitWarnings(p, limits));
 	const money = (m: number) => formatMoney(m, p.currency);
@@ -78,7 +80,7 @@
 		<div class="min-w-0 flex-1">
 			<div class="flex flex-wrap items-center gap-2">
 				<Badge tone={STAGE_TONES[stage]} dot>{STAGE_LABELS[stage]}</Badge>
-				<Badge tone={PAYMENT_TONES[p.paymentStatus]}>{PAYMENT_LABELS[p.paymentStatus]}</Badge>
+				{#if noPrice}<Badge tone="warning">No price</Badge>{:else}<Badge tone={PAYMENT_TONES[p.paymentStatus]}>{PAYMENT_LABELS[p.paymentStatus]}</Badge>{/if}
 				{#if p.onlineBooking}<Badge tone="neutral">Online</Badge>{/if}
 				{#if minor}<Badge tone="warning">Under 18</Badge>{/if}
 			</div>
@@ -182,7 +184,7 @@
 		<svelte:element this={hSection} class="flex items-center gap-2 text-sm font-semibold"><Icon name="wallet" class="size-4 text-primary" /> Payment</svelte:element>
 		<dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
 			<dt class="text-muted">Tandem skydive</dt>
-			<dd class="text-right tabular-nums">{money(p.totalMinor)}</dd>
+			<dd class="text-right tabular-nums">{noPrice ? 'No price' : money(p.totalMinor)}</dd>
 			{#each p.extras as e (e)}
 				<dt class="pl-3 text-xs text-subtle">incl. {SLOT_EXTRA_LABELS[e]}</dt>
 				<dd></dd>
@@ -192,10 +194,32 @@
 			<dt class="text-muted">Amount paid</dt>
 			<dd class="text-right tabular-nums">{money(p.amountPaidMinor)}{p.paymentMethod ? ` · ${paymentMethodLabel(p.paymentMethod)}` : ''}</dd>
 			<dt class="font-semibold">Outstanding</dt>
-			<dd class={cn('text-right font-semibold tabular-nums', detail.outstandingMinor > 0 ? 'text-warning' : 'text-success')}>
-				{money(detail.outstandingMinor)}
+			<dd class={cn('text-right font-semibold tabular-nums', detail.outstandingMinor > 0 || noPrice ? 'text-warning' : 'text-success')}>
+				{noPrice ? '—' : money(detail.outstandingMinor)}
 			</dd>
 		</dl>
+		{#if noPrice}
+			<div role="status" data-testid="no-price" class="mt-3 flex gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">
+				<JIcon name="alert" class="mt-0.5 size-4 shrink-0 text-warning" />
+				<div class="min-w-0 flex-1">
+					<p class="font-medium">No price on this booking</p>
+					{#if detail.currentPriceMinor}
+						<p class="mt-0.5 text-muted">It was booked before the tandem price was set. Add today's price so the balance shows what to collect.</p>
+						<form method="POST" action={action('price')} use:enhance={tracked('price')} class="mt-2">
+							<Button type="submit" size="sm" variant="secondary" loading={busy === 'price'}>Use current price · {money(detail.currentPriceMinor)}</Button>
+						</form>
+					{:else}
+						<p class="mt-0.5 text-muted">
+							Your price list has no Tandem jump price yet{page.data.caps?.includes('pricing.manage') ? '' : ': ask an owner to set one'}. Collect the price at the
+							dropzone and record it below.
+						</p>
+						{#if page.data.caps?.includes('pricing.manage')}
+							<Button size="sm" variant="secondary" href="/app/pricelist" class="mt-2"><Icon name="tag" class="size-4" /> Set prices</Button>
+						{/if}
+					{/if}
+				</div>
+			</div>
+		{/if}
 		{#if detail.pendingCheckout}
 			{@const c = detail.pendingCheckout}
 			<div role="status" data-testid="pending-checkout" class="mt-3 flex gap-2 rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm">

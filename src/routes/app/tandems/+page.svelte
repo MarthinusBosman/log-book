@@ -19,6 +19,7 @@
 		STAGE_TONES,
 		addDaysIso,
 		fmtDay,
+		isUnpriced,
 		limitWarnings,
 		tandemStage
 	} from '#lib/components/tandems/model.ts';
@@ -182,6 +183,7 @@
 					{@const stage = tandemStage(p)}
 					{@const warn = limitWarnings(p, data.limits)}
 					{@const due = Math.max(0, p.totalMinor - p.amountPaidMinor)}
+					{@const noPrice = isUnpriced(p) && stage !== 'cancelled'}
 					<li>
 						<a
 							href={openHref(p.id, p.jumpDate)}
@@ -209,12 +211,16 @@
 								<Badge tone={STAGE_TONES[stage]} dot>{STAGE_LABELS[stage]}</Badge>
 								{#if p.checkoutOpen}
 									<span data-testid="row-checkout-open" title="The customer started an online payment that isn't confirmed yet"><Badge tone="warning">Paying online</Badge></span>
-								{:else}
+								{:else if !noPrice}
 									<Badge tone={PAYMENT_TONES[p.paymentStatus]} class="hidden sm:inline-flex">{PAYMENT_LABELS[p.paymentStatus]}</Badge>
 								{/if}
 							</span>
-							<span class="hidden w-24 text-right text-sm tabular-nums sm:block {due > 0 ? 'text-warning' : 'text-muted'}">
-								{due > 0 ? money(due) : 'Paid'}
+							<span
+								class="hidden w-24 text-right text-sm tabular-nums sm:block {due > 0 || noPrice ? 'text-warning' : 'text-muted'}"
+								data-testid={noPrice ? 'row-no-price' : undefined}
+								title={noPrice ? 'Booked before a tandem price was set: open it to add the price' : undefined}
+							>
+								{noPrice ? 'No price' : due > 0 ? money(due) : 'Paid'}
 							</span>
 						</a>
 					</li>

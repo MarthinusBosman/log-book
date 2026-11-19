@@ -30,14 +30,24 @@ type StageInput = {
 	paymentStatus: PaymentStatus;
 	manifested: boolean;
 	indemnitySignedAt: Date | string | null;
+	totalMinor?: number;
+	amountPaidMinor?: number;
 };
+
+/**
+ * Booked before the DZ set a tandem price: no total and nothing paid. (Older rows were stored as
+ * 'paid' because 0 of 0 was outstanding; this keeps them from looking paid.)
+ */
+export function isUnpriced(p: { totalMinor?: number; amountPaidMinor?: number }): boolean {
+	return p.totalMinor === 0 && !p.amountPaidMinor;
+}
 
 export function tandemStage(p: StageInput): TandemStage {
 	if (p.status === 'cancelled') return 'cancelled';
 	if (p.status === 'completed') return 'jumped';
 	if (p.manifested || p.status === 'manifested') return 'manifested';
 	if (p.indemnitySignedAt) return 'signed';
-	if (p.paymentStatus !== 'unpaid') return 'deposit_paid';
+	if (p.paymentStatus !== 'unpaid' && !isUnpriced(p)) return 'deposit_paid';
 	return 'booked';
 }
 

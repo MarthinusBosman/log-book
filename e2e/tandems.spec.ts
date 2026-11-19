@@ -643,6 +643,17 @@ test('booking without a tandem price: staff are told, customers see "Price at th
 	// The confirmation page doesn't print "Total R 0,00 · Balance R 0,00" either.
 	await expect(page.getByTestId('booking-total')).toHaveText('Price at the dropzone');
 
+	// Staff don't see the unpriced booking as "Paid" / "Deposit paid".
+	await page.goto(`/app/tandems?day=${tomorrow}`);
+	await expect(page.getByTestId('row-no-price')).toHaveCount(1);
+	const rowHref = (await page.getByTestId('tandem-row').first().getAttribute('href'))!;
+	const passengerId = new URLSearchParams(rowHref.split('?')[1]).get('p')!;
+	await page.goto(`/app/tandems/${passengerId}`);
+	const detail = page.getByTestId('tandem-detail');
+	await expect(detail.getByText('No price', { exact: true }).first()).toBeVisible();
+	await expect(detail.getByText('Paid', { exact: true })).toHaveCount(0);
+	await expect(page.getByTestId('no-price')).toContainText('no Tandem jump price yet');
+
 	// Once the DZ prices a tandem the note goes and the booking page quotes it.
 	await page.goto('/app/pricelist');
 	await page.waitForLoadState('networkidle');
@@ -655,4 +666,14 @@ test('booking without a tandem price: staff are told, customers see "Price at th
 	await page.goto(href);
 	await page.waitForLoadState('networkidle');
 	await expect(visibleTotal).toHaveText(/R\s?3\s?200,00/);
+
+	// The early booking can now take today's price.
+	await page.goto(`/app/tandems/${passengerId}`);
+	await page.waitForLoadState('networkidle');
+	const usePrice = page.getByRole('button', { name: /Use current price · R\s?3\s?200,00/ });
+	await expect(usePrice).toBeVisible();
+	await usePrice.click();
+	await expect(page.locator('[aria-live]').filter({ hasText: 'Price added to the booking' }).first()).toBeVisible();
+	await expect(page.getByTestId('no-price')).toHaveCount(0);
+	await expect(detail.getByText('Unpaid', { exact: true })).toBeVisible();
 });

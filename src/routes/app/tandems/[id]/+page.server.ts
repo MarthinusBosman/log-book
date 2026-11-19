@@ -1,6 +1,7 @@
 import { error, fail } from '@sveltejs/kit';
 import { APP_ORIGIN } from '$app/env/private';
 import {
+	applyCurrentTandemPrice,
 	cancelPassenger,
 	changeTandemStaff,
 	completePassenger,
@@ -73,6 +74,16 @@ export const actions: Actions = {
 				by: userId
 			});
 			return { ok: true, message: 'Tandem payment has been updated' };
+		} catch (e) {
+			return failFrom(e);
+		}
+	},
+
+	price: async (event) => {
+		const { id } = await ctx(event);
+		try {
+			await applyCurrentTandemPrice(event.locals.db, id);
+			return { ok: true, message: 'Price added to the booking' };
 		} catch (e) {
 			return failFrom(e);
 		}

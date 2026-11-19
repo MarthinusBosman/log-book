@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { addOnsSuffix, calendarDayLabel, extraToggleLabel } from './model.ts';
+import { addOnsSuffix, calendarDayLabel, extraToggleLabel, isUnpriced, tandemStage } from './model.ts';
 
 describe('booking accessible names', () => {
 	test('calendar days are spoken as dates, with singular/plural places', () => {
@@ -17,5 +17,19 @@ describe('booking accessible names', () => {
 		expect(addOnsSuffix(0)).toBe('');
 		expect(addOnsSuffix(1)).toBe(' + 1 add-on');
 		expect(addOnsSuffix(3)).toBe(' + 3 add-ons');
+	});
+});
+
+describe('unpriced bookings', () => {
+	const base = { status: 'booked' as const, manifested: false, indemnitySignedAt: null };
+	test('a booking with no price and no money taken is not shown as deposit paid', () => {
+		// rows stored before the fix carry paymentStatus 'paid' for 0 of 0
+		expect(isUnpriced({ totalMinor: 0, amountPaidMinor: 0 })).toBe(true);
+		expect(tandemStage({ ...base, paymentStatus: 'paid', totalMinor: 0, amountPaidMinor: 0 })).toBe('booked');
+	});
+	test('money taken or a price set means it is priced', () => {
+		expect(isUnpriced({ totalMinor: 0, amountPaidMinor: 320000 })).toBe(false);
+		expect(isUnpriced({ totalMinor: 320000, amountPaidMinor: 0 })).toBe(false);
+		expect(tandemStage({ ...base, paymentStatus: 'deposit_paid', totalMinor: 320000, amountPaidMinor: 50000 })).toBe('deposit_paid');
 	});
 });

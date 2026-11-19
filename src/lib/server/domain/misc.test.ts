@@ -5,7 +5,16 @@ import { checkIn, checkOut, checkOutAll, currentCheckin, listCheckedIn } from '.
 import { listNotifications, markRead, notify, unreadCount } from './notifications.ts';
 import { addTeamMember, createTeam, manifestTeam, addBuddy } from './teams.ts';
 import { addSlot, completeLoad, createLoads, getLoad } from './loads.ts';
-import { addBookingSlots, availabilityForDate, createOnlineBooking, createPassenger, recordTandemPayment, tandemOutstanding } from './tandems.ts';
+import {
+	addBookingSlots,
+	applyCurrentTandemPrice,
+	availabilityForDate,
+	createOnlineBooking,
+	createPassenger,
+	recordTandemPayment,
+	tandemOutstanding
+} from './tandems.ts';
+import { setPrices } from './pricing.ts';
 import { addSection, needsSportIndemnity, setIndemnityActive, signIndemnity } from './indemnity.ts';
 import { jumpReport } from './reports.ts';
 import { decodeDataUrl, readFileBlob, saveFile } from './files.ts';
@@ -127,6 +136,23 @@ describe('tandems & online booking', () => {
 		const paid = await recordTandemPayment(db, { passengerId: p.id, amountMinor: tandemOutstanding(p), provider: 'card', by: owner.id });
 		expect(paid.paymentStatus).toBe('paid');
 		expect(tandemOutstanding(paid)).toBe(0);
+	});
+
+	test('a booking made before the DZ priced tandems is unpaid, not paid, and takes the price once it is set', async () => {
+		const { dz, owner } = await makeDropzone(db, {}, {});
+		const p = await createPassenger(db, dz.id, { name: 'Early Bird', extras: ['handcam'] });
+		expect(p).toMatchObject({ totalMinor: 0, paymentStatus: 'unpaid' });
+		await expect(applyCurrentTandemPrice(db, p.id)).rejects.toThrow(/Tandem jump price/);
+		await setPrices(db, dz.id, { tandem_slot: P.tandem_slot, tandem_handcam: P.tandem_handcam });
+		const priced = await applyCurrentTandemPrice(db, p.id);
+		expect(priced).toMatchObject({ totalMinor: P.tandem_slot! + P.tandem_handcam!, paymentStatus: 'unpaid' });
+		await expect(applyCurrentTandemPrice(db, p.id)).rejects.toThrow(/already has a price/);
+		// money taken at the counter on an unpriced booking counts as paid
+		await setPrices(db, dz.id, { tandem_slot: 0 });
+		const q = await createPassenger(db, dz.id, { name: 'Cash', extras: [] });
+		expect(q.totalMinor).toBe(0);
+		const cash = await recordTandemPayment(db, { passengerId: q.id, amountMinor: 250000, provider: 'cash', by: owner.id });
+		expect(cash.paymentStatus).toBe('paid');
 	});
 });
 

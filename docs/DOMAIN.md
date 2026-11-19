@@ -152,6 +152,7 @@ DB functions:
 ### tandems.ts
 `createPassenger(db, dzId, PassengerInput)` prices the passenger from the DZ price list. Under 12 is blocked; under 18 needs guardian fields. `updatePassenger` reprices when extras change. `getPassenger`, `findByConfirmation`,
 `listPassengers(db, dzId, {tab: ready|completed|all, date?, search?})`, `recordTandemPayment(db, {passengerId, amountMinor, provider, isDeposit?})`, `tandemOutstanding(p)`.
+A passenger booked while the DZ had no tandem price has `totalMinor` 0 and stays `unpaid` until money is taken (UI: "No price", `isUnpriced()` in `#lib/components/tandems/model.ts`); `applyCurrentTandemPrice(db, id)` puts today's price on such a booking (priced bookings keep their quote).
 Booking: `addBookingSlots(db, {dropzoneId, date, time, capacity, repeat: none|daily|weekly})` → `{added, existing}`, `availabilityForDate(db, dzId, date)` → slots with `remaining`, `bookableDates(db, dzId, from, to)`,
 `createOnlineBooking(db, {dropzoneId, date, time, jumpers[1..5], depositPaid?})` throws `booking_full`.
 

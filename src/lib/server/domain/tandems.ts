@@ -38,9 +38,35 @@ export function validatePassenger(p: Partial<PassengerInput>, jumpDate?: string 
 }
 
 export function paymentStatusFor(total: number, paid: number, deposit: number): PaymentStatus {
-	if (total > 0 && paid >= total) return 'paid';
+	// No price on the booking (booked before the DZ set a tandem price): only money taken counts as paid.
+	if (total === 0) return paid > 0 ? 'paid' : 'unpaid';
+	if (paid >= total) return 'paid';
 	if (paid > 0) return paid <= deposit ? 'deposit_paid' : 'partially_paid';
-	return total === 0 ? 'paid' : 'unpaid';
+	return 'unpaid';
+}
+
+/** Current price of a passenger's tandem (with their add-ons) from the DZ price list; 0 = still no price. */
+export async function currentTandemPrice(db: Database, p: Pick<TandemPassenger, 'dropzoneId' | 'extras'>): Promise<number> {
+	return quoteTandem(await getPriceMap(db, p.dropzoneId), p.extras ?? []).perJumper.totalMinor;
+}
+
+/**
+ * Put the DZ's current tandem price on a booking that has none (booked before prices were set).
+ * Bookings with a price keep it: the customer was quoted that amount.
+ */
+export async function applyCurrentTandemPrice(db: Database, passengerId: string): Promise<TandemPassenger> {
+	const p = assertFound(await getPassenger(db, passengerId), 'Tandem passenger');
+	if (p.totalMinor > 0) throw new DomainError('conflict', 'This booking already has a price');
+	if (p.status === 'cancelled') throw new DomainError('invalid_transition', 'This booking is cancelled');
+	const total = await currentTandemPrice(db, p);
+	if (total <= 0) throw new DomainError('invalid', 'Set a Tandem jump price in Pricing first');
+	return (
+		await db
+			.update(tandemPassengers)
+			.set({ totalMinor: total, paymentStatus: paymentStatusFor(total, p.amountPaidMinor, p.depositMinor) })
+			.where(eq(tandemPassengers.id, p.id))
+			.returning()
+	)[0];
 }
 
 /** Create a tandem passenger (manifest "Create Tandem Passenger", online booking or registration). */
