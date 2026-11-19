@@ -107,6 +107,24 @@ describe('svelte a11y lint', () => {
 		expect(bad).toEqual([]);
 	});
 
+	test('primary-coloured links inside a sentence are underlined (axe link-in-text-block)', () => {
+		// Blue link text next to muted text is ~1.1:1 apart in dark mode: colour alone doesn't
+		// mark it as a link, so in-sentence links need `underline` (not just hover:underline).
+		const bad: string[] = [];
+		for (const f of files) {
+			for (const line of f.text.split('\n').map((l, i) => ({ l, i }))) {
+				for (const m of line.l.matchAll(/<a\b[^>]*\bclass="([^"]*)"[^>]*>[^<]*<\/a/g)) {
+					const toks = m[1].split(/\s+/);
+					if (!toks.includes('text-primary') || toks.includes('underline')) continue;
+					const before = line.l.slice(0, m.index).replace(/<[^>]*>|\{[^}]*\}/g, '');
+					const after = line.l.slice(m.index + m[0].length).replace(/^[^>]*>/, '').replace(/<[^>]*>|\{[^}]*\}/g, '');
+					if (/[A-Za-z]{2}/.test(before) || /[A-Za-z]{2}/.test(after)) bad.push(`${f.name}:${line.i + 1}`);
+				}
+			}
+		}
+		expect(bad).toEqual([]);
+	});
+
 	test('<dl> starts with a term, not a heading or paragraph', () => {
 		const bad: string[] = [];
 		for (const f of files) {

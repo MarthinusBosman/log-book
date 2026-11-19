@@ -79,8 +79,8 @@
 		<JIcon name={ok ? 'checkCircle' : wait ? 'clock' : 'alert'} class={cn('mt-0.5 size-5 shrink-0', ok ? 'text-success' : wait ? 'text-primary' : 'text-warning')} />
 		<p class="min-w-0 flex-1">
 			{#if ok}<span class="font-medium">{formatMoney(notice.amountMinor, notice.currency)} added to your wallet</span> <span class="text-muted">· paid via {notice.provider}</span>
-			{:else if wait}<span class="font-medium">Not confirmed yet</span> <span class="text-muted">· {notice.provider} hasn’t confirmed this top-up. If you finished paying it shows up within a minute (<a href={page.url.href} class="font-medium text-primary hover:underline">refresh</a>); if not, cancel it under Pending top-ups.</span>
-			{:else}<span class="font-medium">Top-up not completed</span> <span class="text-muted">· no money was taken.{#if data.dz.walletEnabled} <a href="#topup" class="font-medium text-primary hover:underline">Try again</a> — your amount is filled in.{/if}</span>{/if}
+			{:else if wait}<span class="font-medium">Not confirmed yet</span> <span class="text-muted">· {notice.provider} hasn’t confirmed this top-up. If you finished paying it shows up within a minute (<a href={page.url.href} class="font-medium text-primary underline underline-offset-2">refresh</a>); if not, cancel it under Pending top-ups.</span>
+			{:else}<span class="font-medium">Top-up not completed</span> <span class="text-muted">· no money was taken.{#if data.dz.walletEnabled} <a href="#topup" class="font-medium text-primary underline underline-offset-2">Try again</a> — your amount is filled in.{/if}</span>{/if}
 		</p>
 	</div>
 {/if}

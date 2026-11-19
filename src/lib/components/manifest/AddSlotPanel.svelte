@@ -198,7 +198,7 @@
 									</li>
 								{:else}
 									<li class="rounded-xl border border-dashed border-border-strong px-3 py-5 text-center text-sm text-muted">
-										You have no tandem passengers ready for this day. <a href="/app/tandems" class="font-medium text-primary hover:underline">Tandem manager</a>
+										You have no tandem passengers ready for this day. <a href="/app/tandems" class="font-medium text-primary underline underline-offset-2">Tandem manager</a>
 									</li>
 								{/each}
 							</ul>

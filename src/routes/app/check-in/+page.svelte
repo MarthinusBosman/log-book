@@ -82,7 +82,7 @@
 						<Icon name="checkin" class="size-5" /> Check in now
 					</Button>
 					<p class="text-center text-sm text-muted">
-						Not listed? <a href="/app/dropzones" class="font-medium text-primary hover:underline">Browse dropzones</a>
+						Not listed? <a href="/app/dropzones" class="font-medium text-primary underline underline-offset-2">Browse dropzones</a>
 					</p>
 				</form>
 			</Card>
@@ -167,7 +167,7 @@
 				</a>
 			{:else if c.dropzone.walletEnabled}
 				<p class="rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
-					No wallet funds yet at {c.dropzone.name}. <a href="/app/wallet/{c.dropzone.slug}" class="font-medium text-primary hover:underline">Top up</a> or pay at manifest.
+					No wallet funds yet at {c.dropzone.name}. <a href="/app/wallet/{c.dropzone.slug}" class="font-medium text-primary underline underline-offset-2">Top up</a> or pay at manifest.
 				</p>
 			{/if}
 

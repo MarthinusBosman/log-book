@@ -559,7 +559,7 @@
 			{@render eyebrow('FAQ')}
 			<h2 class="mt-4 text-3xl font-[580] tracking-[-0.025em] sm:text-4xl">Questions from the hangar.</h2>
 			<p class="mt-4 text-muted">
-				Something else? <a href="mailto:{brand.supportEmail}" class="font-medium text-primary hover:underline">{brand.supportEmail}</a>
+				Something else? <a href="mailto:{brand.supportEmail}" class="font-medium text-primary underline underline-offset-2">{brand.supportEmail}</a>
 			</p>
 		</div>
 		<div class="divide-y divide-border border-y border-border">

@@ -24,7 +24,7 @@
 		{#if p.soleOwnerOf.length}
 			<p class="text-sm text-muted">
 				A dropzone always needs an owner. Add another owner in
-				<a href="/app/settings/members" class="text-primary hover:underline">Settings → Members &amp; roles</a>, then come back.
+				<a href="/app/settings/members" class="text-primary underline underline-offset-2">Settings → Members &amp; roles</a>, then come back.
 			</p>
 		{/if}
 	{:else}
@@ -55,7 +55,7 @@
 			{/if}
 			<p class="mt-3 text-sm text-muted">
 				Sign-offs you gave on other jumpers' logbooks stay in their logbooks. To have dropzone records removed, ask the
-				dropzone. Details: <a href="/privacy#deletion" class="text-primary hover:underline">Privacy policy</a>.
+				dropzone. Details: <a href="/privacy#deletion" class="text-primary underline underline-offset-2">Privacy policy</a>.
 			</p>
 			{#if p.linkedAccounts}
 				<p class="mt-3 text-sm text-muted">

@@ -168,7 +168,7 @@
 								? ' — your balance will go below zero'
 								: ''}
 						{#if short && wallet.topUpHref}
-							· <a href={wallet.topUpHref} class="font-medium text-primary hover:underline">Top up</a>
+							· <a href={wallet.topUpHref} class="font-medium text-primary underline underline-offset-2">Top up</a>
 						{/if}
 					</p>
 				{/if}
