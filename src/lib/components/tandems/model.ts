@@ -127,8 +127,12 @@ export function ageOn(dob: string, on: string): number {
 	return y2 - y1 - (m2 < m1 || (m2 === m1 && d2 < d1) ? 1 : 0);
 }
 
+/**
+ * Calendar day in the app's style: "Tue 15 Dec", "Sun 18 Apr 2027". en-GB puts a comma after the
+ * weekday once a year is included ("Sun, 18 Apr 2027"); drop it so dates read the same everywhere.
+ */
 export function fmtDay(date: string, opts: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }): string {
-	return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', ...opts }).format(new Date(`${date}T00:00:00Z`));
+	return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', ...opts }).format(new Date(`${date}T00:00:00Z`)).replace(/^(\p{L}+), /u, '$1 ');
 }
 
 /** Spoken name for a booking-calendar day: "Saturday 14 November, 1 place left" (not the ISO date). */

@@ -13,6 +13,7 @@ import { decodeDataUrl, deleteFile, getFile, readFileBlob, saveFile, sha256Hex }
 import { getSignature, listSections, signIndemnity, validateAnswers } from '../domain/indemnity.ts';
 import { getPassenger, tandemOutstanding } from '../domain/tandems.ts';
 import { getDropzone } from '../domain/dropzone-admin.ts';
+import { fmtDay } from '../../components/tandems/model.ts';
 import { ageOn, localDate } from '../domain/time.ts';
 import { renderDocumentPdf, type DocumentPdfInput, type PdfBlock } from './pdf.ts';
 import { readLogo } from '../branding.ts';
@@ -28,9 +29,7 @@ export function formatInstant(d: Date | number, timeZone: string): string {
 
 export function formatDay(date: string | null | undefined): string {
 	if (!date) return '';
-	return new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }).format(
-		new Date(`${date}T00:00:00Z`)
-	);
+	return fmtDay(date, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /** Raw answers posted by the signing form: ack_<i>, initials_<i>, sig_<i> (PNG data URL). */

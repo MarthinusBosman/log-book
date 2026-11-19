@@ -1,5 +1,15 @@
 import { describe, expect, test } from 'bun:test';
-import { addOnsSuffix, calendarDayLabel, extraToggleLabel, isFullyPaid, isUnpriced, tandemStage } from './model.ts';
+import { addOnsSuffix, calendarDayLabel, extraToggleLabel, fmtDay, isFullyPaid, isUnpriced, tandemStage } from './model.ts';
+
+describe('fmtDay', () => {
+	test('reads the same with or without a year (no comma after the weekday)', () => {
+		expect(fmtDay('2027-04-18')).toBe('Sun 18 Apr');
+		expect(fmtDay('2027-04-18', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })).toBe('Sun 18 Apr 2027');
+		expect(fmtDay('2027-04-18', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })).toBe('Sunday 18 April 2027');
+		expect(fmtDay('2027-04-18', { day: 'numeric', month: 'short', year: 'numeric' })).toBe('18 Apr 2027');
+		expect(fmtDay('2027-04-18', { month: 'long', year: 'numeric' })).toBe('April 2027');
+	});
+});
 
 describe('booking accessible names', () => {
 	test('calendar days are spoken as dates, with singular/plural places', () => {
