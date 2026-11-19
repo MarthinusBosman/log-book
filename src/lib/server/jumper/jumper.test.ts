@@ -5,6 +5,7 @@ import { domainFail, fieldErrors, friendlyError, moneyMinor, seconds } from './f
 import { DomainError } from '../domain/errors.ts';
 import { jumpFormEcho, parseJumpForm } from './logbook.ts';
 import { rigFormEcho } from './gear.ts';
+import { TEAM_COLOURS, TEAM_COLOUR_OPTIONS } from './teams.ts';
 
 const owner = { id: 'u1', passwordHash: 'pbkdf2-sha256$100000$abc$def', createdAt: new Date(1_700_000_000_000) };
 const jumpId = '0f8fad5b-d9cb-469f-a165-70867728950e';
@@ -197,5 +198,14 @@ describe('rig form echo', () => {
 			wingsuit: null,
 			notes: 'Blue'
 		});
+	});
+});
+
+describe('team colours', () => {
+	test('every swatch has a distinct name for screen readers', () => {
+		expect(TEAM_COLOUR_OPTIONS.map((c) => c.value)).toEqual([...TEAM_COLOURS]);
+		const names = TEAM_COLOUR_OPTIONS.map((c) => c.name);
+		expect(names.every((n) => typeof n === 'string' && n.length > 0)).toBe(true);
+		expect(new Set(names).size).toBe(names.length);
 	});
 });

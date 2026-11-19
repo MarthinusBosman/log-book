@@ -6,6 +6,18 @@ import { isDomainError } from '../domain/errors.ts';
 
 export const DISCIPLINES = ['Belly / FS', 'Freefly', 'VFS', 'Angle / tracking', 'Wingsuit', 'CRW', 'Canopy piloting', 'Fun jumpers', 'Other'] as const;
 export const TEAM_COLOURS = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#64748b'] as const;
+const TEAM_COLOUR_NAMES: Record<(typeof TEAM_COLOURS)[number], string> = {
+	'#3b82f6': 'Blue',
+	'#22c55e': 'Green',
+	'#f59e0b': 'Amber',
+	'#ef4444': 'Red',
+	'#a855f7': 'Purple',
+	'#ec4899': 'Pink',
+	'#14b8a6': 'Teal',
+	'#64748b': 'Slate'
+};
+/** Colour swatches for the team forms, each with a name for screen readers. */
+export const TEAM_COLOUR_OPTIONS = TEAM_COLOURS.map((value) => ({ value, name: TEAM_COLOUR_NAMES[value] }));
 
 /** A team the user may see (owner or member). `canEdit` = personal team owned by the user. */
 export async function teamFor(db: Database, userId: string, teamId: string) {

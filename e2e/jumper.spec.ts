@@ -150,9 +150,14 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	await page.goto('/app/team');
 	await page.getByTestId('new-team').click();
 	await page.getByLabel('Team name').fill('Sunset 4-way');
+	// colour swatches are named radios (screen readers heard 8 unlabelled radios)
+	await page.getByTestId('create-team').getByTitle('Green').click();
+	await expect(page.getByTestId('create-team').getByRole('radio', { name: 'Green' })).toBeChecked();
 	await page.getByRole('button', { name: 'Create team' }).click();
 	await expect(page).toHaveURL(/\/app\/team\/[0-9a-f-]+/);
 	await expect(page.getByTestId('team-members')).toContainText('Jo Jumper');
+	await expect(page.getByTestId('team-settings').getByRole('radio', { name: 'Green' })).toBeChecked();
+	await expect(page.getByTestId('team-settings').getByRole('radio', { name: 'Blue' })).not.toBeChecked();
 
 	// Wallet: the new DZ has wallets off by default → friendly notice
 	await page.goto('/app/wallet');

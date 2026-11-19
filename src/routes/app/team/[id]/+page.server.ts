@@ -5,7 +5,7 @@ import { openLoadsToday } from '#lib/server/domain/loads.ts';
 import { getPriceMap } from '#lib/server/domain/pricing.ts';
 import { requestDropzone } from '#lib/server/request-cache.ts';
 import { domainFail, opt, requireUser, str } from '#lib/server/jumper/forms.ts';
-import { DISCIPLINES, TEAM_COLOURS, findJumpers, teamFor } from '#lib/server/jumper/teams.ts';
+import { DISCIPLINES, TEAM_COLOURS, TEAM_COLOUR_OPTIONS, findJumpers, teamFor } from '#lib/server/jumper/teams.ts';
 import { TEAM_JUMP_TYPES, priceTable } from '#lib/server/jumper/manifest.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -50,7 +50,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		manifest,
 		jumpTypes: TEAM_JUMP_TYPES,
 		disciplines: DISCIPLINES,
-		colours: TEAM_COLOURS,
+		colours: TEAM_COLOUR_OPTIONS,
 		created: url.searchParams.has('created')
 	};
 };

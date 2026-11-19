@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { addBuddy, createTeam, listBuddies, listUserTeams, removeBuddy } from '#lib/server/domain/teams.ts';
 import { domainFail, opt, requireUser, str } from '#lib/server/jumper/forms.ts';
-import { DISCIPLINES, TEAM_COLOURS, findJumpers } from '#lib/server/jumper/teams.ts';
+import { DISCIPLINES, TEAM_COLOURS, TEAM_COLOUR_OPTIONS, findJumpers } from '#lib/server/jumper/teams.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		q,
 		results: await findJumpers(locals.db, q, [user.id, ...buddies.map((b) => b.id)]),
 		disciplines: DISCIPLINES,
-		colours: TEAM_COLOURS
+		colours: TEAM_COLOUR_OPTIONS
 	};
 };
 

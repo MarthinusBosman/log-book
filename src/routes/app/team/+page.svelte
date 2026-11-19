@@ -34,10 +34,10 @@
 			<Select label="Discipline" name="discipline" value="" options={[{ value: '', label: 'Not set' }, ...data.disciplines.map((d) => ({ value: d, label: d }))]} />
 			<fieldset class="flex items-center gap-1.5 pb-2.5">
 				<legend class="sr-only">Colour</legend>
-				{#each data.colours as c (c)}
-					<label class="cursor-pointer">
-						<input type="radio" name="colour" value={c} bind:group={colour} class="peer sr-only" />
-						<span class="block size-6 rounded-full ring-offset-2 ring-offset-surface peer-checked:ring-2 peer-checked:ring-fg peer-focus-visible:ring-2" style="background: {c}"></span>
+				{#each data.colours as c (c.value)}
+					<label class="cursor-pointer" title={c.name}>
+						<input type="radio" name="colour" value={c.value} bind:group={colour} aria-label={c.name} class="peer sr-only" />
+						<span class="block size-6 rounded-full ring-offset-2 ring-offset-surface peer-checked:ring-2 peer-checked:ring-fg peer-focus-visible:ring-2 peer-focus-visible:ring-primary" style="background: {c.value}"></span>
 					</label>
 				{/each}
 			</fieldset>
