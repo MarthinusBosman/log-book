@@ -49,6 +49,9 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	// Sport waiver: activate + one section → the "write your waivers" step ticks off
 	await page.goto('/app/waivers?tab=sport');
 	await page.waitForLoadState('networkidle');
+	// No live sport form yet: "Sign as jumper" would only lead to "No online waiver"
+	const signAsJumper = page.getByRole('main').getByRole('link', { name: 'Sign as jumper' });
+	expect(await signAsJumper.count()).toBe(0);
 	await page.getByTestId('add-section-sport').click();
 	await page.getByLabel('Heading').fill('Assumption of risk');
 	await page.getByLabel('Content').fill('Skydiving is dangerous and I accept the risks.');
@@ -61,6 +64,7 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	expect(text!.width).toBeGreaterThan(card!.width * (mobile ? 0.75 : 0.6));
 	await page.getByTestId('toggle-sport').click();
 	await expect(page.getByTestId('toggle-sport')).toHaveText('Switch off');
+	await expect(signAsJumper).toBeVisible();
 	await page.goto('/app');
 	await expect(page.getByTestId('setup-checklist')).toContainText('1 of 7 done');
 

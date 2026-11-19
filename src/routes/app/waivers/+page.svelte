@@ -27,7 +27,10 @@
 		<h1 class="text-2xl font-semibold tracking-tight">Waivers</h1>
 		<p class="text-sm text-muted">Indemnity forms, signed waivers and who is covered.</p>
 	</div>
-	<Button variant="secondary" href="/app/waivers/sign/{data.dz.id}"><Icon name="checkin" class="size-4" /> Sign as jumper</Button>
+	{#if data.dz.sportActive && data.sections.sport.length > 0}
+		<!-- Only when there is a live sport form to sign: otherwise the link lands on "No online waiver". -->
+		<Button variant="secondary" href="/app/waivers/sign/{data.dz.id}"><Icon name="checkin" class="size-4" /> Sign as jumper</Button>
+	{/if}
 </div>
 <NoJsOutcome />
 
