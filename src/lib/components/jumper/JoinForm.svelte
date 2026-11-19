@@ -68,104 +68,110 @@
 	}
 </script>
 
-<form
-	method="POST"
-	action="?/{mode === 'solo' ? 'join' : mode}"
-	class="space-y-4"
-	use:enhance={() => {
-		busy = true;
-		return async ({ result, update }) => {
-			await update({ reset: false });
-			busy = false;
-			if (result.type === 'success') {
-				toast.success(String((result.data as { success?: string })?.success ?? 'Done'));
-				ondone?.();
-			}
-		};
-	}}
->
-	<input type="hidden" name="loadId" value={loadId} />
-	{#if slotId}<input type="hidden" name="slotId" value={slotId} />{/if}
+{#if mode === 'team' && teams.length === 0}
+	<!-- Nothing to manifest yet: no jump type / price / disabled button, just the way to a team. -->
+	<div class="space-y-3" data-testid="no-team">
+		<p class="text-sm text-muted">You don’t have a team yet. Create one, add your teammates, then manifest together from here or from the team page.</p>
+		<Button href="/app/team?new=1" variant="secondary" class="w-full sm:w-auto">Create a team</Button>
+	</div>
+{:else}
+	<form
+		method="POST"
+		action="?/{mode === 'solo' ? 'join' : mode}"
+		class="space-y-4"
+		use:enhance={() => {
+			busy = true;
+			return async ({ result, update }) => {
+				await update({ reset: false });
+				busy = false;
+				if (result.type === 'success') {
+					toast.success(String((result.data as { success?: string })?.success ?? 'Done'));
+					ondone?.();
+				}
+			};
+		}}
+	>
+		<input type="hidden" name="loadId" value={loadId} />
+		{#if slotId}<input type="hidden" name="slotId" value={slotId} />{/if}
 
-	{#if mode === 'team'}
-		{#if teams.length === 0}
-			<p class="text-sm text-muted">You don’t have a team yet. <a class="font-medium text-primary hover:underline" href="/app/team/new">Create one</a> to manifest together.</p>
-		{:else}
-			<div class="flex flex-col gap-1.5">
-				<label for="team-{loadId}" class="text-sm font-medium">Team</label>
-				<select id="team-{loadId}" name="teamId" bind:value={teamId} class="h-11 rounded-xl border border-border bg-surface px-3 text-[15px] outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
-					{#each teams as t (t.id)}<option value={t.id}>{t.name} ({t.members.length})</option>{/each}
-				</select>
-			</div>
-			{#if team}
-				<fieldset class="min-w-0">
-					<legend class="mb-2 text-sm font-medium">Team members jumping</legend>
-					<div class="flex flex-wrap gap-2">
-						{#each team.members as m (m.id)}
-							<label class="relative inline-flex cursor-pointer select-none">
-								<input type="checkbox" name="memberIds" value={m.id} bind:group={memberIds} class="peer sr-only" />
-								<span class="inline-flex h-10 items-center rounded-xl border border-border bg-surface px-3.5 text-sm font-medium text-muted transition-all peer-checked:border-primary/50 peer-checked:bg-primary/10 peer-checked:text-fg peer-focus-visible:outline-2 peer-focus-visible:outline-ring">{m.name}</span>
-							</label>
-						{/each}
-					</div>
-				</fieldset>
-				{#if team.coach || team.video}
-					<label class="flex items-center gap-2 text-sm text-muted">
-						<input type="checkbox" name="includeStaff" checked class="size-4 accent-[var(--dz-primary)]" />
-						Bring the team’s {team.coach && team.video ? 'coach and video' : team.coach ? 'coach' : 'videographer'}
-					</label>
+		{#if mode === 'team'}
+			{#if teams.length}
+				<div class="flex flex-col gap-1.5">
+					<label for="team-{loadId}" class="text-sm font-medium">Team</label>
+					<select id="team-{loadId}" name="teamId" bind:value={teamId} class="h-11 rounded-xl border border-border bg-surface px-3 text-[15px] outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
+						{#each teams as t (t.id)}<option value={t.id}>{t.name} ({t.members.length})</option>{/each}
+					</select>
+				</div>
+				{#if team}
+					<fieldset class="min-w-0">
+						<legend class="mb-2 text-sm font-medium">Team members jumping</legend>
+						<div class="flex flex-wrap gap-2">
+							{#each team.members as m (m.id)}
+								<label class="relative inline-flex cursor-pointer select-none">
+									<input type="checkbox" name="memberIds" value={m.id} bind:group={memberIds} class="peer sr-only" />
+									<span class="inline-flex h-10 items-center rounded-xl border border-border bg-surface px-3.5 text-sm font-medium text-muted transition-all peer-checked:border-primary/50 peer-checked:bg-primary/10 peer-checked:text-fg peer-focus-visible:outline-2 peer-focus-visible:outline-ring">{m.name}</span>
+								</label>
+							{/each}
+						</div>
+					</fieldset>
+					{#if team.coach || team.video}
+						<label class="flex items-center gap-2 text-sm text-muted">
+							<input type="checkbox" name="includeStaff" checked class="size-4 accent-[var(--dz-primary)]" />
+							Bring the team’s {team.coach && team.video ? 'coach and video' : team.coach ? 'coach' : 'videographer'}
+						</label>
+					{/if}
 				{/if}
 			{/if}
 		{/if}
-	{/if}
 
-	<fieldset class="min-w-0">
-		<legend class="mb-2 text-sm font-medium">Jump type</legend>
-		<div class="flex flex-wrap gap-2">
-			{#each types as t (t)}
-				<Chip type="radio" name="jumpType" value={t} checked={jumpType === t} onchange={() => (jumpType = t)}>
-					{JUMP_TYPE_LABELS[t as JumpType] ?? t}
-				</Chip>
-			{/each}
-		</div>
-	</fieldset>
-
-	{#if extras.length}
 		<fieldset class="min-w-0">
-			<legend class="mb-2 text-sm font-medium">Extras</legend>
+			<legend class="mb-2 text-sm font-medium">Jump type</legend>
 			<div class="flex flex-wrap gap-2">
-				{#each extras as e (e)}
-					<Chip name="extras" value={e} checked={chosen.includes(e)} onchange={(ev) => toggleExtra(e, (ev.currentTarget as HTMLInputElement).checked)}>
-						{SLOT_EXTRA_LABELS[e as SlotExtra] ?? e}
-						<span class="text-xs text-subtle">+{formatMoney(prices.extras[e as SlotExtra] ?? 0, currency)}</span>
+				{#each types as t (t)}
+					<Chip type="radio" name="jumpType" value={t} checked={jumpType === t} onchange={() => (jumpType = t)}>
+						{JUMP_TYPE_LABELS[t as JumpType] ?? t}
 					</Chip>
 				{/each}
 			</div>
 		</fieldset>
-	{/if}
 
-	<div class="flex flex-col gap-3 rounded-xl border border-border bg-surface-2/50 p-3 sm:flex-row sm:items-center sm:justify-between">
-		<div class="text-sm">
-			<p class="text-muted">
-				{mode === 'team' ? `${people} × ${formatMoney(each, currency)}` : mode === 'change' ? 'New price' : 'Your slot'}
-			</p>
-			<p class="text-xl font-semibold tracking-tight tabular-nums" data-testid="live-price">{formatMoney(total, currency)}</p>
-			{#if wallet && mode !== 'team'}
-				<p class={cn('text-xs', short ? 'text-danger' : 'text-muted')} data-testid="wallet-note">
-					Wallet: {formatMoney(wallet.availableMinor, wallet.currency)} available{short
-						? ' — not enough'
-						: funds.overdraw
-							? ' — your balance will go below zero'
-							: ''}
-					{#if short && wallet.topUpHref}
-						· <a href={wallet.topUpHref} class="font-medium text-primary hover:underline">Top up</a>
-					{/if}
+		{#if extras.length}
+			<fieldset class="min-w-0">
+				<legend class="mb-2 text-sm font-medium">Extras</legend>
+				<div class="flex flex-wrap gap-2">
+					{#each extras as e (e)}
+						<Chip name="extras" value={e} checked={chosen.includes(e)} onchange={(ev) => toggleExtra(e, (ev.currentTarget as HTMLInputElement).checked)}>
+							{SLOT_EXTRA_LABELS[e as SlotExtra] ?? e}
+							<span class="text-xs text-subtle">+{formatMoney(prices.extras[e as SlotExtra] ?? 0, currency)}</span>
+						</Chip>
+					{/each}
+				</div>
+			</fieldset>
+		{/if}
+
+		<div class="flex flex-col gap-3 rounded-xl border border-border bg-surface-2/50 p-3 sm:flex-row sm:items-center sm:justify-between">
+			<div class="text-sm">
+				<p class="text-muted">
+					{mode === 'team' ? `${people} × ${formatMoney(each, currency)}` : mode === 'change' ? 'New price' : 'Your slot'}
 				</p>
-			{/if}
+				<p class="text-xl font-semibold tracking-tight tabular-nums" data-testid="live-price">{formatMoney(total, currency)}</p>
+				{#if wallet && mode !== 'team'}
+					<p class={cn('text-xs', short ? 'text-danger' : 'text-muted')} data-testid="wallet-note">
+						Wallet: {formatMoney(wallet.availableMinor, wallet.currency)} available{short
+							? ' — not enough'
+							: funds.overdraw
+								? ' — your balance will go below zero'
+								: ''}
+						{#if short && wallet.topUpHref}
+							· <a href={wallet.topUpHref} class="font-medium text-primary hover:underline">Top up</a>
+						{/if}
+					</p>
+				{/if}
+			</div>
+			<Button type="submit" size="lg" loading={busy} disabled={mode === 'team' && memberIds.length === 0} class="w-full sm:w-auto">
+				{mode === 'solo' ? 'Join this load' : mode === 'team' ? 'Join load now' : 'Save changes'}
+			</Button>
 		</div>
-		<Button type="submit" size="lg" loading={busy} disabled={mode === 'team' && (!teams.length || memberIds.length === 0)} class="w-full sm:w-auto">
-			{mode === 'solo' ? 'Join this load' : mode === 'team' ? 'Join load now' : 'Save changes'}
-		</Button>
-	</div>
-	<FormAlert message={error} />
-</form>
+		<FormAlert message={error} />
+	</form>
+{/if}

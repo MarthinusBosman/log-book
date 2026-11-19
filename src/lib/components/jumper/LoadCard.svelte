@@ -223,7 +223,7 @@
 				<!-- links keep it working without JS (?join= opens the panel server-side) -->
 				<div class="grid grid-cols-2 gap-2">
 					<Button size="lg" class="w-full" href="?join={load.id}" onclick={(e) => open(e, 'solo')} data-testid="join-solo">Join this load</Button>
-					<Button size="lg" variant="secondary" class="w-full" href="?team={load.id}" onclick={(e) => open(e, 'team')}>Team jump</Button>
+					<Button size="lg" variant="secondary" class="w-full" href="?team={load.id}" onclick={(e) => open(e, 'team')} data-testid="join-team">Team jump</Button>
 				</div>
 			{:else}
 				<div class="mb-4 flex items-center justify-between">

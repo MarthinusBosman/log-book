@@ -198,6 +198,16 @@ test('self-manifest stops at boarding: the jumper can no longer join or leave', 
 	await load1.getByRole('button', { name: 'Join this load' }).click();
 	await expect(load1.getByText('You’re on this load')).toBeVisible();
 
+	// Team jump with no team yet: just the way to a team (no jump type, price or dead button),
+	// and the link opens the create form (it used to point at a 404).
+	await page.locator('[data-testid=load-card][data-load="2"]').getByTestId('join-team').click();
+	const noTeam = page.locator('[data-testid=load-card][data-load="2"]').getByTestId('no-team');
+	await expect(noTeam).toBeVisible();
+	await expect(page.locator('[data-testid=load-card][data-load="2"]').getByTestId('live-price')).toHaveCount(0);
+	await noTeam.getByRole('link', { name: 'Create a team' }).click();
+	await expect(page).toHaveURL(/\/app\/team\?new=1$/);
+	await expect(page.getByTestId('create-team')).toBeVisible();
+
 	// Manifest: 20 min call → boarding on both loads
 	await page.goto('/app/manifest');
 	for (const n of ['1', '2']) {
