@@ -4,7 +4,8 @@
 	import { Button, Card, Input, Select, Icon } from '#lib/ui/index.ts';
 	import Textarea from '#lib/components/staffadmin/Textarea.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
-	import { IMAGE_PRESETS, downscaleInput } from '#lib/client/resize-image.ts';
+	import { IMAGE_PRESETS } from '#lib/client/resize-image.ts';
+	import ImageUpload from '#lib/components/ImageUpload.svelte';
 	import { CURRENCIES } from '#lib/domain/currency.ts';
 	import { countryName, countryOptions } from '#lib/domain/countries.ts';
 	import { suggestTimezone } from '#lib/domain/timezone-countries.ts';
@@ -23,8 +24,6 @@
 	] as const;
 
 	let saving = $state(false);
-	let uploading = $state(false);
-	let preview = $state<string | null>(null);
 	const currencyOptions = $derived(
 		[...new Set([data.dz.currency, ...CURRENCIES])].map((c) => ({ value: c, label: c }))
 	);
@@ -42,16 +41,6 @@
 	}
 	const tzFix = $derived(suggestTimezone(country, timezone, data.timezones));
 	const zoneLabel = (z: string) => z.replace(/_/g, ' ');
-
-	let resizing = $state(false);
-	async function onPick(e: Event) {
-		const input = e.currentTarget as HTMLInputElement;
-		resizing = true;
-		// Re-encode to ≤1600 px WebP (strips EXIF/GPS) before upload: storage is metered.
-		const file = await downscaleInput(input, IMAGE_PRESETS.dzPhoto).finally(() => (resizing = false));
-		if (preview) URL.revokeObjectURL(preview);
-		preview = file ? URL.createObjectURL(file) : null;
-	}
 </script>
 
 <svelte:head><title>Settings · Dropzone</title></svelte:head>
@@ -139,39 +128,27 @@
 
 	<div class="space-y-6">
 		<Card title="Photo" description="Landscape images look best.">
-			<div class="aspect-[16/9] overflow-hidden rounded-xl border border-border bg-surface-2">
-				{#if preview || data.dz.photoUrl}
-					<img src={preview ?? data.dz.photoUrl} alt="{data.dz.name} photo" class="size-full object-cover" />
-				{:else}
-					<div class="grid size-full place-items-center text-subtle">
-						<Icon name="parachute" class="size-10" />
-					</div>
-				{/if}
-			</div>
-			<form
-				method="POST"
+			<ImageUpload
 				action="?/photo"
-				enctype="multipart/form-data"
-				class="mt-4 space-y-3"
-				use:enhance={toastEnhance({ pending: (v) => (uploading = v), reset: true, onSuccess: () => (preview = null) })}
+				removeAction={data.dz.photoUrl ? '?/removePhoto' : null}
+				field="photo"
+				hasImage={!!data.dz.photoUrl}
+				testid="dz-photo"
+				hint="PNG, JPG or WebP. Resized to 1600 px and saved as WebP."
+				resize={IMAGE_PRESETS.dzPhoto}
 			>
-				<input
-					type="file"
-					name="photo"
-					accept="image/png,image/jpeg,image/webp"
-					required
-					onchange={onPick}
-					aria-label="Dropzone photo"
-					class="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border file:border-border file:bg-surface-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-fg hover:file:bg-elevated"
-				/>
-				<p class="text-xs text-subtle">PNG, JPG or WebP. Resized to 1600 px and saved as WebP.</p>
-				<div class="flex gap-2">
-					<Button type="submit" size="sm" loading={uploading || resizing}>Upload</Button>
-					{#if data.dz.photoUrl}
-						<Button type="submit" size="sm" variant="ghost" formaction="?/removePhoto" formnovalidate>Remove</Button>
-					{/if}
-				</div>
-			</form>
+				{#snippet preview({ busy })}
+					<div class={['mb-4 aspect-[16/9] overflow-hidden rounded-xl border border-border bg-surface-2', busy && 'opacity-60']}>
+						{#if data.dz.photoUrl}
+							<img src={data.dz.photoUrl} alt="{data.dz.name} photo" class="size-full object-cover" data-testid="dz-photo-preview" />
+						{:else}
+							<div class="grid size-full place-items-center text-subtle">
+								<Icon name="parachute" class="size-10" />
+							</div>
+						{/if}
+					</div>
+				{/snippet}
+			</ImageUpload>
 		</Card>
 		<Card title="Preview" padded={false}>
 			<div class="p-5">

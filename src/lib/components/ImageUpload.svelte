@@ -54,6 +54,13 @@
 	let form = $state<HTMLFormElement>();
 	onMount(() => (hydrated = true));
 
+	/** Text of an action answer: `{ success }` (jumper-style) or `{ message }` (staff-style). */
+	function outcomeText(data: unknown, ok = false): string | null {
+		const d = (data ?? {}) as { success?: unknown; message?: unknown };
+		const text = ok && typeof d.success === 'string' ? d.success : d.message;
+		return typeof text === 'string' && text.trim() ? text.trim() : null;
+	}
+
 	async function onchange(e: Event & { currentTarget: HTMLInputElement }) {
 		if (!hydrated) return;
 		const input = e.currentTarget;
@@ -86,8 +93,14 @@
 				return async ({ result, update }) => {
 					await update({ reset: true });
 					busy = false;
-					const msg = (result.type === 'success' ? (result.data as { success?: string } | undefined)?.success : null) ?? null;
-					if (msg) toast.success(msg);
+					if (result.type === 'failure') {
+						// Show the server's reason here even when the page doesn't pass it back as `error`
+						// (actions whose failures carry no `action` tag would otherwise fail silently).
+						clientError = outcomeText(result.data) ?? 'That image couldn’t be uploaded. Please try another one.';
+					} else if (result.type === 'success') {
+						const msg = outcomeText(result.data, true);
+						if (msg) toast.success(msg);
+					}
 				};
 			}}
 		>
@@ -116,11 +129,15 @@
 				action={removeAction}
 				use:enhance={() => {
 					busy = true;
+					clientError = null;
 					return async ({ result, update }) => {
 						await update();
 						busy = false;
-						const msg = (result.type === 'success' ? (result.data as { success?: string } | undefined)?.success : null) ?? null;
-						if (msg) toast.success(msg);
+						if (result.type === 'failure') clientError = outcomeText(result.data) ?? 'Couldn’t remove it. Please try again.';
+						else if (result.type === 'success') {
+							const msg = outcomeText(result.data, true);
+							if (msg) toast.success(msg);
+						}
 					};
 				}}
 			>

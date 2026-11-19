@@ -4,6 +4,7 @@ import { readImageUpload } from '#lib/server/images.ts';
 import { getStorage } from '#lib/server/storage/index.ts';
 import { brandingView, removeLogo, resetBranding, saveBrandingStyle, setLogo } from '#lib/server/branding.ts';
 import { requirePage, runAction, str } from '#lib/server/staffadmin/context.ts';
+import { domainFail } from '#lib/server/jumper/forms.ts';
 import { brandTheme, normalizeHex, parseThemeChoice, readBranding } from '#lib/branding.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -33,8 +34,13 @@ export const actions: Actions = {
 	logo: (event) =>
 		runAction(event, 'dz.settings', async ({ dz, user }) => {
 			const f = await event.request.formData();
-			const image = await readImageUpload(f.get('logo'), { maxBytes: maxBytesFor('image/png', 'dz_logo'), label: 'Logo' });
-			await setLogo(event.locals.db, await getStorage(), dz.id, image, user.id);
+			try {
+				const image = await readImageUpload(f.get('logo'), { maxBytes: maxBytesFor('image/png', 'dz_logo'), label: 'Logo' });
+				await setLogo(event.locals.db, await getStorage(), dz.id, image, user.id);
+			} catch (e) {
+				// Tagged so the logo card shows it inline (also without JS).
+				return domainFail(e, { action: 'logo' });
+			}
 			return { action: 'logo', success: 'Logo updated', successShownInline: true };
 		}),
 	removeLogo: (event) =>

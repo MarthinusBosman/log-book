@@ -123,3 +123,43 @@ test('dropzone branding: colour with contrast warning, logo, public theme, reset
 	await expect(page.locator('style#dz-brand')).toHaveCount(0);
 	await expect(page.getByTestId('logo-preview')).toHaveCount(0);
 });
+
+test('dropzone photo + logo: one-tap upload, rejected files explain why (JS), photo works without JS', async ({ page, browser }) => {
+	const email = await signup(page, 'Dee Photo');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Photo DZ ${test.info().project.name} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	await page.goto('/app/settings');
+	await page.waitForLoadState('networkidle');
+	const card = page.getByTestId('dz-photo-upload');
+	// No submit button that does nothing until a file is picked: the picker is the action.
+	await expect(card.getByTestId('dz-photo-choose')).toHaveText(/Upload photo/);
+	await expect(card.getByRole('button', { name: 'Upload', exact: true })).toHaveCount(0);
+
+	// A file that isn't an image: the reason shows in the card (it used to fail silently on branding)
+	await page.getByTestId('dz-photo-input').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: Buffer.from('not an image') });
+	await expect(card.getByTestId('form-error')).toContainText('PNG, JPG or WebP');
+
+	await page.getByTestId('dz-photo-input').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: PNG_4PX });
+	await expect(page.getByTestId('dz-photo-preview')).toBeVisible();
+	await expect(card.getByTestId('form-error')).toHaveCount(0);
+	await expect(card.getByTestId('dz-photo-choose')).toHaveText(/Change photo/);
+	await page.getByTestId('dz-photo-remove').click();
+	await expect(page.getByTestId('dz-photo-preview')).toHaveCount(0);
+
+	await page.goto('/app/settings/branding');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('logo-input').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: Buffer.from('not an image') });
+	await expect(page.getByTestId('logo-upload').getByTestId('form-error')).toContainText('PNG, JPG or WebP');
+
+	// Without JS: pick → Save photo → message + photo
+	const { ctx, page: nojs } = await loginNoJs(browser, email);
+	await nojs.goto('/app/settings');
+	await nojs.getByTestId('dz-photo-input').setInputFiles({ name: 'photo.png', mimeType: 'image/png', buffer: PNG_4PX });
+	await nojs.getByTestId('dz-photo-save').click();
+	await expect(nojs.getByTestId('no-js-outcome')).toContainText('Photo updated');
+	await expect(nojs.getByTestId('dz-photo-preview')).toBeVisible();
+	await ctx.close();
+});
