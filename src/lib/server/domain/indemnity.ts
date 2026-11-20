@@ -16,6 +16,8 @@ import { newId } from '../auth/token.ts';
 import type { IndemnityAudience, IndemnitySectionType } from '../../domain/constants.ts';
 import { DomainError, assertFound } from './errors.ts';
 import { DAY_MS } from './time.ts';
+import { chunkedInsert, runAtomic } from './atomic.ts';
+import { WAIVER_STARTER } from '../../domain/waiver-starter.ts';
 
 /** A signed sport waiver is valid for this many days (then the jumper re-signs). */
 export const WAIVER_VALID_DAYS = 365;
@@ -100,6 +102,20 @@ export function validateAnswers(
 		if (s.type === 'signature') return { signatureFileId: a!.signatureFileId };
 		return null;
 	});
+}
+
+/**
+ * Fill an EMPTY form with the sample sections (WAIVER_STARTER) in one atomic write. Refuses
+ * when the form already has sections, so a double tap can't add the set twice. The form stays
+ * off: the owner reads and edits the wording before activating it.
+ */
+export async function addStarterSections(db: Database, dropzoneId: string, audience: IndemnityAudience): Promise<IndemnitySection[]> {
+	if ((await listSections(db, dropzoneId, audience)).length > 0) {
+		throw new DomainError('invalid', 'This form already has sections. Edit them instead.');
+	}
+	const rows = WAIVER_STARTER[audience].map((s, position) => ({ id: newId(), dropzoneId, audience, position, ...s }));
+	await runAtomic(db, chunkedInsert(db, indemnitySections, rows));
+	return listSections(db, dropzoneId, audience);
 }
 
 export async function deleteSection(db: Database, id: string): Promise<void> {

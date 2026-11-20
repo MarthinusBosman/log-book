@@ -157,7 +157,7 @@ Booking: `addBookingSlots(db, {dropzoneId, date, time, capacity, repeat: none|da
 `createOnlineBooking(db, {dropzoneId, date, time, jumpers[1..5], depositPaid?})` throws `booking_full`.
 
 ### indemnity.ts
-`listSections`, `addSection`, `updateSection`, `deleteSection`, `setIndemnityActive(db, dzId, audience, bool)`, `snapshotForm`,
+`listSections`, `addSection`, `addStarterSections(db, dzId, audience)` (empty form only: sample wording from `#lib/domain/waiver-starter.ts`, form stays off), `updateSection`, `deleteSection`, `setIndemnityActive(db, dzId, audience, bool)`, `snapshotForm`,
 `signIndemnity(db, {dropzoneId, audience, signerName, userId? | tandemPassengerId?, signatureFileId?, guardianName?, guardianSignatureFileId?, pdfFileId?})` stores a text snapshot. Signing a tandem form marks the passenger `registered`.
 `latestUserSignature`, `needsSportIndemnity(db, dzId, userId)` (run this before Join Load).
 

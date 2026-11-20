@@ -383,6 +383,18 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(dialog(pw).getByText('I am fit to jump.')).toBeVisible();
 	await noJsW.close();
 
+	// An empty form offers sample wording: one tap fills it (form stays off), then the offer goes.
+	const tandemB = page.getByTestId('builder-tandem');
+	await go(page, '/app/waivers?tab=tandem');
+	await expect(tandemB.getByTestId('section')).toHaveCount(0);
+	await tandemB.getByTestId('starter-tandem').click();
+	await expect(page.getByText('6 sample sections added. Read and edit each one before you activate the form.')).toBeVisible();
+	await expect(tandemB.getByTestId('section')).toHaveCount(6);
+	await expect(tandemB.getByRole('heading', { name: 'Medical declaration' })).toBeVisible();
+	await expect(tandemB.getByTestId('starter-tandem')).toHaveCount(0);
+	await expect(tandemB.getByTestId('toggle-tandem')).toHaveText('Activate');
+	await expect(page).toHaveURL(/\/app\/waivers\?tab=tandem$/);
+
 	// Members: invite someone new with the packer (staff) role.
 	await go(page, '/app/settings/members');
 	await page.getByRole('link', { name: 'Invite' }).click();

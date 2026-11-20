@@ -15,7 +15,9 @@ import {
 	tandemOutstanding
 } from './tandems.ts';
 import { setPrices } from './pricing.ts';
-import { addSection, needsSportIndemnity, setIndemnityActive, signIndemnity } from './indemnity.ts';
+import { addSection, addStarterSections, listSections, needsSportIndemnity, setIndemnityActive, signIndemnity } from './indemnity.ts';
+import { getDropzone } from './dropzone-admin.ts';
+import { WAIVER_STARTER } from '../../domain/waiver-starter.ts';
 import { jumpReport } from './reports.ts';
 import { decodeDataUrl, readFileBlob, saveFile } from './files.ts';
 import { MemoryStorage } from '../storage/memory.ts';
@@ -190,6 +192,23 @@ describe('indemnity', () => {
 		await addSection(db, { dropzoneId: dz.id, audience: 'tandem', title: 'Risk', content: 'Tandem only.' });
 		expect(await needsSportIndemnity(db, dz.id, u.id)).toBe(false);
 		await addSection(db, { dropzoneId: dz.id, audience: 'sport', title: 'Risk', content: 'Sport.' });
+		expect(await needsSportIndemnity(db, dz.id, u.id)).toBe(true);
+	});
+
+	test('sample wording fills an empty form once, in order, and leaves it off', async () => {
+		const { dz } = await makeDropzone(db);
+		const added = await addStarterSections(db, dz.id, 'tandem');
+		expect(added.map((s) => [s.title, s.type, s.position])).toEqual(WAIVER_STARTER.tandem.map((s, i) => [s.title, s.type, i]));
+		expect(added.every((s) => s.content.trim().length > 0)).toBe(true);
+		// the other form is untouched; a second tap is refused instead of doubling the set
+		expect(await listSections(db, dz.id, 'sport')).toHaveLength(0);
+		await expect(addStarterSections(db, dz.id, 'tandem')).rejects.toThrow('already has sections');
+		expect(await listSections(db, dz.id, 'tandem')).toHaveLength(WAIVER_STARTER.tandem.length);
+		expect((await getDropzone(db, dz.id)).indemnityTandemActive).toBe(false);
+		// sport sample signs like any hand-written form
+		await addStarterSections(db, dz.id, 'sport');
+		const u = await makeUser(db);
+		await setIndemnityActive(db, dz.id, 'sport', true);
 		expect(await needsSportIndemnity(db, dz.id, u.id)).toBe(true);
 	});
 });

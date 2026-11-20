@@ -8,6 +8,7 @@
 	import { INDEMNITY_SECTION_TYPES, type IndemnityAudience, type IndemnitySectionType } from '#lib/domain/constants.ts';
 	import { toastEnhance } from '#lib/components/tandems/enhance.ts';
 	import { SECTION_TYPE_LABELS } from '#lib/components/tandems/model.ts';
+	import { WAIVER_STARTER } from '#lib/domain/waiver-starter.ts';
 	import WaiverForm from './WaiverForm.svelte';
 
 	type Section = { id: string; title: string; content: string; type: IndemnitySectionType; position: number };
@@ -150,6 +151,14 @@
 		{:else}
 			<li class="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-muted">
 				No sections yet. Add the clauses {audience === 'tandem' ? 'passengers' : 'jumpers'} must read, tick or initial.{#if active}<span class="mt-1 block text-warning">Until you do, nobody is asked to sign this form.</span>{/if}
+				{#if canEdit}
+					<!-- A new dropzone doesn't have to type a waiver from scratch: sample clauses to edit. -->
+					<form method="POST" action={act('starter')} use:enhance={toastEnhance({ pending: (on) => (busy = on) })} class="mt-4 flex flex-col items-center gap-2">
+						<input type="hidden" name="audience" value={audience} />
+						<Button size="sm" variant="primary" type="submit" loading={busy} data-testid="starter-{audience}"><Icon name="waiver" class="size-4" /> Start from sample wording</Button>
+						<span class="max-w-md text-xs text-subtle">Adds {WAIVER_STARTER[audience].length} common clauses you can edit or delete. Check the wording against your local law before you activate the form.</span>
+					</form>
+				{/if}
 			</li>
 		{/each}
 	</ol>

@@ -2,6 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { INDEMNITY_AUDIENCES, INDEMNITY_SECTION_TYPES, type IndemnityAudience, type IndemnitySectionType } from '#lib/domain/constants.ts';
 import {
 	addSection,
+	addStarterSections,
 	deleteSection,
 	getSection,
 	isSignatureValid,
@@ -117,6 +118,15 @@ export const actions: Actions = {
 				type: typeOf(str(form, 'type'))
 			});
 			return { ok: true, message: 'Section added' };
+		} catch (e) {
+			return failFrom(e);
+		}
+	},
+	starter: async (event) => {
+		const { dz, form } = await editor(event);
+		try {
+			const added = await addStarterSections(event.locals.db, dz.id, audienceOf(str(form, 'audience')));
+			return { ok: true, message: `${added.length} sample sections added. Read and edit each one before you activate the form.` };
 		} catch (e) {
 			return failFrom(e);
 		}
