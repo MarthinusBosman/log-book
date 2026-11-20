@@ -186,7 +186,7 @@ test('self-manifest stops at boarding: the jumper can no longer join or leave', 
 	await dialog.getByLabel('Slots (pax)').fill('6');
 	await dialog.getByLabel('Weight limit (kg)').fill('600');
 	await dialog.getByLabel('Number of loads').fill('2');
-	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await dialog.getByRole('button', { name: 'Create 2 loads' }).click();
 	await expect(page.locator('[data-testid=load-card][data-load-number="2"]')).toBeVisible();
 
 	// Check in and join load 1 from the phone view

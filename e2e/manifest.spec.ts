@@ -30,7 +30,7 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	// The dashboard's empty "Next load" card opens the New load dialog directly
 	await page.getByRole('link', { name: 'Create a load' }).click();
 	await expect(page).toHaveURL(/\/app\/manifest\?new=1$/);
-	await expect(page.getByRole('dialog')).toContainText('Create new load/s');
+	await expect(page.getByRole('dialog')).toContainText('Create loads');
 
 	// Board starts empty, create a load from the dialog
 	await page.goto('/app/manifest');
@@ -42,7 +42,23 @@ test('manifest: load lifecycle, slots, display and dashboard', async ({ page }) 
 	await dialog.getByLabel('Airplane name / number').fill('ZS-E2E');
 	await dialog.getByLabel('Slots (pax)').fill('8');
 	await dialog.getByLabel('Weight limit (kg)').fill('400');
-	await dialog.getByRole('button', { name: 'Create load' }).click();
+	// several loads: the dialog previews their times and says how many it creates
+	const times = dialog.getByTestId('load-times');
+	await expect(times).toBeHidden();
+	await dialog.getByLabel('Number of loads').fill('3');
+	await dialog.getByLabel('Minutes apart').fill('20');
+	await expect(times).toContainText('Set a time for the first load');
+	await dialog.getByLabel('Time').fill('13:30');
+	await expect(times).toHaveText('3 loads: 13:30, 13:50, 14:10');
+	await expect(dialog.getByRole('button', { name: 'Create 3 loads' })).toBeVisible();
+	await dialog.getByLabel('Minutes apart').fill('600');
+	await expect(times).toContainText('run past midnight');
+	await dialog.getByLabel('Minutes apart').fill('');
+	await expect(times).toHaveText('3 loads: All at 13:30');
+	await dialog.getByLabel('Number of loads').fill('1');
+	await dialog.getByLabel('Time').fill('');
+	await expect(times).toBeHidden();
+	await dialog.getByRole('button', { name: 'Create load', exact: true }).click();
 	const card = page.locator('[data-testid=load-card][data-load-number="1"]');
 	await expect(card).toBeVisible();
 	await expect(page).toHaveURL(/\/app\/manifest$/);
@@ -204,7 +220,7 @@ test('manifest without JS: actions on another day stay on that day', async ({ pa
 	await nojs.getByRole('link', { name: 'Create load' }).click();
 	await expect(nojs).toHaveURL(new RegExp(`\\?day=${day}&new=1$`));
 	const createDialog = nojs.locator('dialog[open]');
-	await expect(createDialog).toContainText('Create new load/s');
+	await expect(createDialog).toContainText('Create loads');
 	await expect(createDialog.getByRole('link', { name: 'Cancel' })).toHaveAttribute('href', `?day=${day}`);
 	await createDialog.getByRole('link', { name: 'Cancel' }).click();
 	await expect(nojs).toHaveURL(new RegExp(`\\?day=${day}$`));
@@ -254,7 +270,7 @@ test('board slot rows open the slot editor (?slot=), also before hydration / wit
 	await dialog.getByLabel('Slots (pax)').fill('8');
 	await dialog.getByLabel('Weight limit (kg)').fill('900');
 	await dialog.getByLabel('Number of loads').fill('2');
-	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await dialog.getByRole('button', { name: 'Create 2 loads' }).click();
 	await expect(page.getByTestId('load-card')).toHaveCount(2);
 	const load1 = page.locator('[data-testid=load-card][data-load-number="1"]');
 	await load1.getByRole('link', { name: 'Add slots' }).click();
@@ -390,12 +406,12 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await dialog.getByLabel('Number of loads').fill('2');
 	await dialog.getByLabel('Minutes apart').fill('40');
 	// a gap without a first time used to be dropped silently (two untimed loads)
-	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await dialog.getByRole('button', { name: 'Create 2 loads' }).click();
 	await expect(page.locator('[aria-live]').getByText('Set a time for the first load')).toBeVisible();
 	await expect(page.locator('[data-testid=load-card]')).toHaveCount(0);
 	await expect(dialog.getByLabel('Minutes apart')).toHaveValue('40');
 	await dialog.getByLabel('Time').fill('08:30');
-	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await dialog.getByRole('button', { name: 'Create 2 loads' }).click();
 	const load1 = page.locator('[data-testid=load-card][data-load-number="1"]');
 	await expect(page.locator('[data-testid=load-card][data-load-number="2"]')).toBeVisible();
 	await expect(load1).toContainText('08:30');

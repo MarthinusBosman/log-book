@@ -5,7 +5,7 @@
 	import { page } from '$app/state';
 	import { openInPlace, viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
 	import { act } from './forms.ts';
-	import { formAction } from './manifest.ts';
+	import { formAction, loadTimesPreview } from './manifest.ts';
 
 	type Plane = { id: string; name: string; capacity: number; weightLimitKg: number | null; defaultPilotId: string | null };
 	type Props = {
@@ -31,6 +31,11 @@
 		pilotWeightKg = pilotWeight(id);
 	}
 	let busy = $state(false);
+	let time = $state('');
+	let count = $state<number | ''>(1);
+	let spacing = $state<number | ''>('');
+	const n = $derived(Math.max(1, Math.floor(Number(count) || 1)));
+	const preview = $derived(loadTimesPreview(time, count, spacing));
 
 	const plane = $derived(aircraft.find((a) => a.id === aircraftId) ?? null);
 	function pickPlane(id: string) {
@@ -44,7 +49,7 @@
 	}
 </script>
 
-<Dialog bind:open title="Create new load/s" description="Numbers continue from the day's existing loads." variant="right">
+<Dialog bind:open title="Create loads" description="Numbers continue from the day's existing loads." variant="right">
 	<form
 		method="POST"
 		action={formAction(page.url, 'createLoad')}
@@ -58,6 +63,9 @@
 			},
 			onSuccess: (d) => {
 				open = false;
+				time = '';
+				count = 1;
+				spacing = '';
 				oncreated?.((d.created as number[]) ?? []);
 			}
 		})}
@@ -89,12 +97,15 @@
 		{/if}
 		<div class="grid grid-cols-2 gap-3">
 			<Input label="Pilot weight (kg)" name="pilotWeightKg" type="number" min="0" step="1" bind:value={pilotWeightKg} placeholder={pilotUserId ? 'From profile' : ''} />
-			<Input label="Time" name="time" type="time" hint="Optional" />
+			<Input label="Time" name="time" type="time" hint="Optional" bind:value={time} />
 		</div>
 		<div class="grid grid-cols-2 gap-3">
-			<Input label="Number of loads" name="count" type="number" min="1" max="50" value="1" />
-			<Input label="Minutes apart" name="spacing" type="number" min="0" max="600" placeholder="0" hint="From the first load's time" />
+			<Input label="Number of loads" name="count" type="number" min="1" max="50" bind:value={count} />
+			<Input label="Minutes apart" name="spacing" type="number" min="0" max="600" placeholder="0" hint="From the first load's time" bind:value={spacing} />
 		</div>
+		<p role="status" data-testid="load-times" class="-mt-1 text-sm {preview.kind === 'none' ? 'hidden' : ''} {preview.kind === 'times' ? 'text-muted' : 'text-warning'}">
+			{#if preview.kind === 'times'}<span class="font-medium text-fg">{n} loads:</span> {preview.text}{:else if preview.kind === 'needsTime'}Set a time for the first load to space the loads out, or clear Minutes apart.{:else if preview.kind === 'pastMidnight'}{preview.count} loads {preview.spacing} minutes apart run past midnight: use fewer loads or a shorter gap.{/if}
+		</p>
 		<div class="flex flex-col gap-1.5">
 			<label for="req" class="text-sm font-medium">Load requirements <span class="font-normal text-subtle">(optional)</span></label>
 			<textarea
@@ -113,6 +124,6 @@
 	{#snippet footer()}
 		<!-- a link so Cancel also closes a dialog opened by ?new=1 before hydration / without JS -->
 		<Button variant="ghost" href={viewParamsHref(page.url, { new: null })} onclick={openInPlace(() => (open = false))}>Cancel</Button>
-		<Button type="submit" form="create-load-form" loading={busy}>Create load</Button>
+		<Button type="submit" form="create-load-form" loading={busy}>{n > 1 ? `Create ${n} loads` : 'Create load'}</Button>
 	{/snippet}
 </Dialog>

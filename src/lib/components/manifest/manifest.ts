@@ -136,6 +136,35 @@ export function formAction(url: { search: string }, name: string): string {
 	return `?/${name}${s ? `&${s}` : ''}`;
 }
 
+export type LoadTimesPreview =
+	| { kind: 'none' }
+	| { kind: 'times'; times: string[]; text: string }
+	| { kind: 'needsTime' }
+	| { kind: 'pastMidnight'; count: number; spacing: number };
+
+/**
+ * What the New load dialog says about the loads it will create, mirroring createLoads():
+ * "13:30, 13:50, 14:10", "All at 13:30", or the two cases the server refuses
+ * (a gap without a first time, a run past midnight). Inputs are the raw form values.
+ */
+export function loadTimesPreview(time: string, countIn: number | string | null | undefined, spacingIn: number | string | null | undefined): LoadTimesPreview {
+	const count = Math.max(1, Math.floor(Number(countIn) || 1));
+	const spacing = Math.max(0, Math.floor(Number(spacingIn) || 0));
+	const m = /^(\d{2}):(\d{2})$/.exec(time ?? '');
+	if (count < 2) return { kind: 'none' };
+	if (!m) return spacing > 0 ? { kind: 'needsTime' } : { kind: 'none' };
+	const start = Number(m[1]) * 60 + Number(m[2]);
+	if (spacing === 0) return { kind: 'times', times: [time], text: `All at ${time}` };
+	if (start + (count - 1) * spacing >= 24 * 60) return { kind: 'pastMidnight', count, spacing };
+	const at = (i: number) => {
+		const t = start + i * spacing;
+		return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+	};
+	const times = Array.from({ length: count }, (_, i) => at(i));
+	const text = count <= 5 ? times.join(', ') : `${times.slice(0, 3).join(', ')} … ${times[count - 1]}`;
+	return { kind: 'times', times, text };
+}
+
 /** Link back to the current page without the `?/action` of a native POST. */
 export function pageWithoutAction(url: { pathname: string; search: string }): string {
 	const s = queryWithoutAction(url.search);

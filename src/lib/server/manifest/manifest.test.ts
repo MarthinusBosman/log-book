@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, pageWithoutAction, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -158,5 +158,25 @@ describe('slotMoney', () => {
 		]);
 		expect(m).toEqual({ totalMinor: 145000, paidMinor: 45000, heldMinor: 45000, outstandingMinor: 55000 });
 		expect(m.paidMinor + m.heldMinor + m.outstandingMinor).toBe(m.totalMinor);
+	});
+});
+
+describe('loadTimesPreview (New load dialog)', () => {
+	test('lists each load time, shortens long runs', () => {
+		expect(loadTimesPreview('13:30', 3, 20)).toEqual({ kind: 'times', times: ['13:30', '13:50', '14:10'], text: '13:30, 13:50, 14:10' });
+		const long = loadTimesPreview('08:00', '8', '45');
+		expect(long.kind === 'times' && long.text).toBe('08:00, 08:45, 09:30 … 13:15');
+		expect(loadTimesPreview('09:05', 2, '')).toMatchObject({ text: 'All at 09:05' });
+	});
+	test('one load or no time and no gap says nothing', () => {
+		expect(loadTimesPreview('13:30', 1, 20).kind).toBe('none');
+		expect(loadTimesPreview('', 3, '').kind).toBe('none');
+		expect(loadTimesPreview('', '', 20).kind).toBe('none');
+	});
+	test('mirrors the two cases createLoads refuses', () => {
+		expect(loadTimesPreview('', 3, 20).kind).toBe('needsTime');
+		expect(loadTimesPreview('23:00', 4, 20)).toEqual({ kind: 'pastMidnight', count: 4, spacing: 20 });
+		expect(loadTimesPreview('23:00', 3, 29).kind).toBe('times'); // last at 23:58
+		expect(loadTimesPreview('23:00', 3, 30).kind).toBe('pastMidnight'); // last at 00:00
 	});
 });
