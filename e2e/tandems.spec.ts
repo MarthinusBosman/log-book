@@ -572,6 +572,13 @@ test('booking: Continue marks every missing field at once; too young shows inlin
 	await expect(page.locator('[data-testid="slot-day"]').first()).toContainText('10:00');
 	await page.goto('/app/tandems');
 	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
+	// Contact details for the over-the-limit message.
+	await page.goto('/app/settings');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Phone').fill('+27 21 555 0199');
+	await page.getByLabel('Email').first().fill(`valid-dz-${stamp}@example.com`);
+	await page.getByRole('button', { name: 'Save details' }).click();
+	await expect(page.getByText('Dropzone details saved').first()).toBeVisible();
 
 	await page.goto(href!);
 	await page.waitForLoadState('networkidle');
@@ -613,14 +620,20 @@ test('booking: Continue marks every missing field at once; too young shows inlin
 	const notes = page.locator('fieldset[data-step="1"] p[role=status]');
 	await page.locator('input[name=j0_weightKg]').fill('130');
 	await expect(page.locator('input[name=j0_weightKg]')).toHaveAttribute('aria-invalid', 'true');
-	await expect(page.locator('input[name=j0_weightKg]')).toHaveAccessibleDescription(/weight limit is 100 kg/);
+	await expect(page.locator('input[name=j0_weightKg]')).toHaveAccessibleDescription('The tandem weight limit is 100 kg');
 	await expect(page.locator('fieldset[data-step="1"]')).not.toContainText('130 kg is over');
+	// …with the dropzone's own phone and email right there to do so.
+	const contact = page.getByTestId('weight-contact');
+	await expect(contact).toHaveText(`Talk to Valid DZ ${stamp} first: call +27 21 555 0199 or email valid-dz-${stamp}@example.com.`);
+	await expect(contact.locator('a[href^="tel:"]')).toHaveText('+27 21 555 0199');
+	await expect(contact.locator('a[href^="mailto:"]')).toHaveAttribute('href', `mailto:valid-dz-${stamp}@example.com`);
 	await page.locator('input[name=j0_heightCm]').fill('210');
 	await expect(notes).toHaveText('Height 210 cm is outside 140–200 cm.');
 	await expect(notes).not.toContainText('Weight');
 	// Close to the limit is a soft note, not an error.
 	await page.locator('input[name=j0_weightKg]').fill('98');
 	await expect(page.locator('input[name=j0_weightKg]')).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(contact).toHaveCount(0);
 	await expect(notes).toContainText('Weight 98 kg is close to the 100 kg limit');
 });
 

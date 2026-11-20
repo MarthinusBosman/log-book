@@ -7,6 +7,7 @@
 	import BookingSteps from '#lib/components/tandems/BookingSteps.svelte';
 	import MonthCalendar from '#lib/components/tandems/MonthCalendar.svelte';
 	import NoBookingTimes from '#lib/components/tandems/NoBookingTimes.svelte';
+	import { telHref } from '#lib/components/jumper/hours.ts';
 	import { EXTRA_COPY, addOnsSuffix, ageOn, extraToggleLabel, fmtDay, limitWarnings } from '#lib/components/tandems/model.ts';
 	import type { PageProps } from './$types';
 
@@ -100,7 +101,13 @@
 	const youngMsg = $derived(`Tandem passengers must be at least ${data.minAge} on the jump date`);
 	// Over the weight limit blocks the booking: say so once, under the field, as soon as it's typed.
 	const overWeight = (j: Jumper) => (j.weightKg ?? 0) > data.limits.maxWeightKg;
-	const weightMsg = $derived(`The tandem weight limit is ${data.limits.maxWeightKg} kg — please contact us`);
+	// …and give them the way to: the DZ's own phone / email as links right under the weight row
+	// (the field error stays short then; with no contact details it names the DZ instead).
+	const contactPhone = $derived(data.dz.contactPhone?.trim() || '');
+	const contactEmail = $derived(data.dz.contactEmail?.trim() || '');
+	const weightMsg = $derived(
+		`The tandem weight limit is ${data.limits.maxWeightKg} kg` + (contactPhone || contactEmail ? '' : ` — please contact ${data.dz.name}`)
+	);
 	/** Non-blocking notes (close to the weight limit, height outside the range) for the amber box. */
 	const softWarnings = (j: Jumper) => limitWarnings(overWeight(j) ? { heightCm: j.heightCm } : j, data.limits);
 	// Under the minimum age the booking can't go ahead at all, so don't ask for a guardian.
@@ -298,6 +305,12 @@
 								<Input label="Height (cm)" name="j{i}_heightCm" error={fieldError(`j${i}_heightCm`)} type="number" inputmode="numeric" min="80" max="250" bind:value={j.heightCm} />
 							</div>
 						</div>
+						{#if overWeight(j) && (contactPhone || contactEmail)}
+							<p class="mt-3 text-sm text-muted" data-testid="weight-contact">
+								Talk to {data.dz.name} first:
+								{#if contactPhone}call <a href={telHref(contactPhone)} class="font-medium whitespace-nowrap text-primary underline underline-offset-2">{contactPhone}</a>{/if}{#if contactPhone && contactEmail}{' '}or{' '}{/if}{#if contactEmail}email <a href="mailto:{contactEmail}" class="font-medium break-words text-primary underline underline-offset-2">{contactEmail}</a>{/if}.
+							</p>
+						{/if}
 						{#if warn.length}
 							<p class="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning" role="status">
 								{warn.join(' · ')}.
