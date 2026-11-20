@@ -53,6 +53,40 @@ export function relativeTime(d: Date | string | number, now = Date.now(), timeZo
 	return fmtDate(dayIn(t, timeZone), { year: days > 300 });
 }
 
+export type DayGroup<T> = { day: string; label: string; items: T[] };
+
+/**
+ * Split newest-first items into calendar days in `timeZone`: 'Today', 'Yesterday', then
+ * 'Wed 18 Nov' (with the year once it isn't this year). Keeps the input order.
+ */
+export function groupByDay<T extends { createdAt: number }>(items: T[], now = Date.now(), timeZone?: string): DayGroup<T>[] {
+	const today = dayIn(now, timeZone);
+	const yesterday = shiftDay(today, -1);
+	const groups: DayGroup<T>[] = [];
+	for (const item of items) {
+		const day = dayIn(item.createdAt, timeZone);
+		let group = groups.at(-1);
+		if (group?.day !== day) {
+			group = { day, label: day === today ? 'Today' : day === yesterday ? 'Yesterday' : dayLabel(day, day.slice(0, 4) !== today.slice(0, 4)), items: [] };
+			groups.push(group);
+		}
+		group.items.push(item);
+	}
+	return groups;
+}
+
+function shiftDay(day: string, by: number): string {
+	const d = new Date(`${day}T12:00:00Z`);
+	d.setUTCDate(d.getUTCDate() + by);
+	return d.toISOString().slice(0, 10);
+}
+
+/** 'YYYY-MM-DD' → 'Wed 18 Nov' (+ ' 2025' when `year`). */
+function dayLabel(day: string, year: boolean): string {
+	const weekday = new Date(`${day}T12:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' });
+	return `${weekday} ${fmtDate(day, { year })}`;
+}
+
 /** Freefall seconds → '45s', '12m 05s', '3h 02m'. */
 export function fmtFreefall(sec: number | null | undefined): string {
 	if (!sec) return '0s';

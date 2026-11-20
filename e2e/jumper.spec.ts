@@ -512,6 +512,9 @@ test('sign-off: a licensed jumper signs with a drawn signature; a second signer 
 
 	// The jumper is told which jump was signed; the note opens that jump
 	await page.goto('/app/notifications');
+	// Grouped by day: a note from a minute ago sits under "Today".
+	await expect(page.getByTestId('notification-day').first().getByRole('heading', { level: 2 })).toHaveText('Today');
+	await expect(page.getByRole('region', { name: 'Today' })).toContainText('Ina Instructor signed your jump #120.');
 	await page.getByTestId('notification-list').getByRole('button', { name: /Ina Instructor signed your jump #120\./ }).click();
 	await expect(page).toHaveURL(jumpUrl);
 	// …and sees the signer and the drawn signature

@@ -6,12 +6,15 @@
 	import { Icon } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
-	import { relativeTime } from '#lib/components/jumper/format.ts';
+	import { fmtTime, groupByDay, relativeTime } from '#lib/components/jumper/format.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
 	const unread = $derived(data.notifications.filter((n) => !n.read).length);
 	const now = Date.now();
+	const tz = $derived(page.data.timezone ?? undefined);
+	/** Today / Yesterday / 'Wed 18 Nov' sections; older rows show the time, the heading carries the day. */
+	const groups = $derived(groupByDay(data.notifications, now, tz));
 
 	const ICONS: Record<string, IconName> = {
 		call_20min: 'plane',
@@ -55,32 +58,39 @@
 		{#snippet icon()}<JIcon name="bell" class="size-6" />{/snippet}
 	</EmptyState>
 {:else}
-	<ul class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface" data-testid="notification-list">
-		{#each data.notifications as n (n.id)}
-			<li class={cn('group relative flex items-start gap-3 px-4 py-4 sm:px-5', !n.read && 'bg-primary/[0.04]')}>
-				<span class={cn('mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl', n.read ? 'bg-surface-2 text-muted' : 'bg-primary/10 text-primary')}>
-					<Icon name={ICONS[n.type] ?? 'zap'} class="size-5" />
-				</span>
-				<form method="POST" action="?/open" class="min-w-0 flex-1">
-					<input type="hidden" name="id" value={n.id} />
-					<input type="hidden" name="href" value={n.href ?? ''} />
-					<button type="submit" class="block w-full text-left">
-						<span class="flex items-baseline justify-between gap-3">
-							<span class={cn('truncate text-sm', n.read ? 'font-medium text-fg' : 'font-semibold text-fg')}>{n.title}</span>
-							<time class="shrink-0 text-xs text-subtle">{relativeTime(n.createdAt, now, page.data.timezone ?? undefined)}</time>
-						</span>
-						<span class="mt-0.5 block text-sm text-muted">{n.body}</span>
-					</button>
-				</form>
-				{#if !n.read}
-					<form method="POST" action="?/read" use:enhance class="shrink-0">
-						<input type="hidden" name="id" value={n.id} />
-						<button type="submit" class="grid size-8 place-items-center rounded-lg text-primary hover:bg-surface-2" aria-label="Mark as read" title="Mark as read" data-testid="mark-read">
-							<span class="size-2.5 rounded-full bg-primary"></span>
-						</button>
-					</form>
-				{/if}
-			</li>
+	<div class="space-y-6" data-testid="notification-list">
+		{#each groups as group (group.day)}
+			<section aria-labelledby="day-{group.day}" data-testid="notification-day">
+				<h2 id="day-{group.day}" class="mb-2 px-1 text-xs font-semibold tracking-wide text-muted uppercase">{group.label}</h2>
+				<ul class="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface">
+					{#each group.items as n (n.id)}
+						<li class={cn('group relative flex items-start gap-3 px-4 py-4 sm:px-5', !n.read && 'bg-primary/[0.04]')}>
+							<span class={cn('mt-0.5 grid size-10 shrink-0 place-items-center rounded-xl', n.read ? 'bg-surface-2 text-muted' : 'bg-primary/10 text-primary')}>
+								<Icon name={ICONS[n.type] ?? 'zap'} class="size-5" />
+							</span>
+							<form method="POST" action="?/open" class="min-w-0 flex-1">
+								<input type="hidden" name="id" value={n.id} />
+								<input type="hidden" name="href" value={n.href ?? ''} />
+								<button type="submit" class="block w-full text-left">
+									<span class="flex items-baseline justify-between gap-3">
+										<span class={cn('truncate text-sm', n.read ? 'font-medium text-fg' : 'font-semibold text-fg')}>{n.title}</span>
+										<time class="shrink-0 text-xs text-subtle" datetime={new Date(n.createdAt).toISOString()}>{group.label === 'Today' ? relativeTime(n.createdAt, now, tz) : fmtTime(n.createdAt, tz)}</time>
+									</span>
+									<span class="mt-0.5 block text-sm text-muted">{n.body}</span>
+								</button>
+							</form>
+							{#if !n.read}
+								<form method="POST" action="?/read" use:enhance class="shrink-0">
+									<input type="hidden" name="id" value={n.id} />
+									<button type="submit" class="grid size-8 place-items-center rounded-lg text-primary hover:bg-surface-2" aria-label="Mark as read" title="Mark as read" data-testid="mark-read">
+										<span class="size-2.5 rounded-full bg-primary"></span>
+									</button>
+								</form>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</section>
 		{/each}
-	</ul>
+	</div>
 {/if}

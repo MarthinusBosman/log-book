@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { exportQuery, fmtFreefall, loggedScope, relativeTime, walletShortfall } from './format.ts';
+import { exportQuery, fmtFreefall, groupByDay, loggedScope, relativeTime, walletShortfall } from './format.ts';
 
 test('relativeTime prints older instants on the given timezone calendar', () => {
 	const now = Date.parse('2026-11-18T10:00:00Z');
@@ -9,6 +9,25 @@ test('relativeTime prints older instants on the given timezone calendar', () => 
 	expect(relativeTime(at, now, 'UTC')).toBe('2 Nov');
 	expect(relativeTime(at, now, 'Not/AZone')).toMatch(/^[23] Nov$/);
 	expect(relativeTime(now - 3 * 60_000, now, 'UTC')).toBe('3 min ago');
+});
+
+test('groupByDay splits newest-first items by calendar day in the timezone', () => {
+	const now = Date.parse('2026-11-20T10:00:00Z');
+	const at = (iso: string) => ({ createdAt: Date.parse(iso) });
+	const items = [at('2026-11-20T09:00:00Z'), at('2026-11-19T22:30:00Z'), at('2026-11-19T08:00:00Z'), at('2026-11-17T12:00:00Z'), at('2025-12-31T12:00:00Z')];
+	const jhb = groupByDay(items, now, 'Africa/Johannesburg');
+	// 22:30Z on the 19th is already the 20th in Johannesburg.
+	expect(jhb.map((g) => [g.label, g.items.length])).toEqual([
+		['Today', 2],
+		['Yesterday', 1],
+		['Tue 17 Nov', 1],
+		['Wed 31 Dec 2025', 1]
+	]);
+	expect(groupByDay(items, now, 'UTC').map((g) => g.label)).toEqual(['Today', 'Yesterday', 'Tue 17 Nov', 'Wed 31 Dec 2025']);
+	expect(groupByDay(items, now, 'UTC')[1].items.length).toBe(2);
+	expect(groupByDay([], now, 'UTC')).toEqual([]);
+	// Yesterday across a month boundary.
+	expect(groupByDay([at('2026-11-30T12:00:00Z')], Date.parse('2026-12-01T08:00:00Z'), 'UTC')[0].label).toBe('Yesterday');
 });
 
 test('exportQuery keeps the logbook filters, drops page and breakdown tab', () => {
