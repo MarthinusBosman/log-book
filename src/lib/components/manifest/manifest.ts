@@ -54,6 +54,16 @@ export function pickedOverFree(picked: number, free: number): string | null {
 	return `${picked} picked, but only ${free} slot${free === 1 ? '' : 's'} left. Untick ${extra} so the rest fit.`;
 }
 
+/** Same check for the Tandem tab: a group takes the passenger + TI (+ outside video) seats. */
+export function tandemOverFree(withVideo: boolean, free: number): string | null {
+	const needed = withVideo ? 3 : 2;
+	if (free >= needed) return null;
+	if (free <= 0) return 'This load is full. Pick another load or make space first.';
+	const left = `only ${free} slot${free === 1 ? ' is' : 's are'} left`;
+	if (withVideo && free >= 2) return `A tandem with outside video needs 3 slots, but ${left}. Drop the video or pick another load.`;
+	return `A tandem needs ${needed} slots, but ${left}. Pick another load or make space first.`;
+}
+
 /** The single "next step" button on a load card. */
 export type NextStep = { action: string; label: string; tone: 'primary' | 'warning' | 'success' };
 export function nextStep(status: LoadStatus): NextStep | null {

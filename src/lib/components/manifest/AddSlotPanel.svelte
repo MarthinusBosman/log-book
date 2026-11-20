@@ -5,7 +5,7 @@
 	import { cn } from '#lib/ui/cn.ts';
 	import { page } from '$app/state';
 	import { act } from './forms.ts';
-	import { alsoOnLabel, formAction, pickedOverFree } from './manifest.ts';
+	import { alsoOnLabel, formAction, pickedOverFree, tandemOverFree } from './manifest.ts';
 	import JumpFields from './JumpFields.svelte';
 	import PeoplePicker, { type Person } from './PeoplePicker.svelte';
 
@@ -87,6 +87,7 @@
 	// Warn before submitting when more people are ticked than fit (the server refuses the whole batch).
 	const overChecked = $derived(pickedOverFree(selChecked.length, free));
 	const overMembers = $derived(pickedOverFree(selMembers.length, free));
+	const overTandem = $derived(tandemOverFree(!!videoId, free));
 
 	const tabs = $derived([
 		{ id: 'checked', label: 'Checked in', count: checkedIn.filter((c) => !c.onLoad && !flying(c.id)).length },
@@ -240,8 +241,9 @@
 						{/if}
 						<input type="text" name="note" placeholder="Additional tandem note (optional)" class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary" />
 						<label class={box}><input type="checkbox" name="allowExpired" class={check} /><span>Allow expired staff membership</span></label>
+						{@render overBox(overTandem)}
 						{@render errorBox()}
-						<Button type="submit" loading={busy} disabled={!passengerId || !tiId} data-testid="add-tandem">Add tandem group</Button>
+						<Button type="submit" loading={busy} disabled={!passengerId || !tiId || !!overTandem} data-testid="add-tandem">Add tandem group</Button>
 					</form>
 				{:else if tab === 'team'}
 					<form method="POST" action={formAction(page.url, 'addTeam')} class="flex flex-col gap-3" use:enhance={done(() => {})}>

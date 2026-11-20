@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, tandemOverFree, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -191,5 +191,18 @@ describe('pickedOverFree (add-to-load picker)', () => {
 		expect(pickedOverFree(5, 4)).toBe('5 picked, but only 4 slots left. Untick 1 so the rest fit.');
 		expect(pickedOverFree(3, 1)).toBe('3 picked, but only 1 slot left. Untick 2 so the rest fit.');
 		expect(pickedOverFree(2, 0)).toBe('This load is full. Pick another load or make space first.');
+	});
+});
+
+describe('tandemOverFree (Tandem tab)', () => {
+	test('quiet while passenger + TI (+ video) fit', () => {
+		expect(tandemOverFree(false, 2)).toBeNull();
+		expect(tandemOverFree(true, 3)).toBeNull();
+	});
+	test('says what is short: video needs a third seat, a full load, one seat left', () => {
+		expect(tandemOverFree(true, 2)).toBe('A tandem with outside video needs 3 slots, but only 2 slots are left. Drop the video or pick another load.');
+		expect(tandemOverFree(false, 1)).toBe('A tandem needs 2 slots, but only 1 slot is left. Pick another load or make space first.');
+		expect(tandemOverFree(true, 1)).toBe('A tandem needs 3 slots, but only 1 slot is left. Pick another load or make space first.');
+		expect(tandemOverFree(false, 0)).toBe('This load is full. Pick another load or make space first.');
 	});
 });

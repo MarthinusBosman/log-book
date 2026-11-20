@@ -422,6 +422,13 @@ test('add-to-load picker warns before submit when more people are ticked than fi
 	await expect(over).toHaveText('This load is full. Pick another load or make space first.');
 	await expect(add).toBeDisabled();
 
+	// the Tandem tab says a group (passenger + TI) can't fit either
+	await page.getByRole('tab', { name: 'Tandem' }).click();
+	await expect(over).toHaveText('This load is full. Pick another load or make space first.');
+	await expect(page.getByTestId('add-tandem')).toBeDisabled();
+	await page.getByRole('tab', { name: 'Members' }).click();
+	await page.getByRole('tabpanel').getByRole('checkbox', { name: /Fran Full/ }).check();
+
 	// one more seat: the same selection fits again
 	await page.getByText('Plane, pilot & time').click();
 	await page.getByLabel('Slots (pax)').fill('2');
@@ -429,6 +436,10 @@ test('add-to-load picker warns before submit when more people are ticked than fi
 	await expect(page.locator('[aria-live]').getByText('Load updated')).toBeVisible();
 	await expect(over).toBeHidden();
 	await expect(add).toBeEnabled();
+	await page.getByRole('tab', { name: 'Tandem' }).click();
+	await expect(over).toHaveText('A tandem needs 2 slots, but only 1 slot is left. Pick another load or make space first.');
+	await page.getByRole('tab', { name: 'Members' }).click();
+	await page.getByRole('tabpanel').getByRole('checkbox', { name: /Fran Full/ }).check();
 	await add.click();
 	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Fran Full"]')).toBeVisible();
 });
