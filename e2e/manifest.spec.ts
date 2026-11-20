@@ -619,6 +619,7 @@ test('Tandem tab adds a passenger + TI group and flags booked outside video with
 	const hint = panel.getByTestId('tandem-video-hint');
 	await expect(hint).toHaveText(`${pax} booked outside video: pick who films them under 3. Outside video.`);
 	await expect(panel.getByText('Uses 2 slots')).toBeVisible();
+	await panel.getByLabel('4. Note (optional)').fill('Nervous flyer');
 	await panel.getByTestId('add-tandem').click();
 	await expect(page.locator(`[data-testid=detail-slot][data-slot-name="${pax}"]`)).toBeVisible();
 	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Tina Tandem"]')).toBeVisible();

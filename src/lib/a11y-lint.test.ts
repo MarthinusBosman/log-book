@@ -36,6 +36,31 @@ describe('svelte a11y lint', () => {
 		expect(missing).toEqual([]);
 	});
 
+	test('raw <input>/<textarea>/<select> fields have a label, not just a placeholder', () => {
+		// A placeholder disappears once you type and screen readers may skip it: the add-to-load
+		// Tandem tab's note field had nothing else. Accepts a wrapping <label>, a matching
+		// for=/aria-labelledby id, or aria-label.
+		const tag = /<(input|textarea|select)\b((?:\{[^}]*\}|"[^"]*"|'[^']*'|[^>"'{])*)>/g;
+		const missing: string[] = [];
+		for (const f of files) {
+			for (const m of f.text.matchAll(tag)) {
+				const attrs = m[2];
+				const type = /\btype="([^"]+)"/.exec(attrs)?.[1];
+				if (type && ['hidden', 'submit', 'button', 'file'].includes(type)) continue;
+				if (/\baria-(label|labelledby)=|aria-hidden="true"|\{\.\.\./.test(attrs)) continue;
+				const id = /\bid=(?:"([^"]+)"|\{([^}]+)\})/.exec(attrs);
+				if (id) {
+					const rest = f.text.slice(0, m.index) + f.text.slice(m.index + m[0].length);
+					if (rest.includes(id[1] ?? id[2])) continue;
+				}
+				const before = f.text.slice(0, m.index);
+				if (before.lastIndexOf('<label') > before.lastIndexOf('</label>')) continue;
+				missing.push(`${f.name}:${lineOf(f.text, m.index)}`);
+			}
+		}
+		expect(missing).toEqual([]);
+	});
+
 	test('every page renders exactly one <main> landmark (itself, a component, or a layout above it)', () => {
 		// The app/auth/marketing/public-DZ layouts provide <main id="main">; +page@ pages
 		// (print sheets, hangar boards) bring their own. Nesting one inside another was how the

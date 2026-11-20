@@ -241,7 +241,7 @@
 								{#if videoHint}<p class="mt-2 border-t border-border pt-2 text-xs text-warning" data-testid="tandem-video-hint">{videoHint}</p>{/if}
 							</div>
 						{/if}
-						<input type="text" name="note" placeholder="Additional tandem note (optional)" class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary" />
+						<Input label="4. Note (optional)" name="note" placeholder="e.g. Nervous flyer, birthday jump" />
 						<label class={box}><input type="checkbox" name="allowExpired" class={check} /><span>Allow expired staff membership</span></label>
 						{@render overBox(overTandem)}
 						{@render errorBox()}
