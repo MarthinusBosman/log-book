@@ -10,7 +10,7 @@
 	import type { PageProps } from './$types';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
-	import { formatMoneyShort, parseMoney } from '#lib/components/staffadmin/money.ts';
+	import { formatMoneyShort, parseMoney, priceToInput } from '#lib/components/staffadmin/money.ts';
 
 	let { data, form }: PageProps = $props();
 	const f = $derived(form as { action?: string; message?: string; success?: string; redirect?: string } | null);
@@ -36,7 +36,7 @@
 	let amount = $state(retryAmount());
 	function retryAmount() {
 		const n = retry();
-		return n ? (n.amountMinor / 100).toFixed(2).replace(/\.00$/, '') : '';
+		return n ? priceToInput(n.amountMinor) : '';
 	}
 	const firstProvider = () => {
 		const n = retry();

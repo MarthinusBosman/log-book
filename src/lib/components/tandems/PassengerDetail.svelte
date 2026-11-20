@@ -9,6 +9,7 @@
 	import type { PassengerDetail } from '#lib/server/tandems/detail.ts';
 	import PassengerFields from './PassengerFields.svelte';
 	import { toastEnhance } from './enhance.ts';
+	import { priceToInput } from '#lib/components/staffadmin/money.ts';
 	import {
 		MANUAL_METHODS,
 		PAYMENT_LABELS,
@@ -241,7 +242,8 @@
 					name="amount"
 					inputmode="decimal"
 					required
-					value={detail.outstandingMinor > 0 ? (detail.outstandingMinor / 100).toFixed(2) : ''}
+					value={detail.outstandingMinor > 0 ? priceToInput(detail.outstandingMinor) : ''}
+					data-testid="pay-amount"
 				/>
 				<Select label="Method" name="method" value="card" options={MANUAL_METHODS} />
 				<label class="col-span-2 flex items-center gap-2 text-sm text-muted">

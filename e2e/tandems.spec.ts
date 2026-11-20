@@ -272,6 +272,18 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await expect(page.getByRole('heading', { level: 1, name: 'Pat Passenger' })).toBeVisible();
 	await expect(page.getByRole('heading', { level: 2, name: 'Emergency contact' })).toHaveCount(0);
 	await expect(page.getByRole('heading', { level: 3, name: 'Emergency contact' })).toBeVisible();
+	// Nothing owed: the payment field starts empty. A booking with a price pre-fills what is
+	// outstanding the way prices are written ("3 200", not "3200.00").
+	await expect(page.getByTestId('pay-amount')).toHaveValue('');
+	await page.goto(`/app/tandems?day=${tomorrow}`);
+	await page.getByTestId('tandem-row').filter({ hasText: 'Lee Lead' }).click();
+	const leeDrawer = page.locator('dialog[open]');
+	await expect(leeDrawer.getByTestId('pay-amount')).toHaveValue('3 200');
+	// The grouped value posts as R 3 200: marking it paid leaves nothing outstanding.
+	await page.waitForLoadState('networkidle');
+	await leeDrawer.getByRole('button', { name: 'Mark payment' }).click();
+	await expect(page.locator('[aria-live]').filter({ hasText: 'Tandem payment has been updated' }).first()).toBeVisible();
+	await expect(leeDrawer.getByTestId('pay-amount')).toHaveValue('');
 
 	// Signed waiver is listed with a PDF.
 	await page.goto('/app/waivers?tab=signed');
