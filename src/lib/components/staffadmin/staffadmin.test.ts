@@ -36,7 +36,12 @@ describe('parseMoney', () => {
 		expect(minorToInput(45050)).toBe('450.50');
 		expect(minorToInput(0)).toBe('0.00');
 		expect(priceToInput(0)).toBe('');
-		expect(priceToInput(45000)).toBe('450.00');
+		expect(priceToInput(45000)).toBe('450');
+		expect(priceToInput(295000)).toBe('2 950');
+		expect(priceToInput(145050)).toBe('1 450.50');
+		expect(priceToInput(123456789)).toBe('1 234 567.89');
+		expect(priceToInput(5)).toBe('0.05');
+		for (const m of [5, 45000, 295000, 145050, 123456789]) expect(parseMoney(priceToInput(m))).toBe(m);
 		expect(currencySymbol('ZAR')).toBe('R');
 		expect(currencySymbol('USD')).toBe('$');
 		expect(currencySymbol('XXX1')).toBe('XXX1');

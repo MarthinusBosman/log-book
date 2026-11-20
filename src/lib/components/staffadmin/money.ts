@@ -38,9 +38,15 @@ export function minorToInput(minor: number): string {
 /**
  * Minor units → price-field value where 0 means "not set": an empty string, so the field
  * shows its "0.00" placeholder and the owner can type straight away (an empty field saves as 0).
+ * Thousands are grouped with a plain space and whole amounts drop ".00" ("2 950", "450.50"),
+ * the way prices are written on a board; parseMoney reads it back unchanged.
  */
 export function priceToInput(minor: number): string {
-	return minor === 0 ? '' : minorToInput(minor);
+	if (minor === 0) return '';
+	const neg = minor < 0;
+	const [whole, frac] = minorToInput(Math.abs(minor)).split('.');
+	const grouped = whole.replace(/\B(?=(\d{3})+$)/g, ' ');
+	return `${neg ? '-' : ''}${grouped}${frac === '00' ? '' : `.${frac}`}`;
 }
 
 /** Currency symbol for display next to inputs (e.g. ZAR → "R", USD → "$"). */

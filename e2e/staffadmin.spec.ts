@@ -144,10 +144,10 @@ test('owner runs the back office', async ({ page }) => {
 	await page.getByRole('button', { name: 'Save all' }).first().click();
 	await expect(page.getByText('Price list updated')).toBeVisible();
 	// The fields show the saved amounts straight away, as a reload would.
-	await expect(sportSlot).toHaveValue('1450.00');
+	await expect(sportSlot).toHaveValue('1 450');
 	await expect(handcam).not.toHaveAttribute('aria-invalid', 'true');
 	await page.reload();
-	await expect(sportSlot).toHaveValue('1450.00');
+	await expect(sportSlot).toHaveValue('1 450');
 	await expect(page.getByLabel('Gear rental', { exact: true })).toHaveValue('');
 
 	// Gear

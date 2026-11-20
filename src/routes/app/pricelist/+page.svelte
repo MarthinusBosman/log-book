@@ -46,7 +46,7 @@
 		pending: (p) => (saving = p),
 		onSuccess: () => {
 			dirty = false;
-			// Show what was saved ("3,200" → "3200.00", "R 650.5" → "650.50"), as a reload would.
+			// Show what was saved ("3,200" → "3 200", "R 650.5" → "650.50"), as a reload would.
 			for (const k of Object.keys(values)) values[k] = priceToInput(parseMoney(values[k]) ?? 0);
 		}
 	})}
