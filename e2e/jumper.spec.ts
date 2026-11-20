@@ -543,6 +543,18 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.locator('main a[href^="/app/wallet/"]').first().click();
 	await page.waitForLoadState('networkidle');
 	const form = page.getByTestId('topup-form');
+	// Quick amounts are whole ("R 1 000", no cents) and the one matching the amount shows as picked.
+	const presets = page.getByTestId('topup-preset');
+	await expect(presets).toHaveCount(4);
+	await expect(presets.nth(1)).toHaveText(/^R\s?1\s?000$/);
+	await expect(page.locator('[data-testid=topup-preset][aria-pressed=true]')).toHaveCount(0);
+	await presets.nth(1).click();
+	await expect(page.locator('#amount')).toHaveValue('1000');
+	await expect(presets.nth(1)).toHaveAttribute('aria-pressed', 'true');
+	await expect(page.locator('[data-testid=topup-preset][aria-pressed=true]')).toHaveCount(1);
+	await page.locator('#amount').fill('2 000');
+	await expect(presets.nth(2)).toHaveAttribute('aria-pressed', 'true');
+	await expect(presets.nth(1)).toHaveAttribute('aria-pressed', 'false');
 	await page.locator('#amount').fill('-5');
 	await page.getByTestId('topup-submit').click();
 	await expect(form).toContainText('Enter a valid amount');

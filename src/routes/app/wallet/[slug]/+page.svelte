@@ -10,6 +10,7 @@
 	import type { PageProps } from './$types';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
 	import { viewParamsHref } from '#lib/components/staffadmin/open-dialog.ts';
+	import { formatMoneyShort, parseMoney } from '#lib/components/staffadmin/money.ts';
 
 	let { data, form }: PageProps = $props();
 	const f = $derived(form as { action?: string; message?: string; success?: string; redirect?: string } | null);
@@ -51,6 +52,8 @@
 	const pending = $derived(data.requests.filter((r) => r.status === 'pending'));
 	const low = $derived(!!data.account && data.account.availableMinor < unpaidTotal);
 	const presets = [50000, 100000, 200000, 500000];
+	// The quick-amount chip matching the typed amount shows as picked ("1000", "1 000" and "1,000" all match).
+	const amountMinor = $derived(parseMoney(amount));
 
 
 	const submit = (name: string) => () => {
@@ -110,9 +113,9 @@
 					<div>
 						<label for="amount" class="text-sm font-medium">Amount ({cur})</label>
 						<input id="amount" name="amount" bind:value={amount} inputmode="decimal" placeholder="0.00" required class="mt-1.5 h-14 w-full rounded-xl border border-border bg-surface px-4 text-2xl font-semibold tabular-nums outline-none hover:border-border-strong focus:border-primary focus:ring-4 focus:ring-primary/15" />
-						<div class="mt-2 flex flex-wrap gap-1.5">
+						<div class="mt-2 grid grid-cols-4 gap-1.5 sm:flex sm:flex-wrap" aria-label="Quick amounts" role="group">
 							{#each presets as p (p)}
-								<button type="button" class="h-8 rounded-lg border border-border px-3 text-sm text-muted hover:border-border-strong hover:text-fg" onclick={() => (amount = String(p / 100))}>{money(p)}</button>
+								<button type="button" aria-pressed={amountMinor === p} class={cn('h-8 rounded-lg border px-2 text-sm whitespace-nowrap tabular-nums transition-colors sm:px-3', amountMinor === p ? 'border-primary/50 bg-primary/10 font-medium text-primary' : 'border-border text-muted hover:border-border-strong hover:text-fg')} onclick={() => (amount = String(p / 100))} data-testid="topup-preset">{formatMoneyShort(p, cur)}</button>
 							{/each}
 						</div>
 					</div>
