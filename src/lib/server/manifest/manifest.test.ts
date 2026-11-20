@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -178,5 +178,18 @@ describe('loadTimesPreview (New load dialog)', () => {
 		expect(loadTimesPreview('23:00', 4, 20)).toEqual({ kind: 'pastMidnight', count: 4, spacing: 20 });
 		expect(loadTimesPreview('23:00', 3, 29).kind).toBe('times'); // last at 23:58
 		expect(loadTimesPreview('23:00', 3, 30).kind).toBe('pastMidnight'); // last at 00:00
+	});
+});
+
+describe('pickedOverFree (add-to-load picker)', () => {
+	test('quiet while the selection fits', () => {
+		expect(pickedOverFree(0, 0)).toBeNull();
+		expect(pickedOverFree(3, 4)).toBeNull();
+		expect(pickedOverFree(4, 4)).toBeNull();
+	});
+	test('says how many to untick, or that the load is full', () => {
+		expect(pickedOverFree(5, 4)).toBe('5 picked, but only 4 slots left. Untick 1 so the rest fit.');
+		expect(pickedOverFree(3, 1)).toBe('3 picked, but only 1 slot left. Untick 2 so the rest fit.');
+		expect(pickedOverFree(2, 0)).toBe('This load is full. Pick another load or make space first.');
 	});
 });

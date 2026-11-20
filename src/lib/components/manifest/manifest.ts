@@ -43,6 +43,17 @@ export function friendlyError(code: string, message: string, details?: Record<st
 	}
 }
 
+/**
+ * Warning for the add-to-load picker when more people are ticked than the load has free
+ * slots (the server would refuse the whole batch). Null while the selection fits.
+ */
+export function pickedOverFree(picked: number, free: number): string | null {
+	if (picked <= free || picked === 0) return null;
+	if (free <= 0) return 'This load is full. Pick another load or make space first.';
+	const extra = picked - free;
+	return `${picked} picked, but only ${free} slot${free === 1 ? '' : 's'} left. Untick ${extra} so the rest fit.`;
+}
+
 /** The single "next step" button on a load card. */
 export type NextStep = { action: string; label: string; tone: 'primary' | 'warning' | 'success' };
 export function nextStep(status: LoadStatus): NextStep | null {

@@ -384,6 +384,55 @@ test('public display needs a valid token', async ({ page }) => {
 	await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText('Off the landing area');
 });
 
+test('add-to-load picker warns before submit when more people are ticked than fit', async ({ page }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Fran Full');
+	await page.getByLabel('Email').fill(`full-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Full E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// a one-seat load with a walk-in on it is full
+	await page.goto('/app/manifest');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-ONE');
+	await dialog.getByLabel('Slots (pax)').fill('1');
+	await dialog.getByRole('button', { name: 'Create load', exact: true }).click();
+	const card = page.locator('[data-testid=load-card][data-load-number="1"]');
+	await card.getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('tab', { name: 'Custom' }).click();
+	await page.getByLabel('Jumper name').fill('Wally Walkin');
+	await page.getByLabel('Slot weight (kg)').fill('80');
+	await page.getByRole('button', { name: 'Create jumper slot' }).click();
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Wally Walkin"]')).toBeVisible();
+
+	// ticking someone says so right away and keeps the button off (no round trip to learn it)
+	await page.getByRole('tab', { name: 'Members' }).click();
+	const over = page.getByRole('tabpanel').getByTestId('add-over');
+	const add = page.getByRole('button', { name: 'Add jumper', exact: true });
+	await expect(over).toBeHidden();
+	await page.getByRole('tabpanel').getByRole('checkbox', { name: /Fran Full/ }).check();
+	await expect(over).toHaveText('This load is full. Pick another load or make space first.');
+	await expect(add).toBeDisabled();
+
+	// one more seat: the same selection fits again
+	await page.getByText('Plane, pilot & time').click();
+	await page.getByLabel('Slots (pax)').fill('2');
+	await page.getByRole('button', { name: 'Save load' }).click();
+	await expect(page.locator('[aria-live]').getByText('Load updated')).toBeVisible();
+	await expect(over).toBeHidden();
+	await expect(add).toBeEnabled();
+	await add.click();
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Fran Full"]')).toBeVisible();
+});
+
 test('add-to-load picker says who is already on another load that day', async ({ page }) => {
 	const project = test.info().project.name;
 	await page.goto('/signup');

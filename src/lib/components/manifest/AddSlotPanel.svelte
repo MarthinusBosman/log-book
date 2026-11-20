@@ -5,7 +5,7 @@
 	import { cn } from '#lib/ui/cn.ts';
 	import { page } from '$app/state';
 	import { act } from './forms.ts';
-	import { alsoOnLabel, formAction } from './manifest.ts';
+	import { alsoOnLabel, formAction, pickedOverFree } from './manifest.ts';
 	import JumpFields from './JumpFields.svelte';
 	import PeoplePicker, { type Person } from './PeoplePicker.svelte';
 
@@ -84,6 +84,9 @@
 	const tis = $derived(staff.filter((s) => s.roles.includes('tandem_instructor') && !s.onLoad && !flying(s.id)));
 	const videos = $derived(staff.filter((s) => s.roles.includes('videographer') && !s.onLoad && !flying(s.id)));
 	const passenger = $derived(passengers.find((p) => p.id === passengerId) ?? null);
+	// Warn before submitting when more people are ticked than fit (the server refuses the whole batch).
+	const overChecked = $derived(pickedOverFree(selChecked.length, free));
+	const overMembers = $derived(pickedOverFree(selMembers.length, free));
 
 	const tabs = $derived([
 		{ id: 'checked', label: 'Checked in', count: checkedIn.filter((c) => !c.onLoad && !flying(c.id)).length },
@@ -126,6 +129,10 @@
 	</div>
 {/snippet}
 
+{#snippet overBox(message: string | null)}
+	<p role="status" data-testid="add-over" class={cn('text-sm text-warning', !message && 'hidden')}>{message ?? ''}</p>
+{/snippet}
+
 {#snippet errorBox()}
 	{#if lastError}<p role="alert" class="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger" data-testid="add-error">{lastError}</p>{/if}
 {/snippet}
@@ -165,8 +172,9 @@
 							<Input label="Slot weight (kg)" name="weightKg" type="number" min="0" step="1" placeholder="From check-in" />
 						{/if}
 						{@render options(selChecked.length > 1, selChecked.length === 1)}
+						{@render overBox(overChecked)}
 						{@render errorBox()}
-						<Button type="submit" loading={busy} disabled={selChecked.length === 0} data-testid="add-checked">
+						<Button type="submit" loading={busy} disabled={selChecked.length === 0 || !!overChecked} data-testid="add-checked">
 							Add {selChecked.length > 1 ? `${selChecked.length} jumpers` : 'jumper'}
 						</Button>
 					</form>
@@ -179,8 +187,9 @@
 							<Input label="Slot weight (kg)" name="weightKg" type="number" min="0" step="1" placeholder="From profile" />
 						{/if}
 						{@render options(selMembers.length > 1, selMembers.length === 1)}
+						{@render overBox(overMembers)}
 						{@render errorBox()}
-						<Button type="submit" loading={busy} disabled={selMembers.length === 0}>Add {selMembers.length > 1 ? `${selMembers.length} jumpers` : 'jumper'}</Button>
+						<Button type="submit" loading={busy} disabled={selMembers.length === 0 || !!overMembers}>Add {selMembers.length > 1 ? `${selMembers.length} jumpers` : 'jumper'}</Button>
 					</form>
 				{:else if tab === 'tandem'}
 					<form method="POST" action={formAction(page.url, 'addTandem')} class="flex flex-col gap-3" use:enhance={done(() => ((passengerId = ''), (tiId = ''), (videoId = '')))}>
