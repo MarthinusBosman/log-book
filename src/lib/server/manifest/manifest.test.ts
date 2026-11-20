@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, tandemOverFree, tandemVideoHint, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -215,5 +215,24 @@ describe('tandemVideoHint (Tandem tab)', () => {
 	test('booked video with nobody filming, and filming nobody pays for', () => {
 		expect(tandemVideoHint('Kyle', ['outside_video'], false)).toBe('Kyle booked outside video: pick who films them under 3. Outside video.');
 		expect(tandemVideoHint('Sarah', ['beach_landing'], true)).toBe("Sarah didn't book outside video, so it isn't charged. Add the extra in their slot afterwards if they want it.");
+	});
+});
+
+describe('pilotOptions (Plane, pilot & time)', () => {
+	const pilots = [
+		{ id: 'p1', name: 'Palesa' },
+		{ id: 'p2', name: 'Olga' }
+	];
+	test('someone jumping on the load is listed but disabled', () => {
+		const opts = pilotOptions(pilots, [{ userId: 'p2' }, { userId: null }], { pilotUserId: 'p1', pilotName: 'Palesa' });
+		expect(opts).toEqual([
+			{ value: '', label: 'Other / none' },
+			{ value: 'p1', label: 'Palesa' },
+			{ value: 'p2', label: 'Olga · jumping on this load', disabled: true }
+		]);
+	});
+	test('the current pilot stays selectable; a typed-in pilot name labels the empty option', () => {
+		expect(pilotOptions(pilots, [{ userId: 'p1' }], { pilotUserId: 'p1', pilotName: 'Palesa' })[1]).toEqual({ value: 'p1', label: 'Palesa' });
+		expect(pilotOptions(pilots, [], { pilotUserId: null, pilotName: 'Guest pilot' })[0]).toEqual({ value: '', label: 'Guest pilot' });
 	});
 });

@@ -75,6 +75,27 @@ export function tandemVideoHint(name: string, extras: readonly string[], withVid
 	return null;
 }
 
+/**
+ * Options for a load's Pilot select. Someone already manifested on the load can't fly it
+ * (updateLoad refuses), so they're listed but disabled with the reason. The current pilot is
+ * never disabled, so the select keeps its value.
+ */
+export function pilotOptions(
+	pilots: readonly { id: string; name: string }[],
+	slots: readonly { userId: string | null }[],
+	current: { pilotUserId: string | null; pilotName: string | null }
+): { value: string; label: string; disabled?: boolean }[] {
+	const onLoad = new Set(slots.map((s) => s.userId).filter((id): id is string => !!id));
+	return [
+		{ value: '', label: current.pilotUserId ? 'Other / none' : (current.pilotName ?? 'Other / none') },
+		...pilots.map((p) =>
+			onLoad.has(p.id) && p.id !== current.pilotUserId
+				? { value: p.id, label: `${p.name} · jumping on this load`, disabled: true }
+				: { value: p.id, label: p.name }
+		)
+	];
+}
+
 /** The single "next step" button on a load card. */
 export type NextStep = { action: string; label: string; tone: 'primary' | 'warning' | 'success' };
 export function nextStep(status: LoadStatus): NextStep | null {

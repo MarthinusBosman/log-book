@@ -518,10 +518,10 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await page.goto('/app/manifest');
 	await load1.getByRole('link', { name: 'Add slots' }).click();
 	await page.waitForLoadState('networkidle');
+	// she jumps on load 1, so its Pilot select lists her disabled (the server refuses it too)
 	await page.getByText('Plane, pilot & time').click();
-	await page.getByLabel('Pilot', { exact: true }).selectOption({ label: 'Olga Onload' });
-	await page.getByRole('button', { name: 'Save load' }).click();
-	await expect(page.locator('[aria-live]').getByText('Olga Onload is manifested on this load. Take them off it first, or pick another pilot.')).toBeVisible();
+	await expect(page.getByLabel('Pilot', { exact: true }).locator('option', { hasText: 'Olga Onload' })).toHaveText('Olga Onload · jumping on this load');
+	await expect(page.getByLabel('Pilot', { exact: true }).locator('option', { hasText: 'Olga Onload' })).toBeDisabled();
 
 	// on a phone the panel sits below the slot list: the board's "Add slots" lands on it
 	await page.setViewportSize({ width: 390, height: 844 });

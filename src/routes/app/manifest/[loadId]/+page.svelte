@@ -12,7 +12,7 @@
 	import MIcon from '#lib/components/manifest/MIcon.svelte';
 	import { act } from '#lib/components/manifest/forms.ts';
 	import { clock, poll } from '#lib/components/manifest/live.svelte.ts';
-	import { clockTime, groupHue, prettyDay, slotMoney } from '#lib/components/manifest/manifest.ts';
+	import { clockTime, groupHue, pilotOptions, prettyDay, slotMoney } from '#lib/components/manifest/manifest.ts';
 	import type { CompleteSummary } from '#lib/components/manifest/types.ts';
 	import { page } from '$app/state';
 	import { syncViewToUrl } from '#lib/components/staffadmin/url-sync.svelte.ts';
@@ -152,7 +152,7 @@
 					<input type="hidden" name="loadId" value={load.id} />
 					<Select label="Aircraft" name="aircraftId" value={load.aircraftId ?? ''} options={[{ value: '', label: load.aircraftId ? 'Keep / custom' : (load.aircraftName ?? 'Custom') }, ...data.aircraft.map((a) => ({ value: a.id, label: a.name }))]} />
 					<Input label="Slots (pax)" name="capacity" type="number" min="1" value={load.capacity} />
-					<Select label="Pilot" name="pilotUserId" value={load.pilotUserId ?? ''} onchange={fillPilotWeight} options={[{ value: '', label: load.pilotUserId ? 'Other / none' : (load.pilotName ?? 'Other / none') }, ...data.pilots.map((p) => ({ value: p.id, label: p.name }))]} />
+					<Select label="Pilot" name="pilotUserId" value={load.pilotUserId ?? ''} onchange={fillPilotWeight} options={pilotOptions(data.pilots, load.slots, load)} />
 					<Input label="Pilot name (if not listed)" name="pilotName" value={load.pilotUserId ? '' : (load.pilotName ?? '')} />
 					<Input label="Pilot weight (kg)" name="pilotWeightKg" type="number" min="0" value={load.pilotWeightKg ?? ''} />
 					<Input label="Weight limit (kg)" name="weightLimitKg" type="number" min="0" value={load.weightLimitKg ?? ''} />
