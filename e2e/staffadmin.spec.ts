@@ -529,3 +529,73 @@ test('owner runs the back office', async ({ page }) => {
 	await go(page, '/app/reports/loadsheet');
 	await expect(page.getByRole('main').getByLabel('Day', { exact: true })).toHaveAttribute('type', 'date');
 });
+
+
+test('Roles dialog locks the boxes you may not change, and saving keeps them', async ({ page, browser }) => {
+	test.setTimeout(90_000);
+	const stamp = Date.now();
+	const adminEmail = `sa-admin-${stamp}@example.com`;
+	async function signup(p: Page, name: string, email: string) {
+		await p.goto('/signup');
+		await p.getByLabel('Full name').fill(name);
+		await p.getByLabel('Email').fill(email);
+		await p.getByLabel('Password').fill('blue-skies-123');
+		await p.getByRole('button', { name: 'Create account' }).click();
+		await expect(p).toHaveURL(/\/app$/);
+	}
+	await signup(page, 'Oona Owner', `sa-lock-owner-${stamp}@example.com`);
+	await go(page, '/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Role Lock DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	const adminCtx = await browser.newContext({ baseURL: new URL(page.url()).origin });
+	const ap = await adminCtx.newPage();
+	await signup(ap, 'Ada Admin', adminEmail);
+
+	// Owner adds Ada (existing account) as admin.
+	await go(page, '/app/settings/members');
+	await page.getByRole('link', { name: 'Invite' }).click();
+	await dialog(page).getByLabel('Email').fill(adminEmail);
+	await dialog(page).getByRole('checkbox', { name: /^Staff/ }).uncheck();
+	await dialog(page).getByRole('checkbox', { name: /^Admin/ }).check();
+	await dialog(page).getByRole('button', { name: 'Send invite' }).click();
+	await expect(page.getByText('Ada Admin added')).toBeVisible();
+
+	// The owner's own Owner box is locked (and says why); saving other changes keeps it.
+	await page.getByRole('link', { name: 'Edit roles for Oona Owner' }).click();
+	const ownBox = dialog(page).getByRole('checkbox', { name: /^Owner/ });
+	await expect(ownBox).toBeDisabled();
+	await expect(ownBox).toBeChecked();
+	await expect(dialog(page).getByTestId('role-lock')).toHaveText(["You can't remove your own owner role. Ask another owner."]);
+	await dialog(page).getByRole('checkbox', { name: /^Coach/ }).check();
+	await dialog(page).getByRole('button', { name: 'Save roles' }).click();
+	await expect(page.getByText('Roles updated for Oona Owner')).toBeVisible();
+	const oonaRow = page.locator('main li').filter({ hasText: 'Oona Owner' });
+	await expect(oonaRow.getByText('Owner', { exact: true })).toBeVisible();
+	await expect(oonaRow.getByText('Coach', { exact: true })).toBeVisible();
+
+	// An admin can edit an owner's other roles: the locked Owner box is still posted.
+	await go(ap, '/app/settings/members');
+	await ap.getByRole('link', { name: 'Edit roles for Oona Owner' }).click();
+	const theirOwner = dialog(ap).getByRole('checkbox', { name: /^Owner/ });
+	await expect(theirOwner).toBeDisabled();
+	await expect(theirOwner).toBeChecked();
+	await expect(dialog(ap).getByTestId('role-lock')).toHaveText(['Only an owner can change this.']);
+	await dialog(ap).getByRole('checkbox', { name: /^Pilot/ }).check();
+	await dialog(ap).getByRole('button', { name: 'Save roles' }).click();
+	await expect(ap.getByText('Roles updated for Oona Owner')).toBeVisible();
+	await expect(ap.locator('main li').filter({ hasText: 'Oona Owner' }).getByText('Owner', { exact: true })).toBeVisible();
+
+	// Her own Admin box is locked too; adding Manifest keeps Admin.
+	await ap.getByRole('link', { name: 'Edit roles for Ada Admin' }).click();
+	await expect(dialog(ap).getByRole('checkbox', { name: /^Admin/ })).toBeDisabled();
+	await expect(dialog(ap).getByTestId('role-lock')).toHaveText(['Only an owner can change this.', "You can't remove your own admin access. Ask an owner."]);
+	await dialog(ap).getByRole('checkbox', { name: /^Manifest/ }).check();
+	await dialog(ap).getByRole('button', { name: 'Save roles' }).click();
+	await expect(ap.getByText('Roles updated for Ada Admin')).toBeVisible();
+	const adaRow = ap.locator('main li').filter({ hasText: 'Ada Admin' });
+	await expect(adaRow.getByText('Admin', { exact: true })).toBeVisible();
+	await expect(adaRow.getByText('Manifest / Manager', { exact: true })).toBeVisible();
+	await adminCtx.close();
+});

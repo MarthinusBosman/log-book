@@ -7,6 +7,7 @@
 	import { newDialogHref, openInPlace, viewParamsHref, wantsNewDialog } from '#lib/components/staffadmin/open-dialog.ts';
 	import { Avatar, Badge, Button, Dialog, EmptyState, Icon, Input } from '#lib/ui/index.ts';
 	import RoleChips from '#lib/components/staffadmin/RoleChips.svelte';
+	import { roleLock } from '#lib/components/staffadmin/role-lock.ts';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
 	import { DROPZONE_ROLES, ROLE_LABELS, type DropzoneRole } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
@@ -59,25 +60,30 @@
 	const notSignedUp = $derived(data.members.filter((m) => !m.hasLogin).length);
 	const editRoles = $derived(new Set(editing?.roles.map((r) => r.role) ?? []));
 	const tiColour = $derived(editing?.roles.find((r) => r.role === 'tandem_instructor')?.colour ?? '#22c55e');
-	const canPick = (r: DropzoneRole) => r !== 'owner' || data.isOwner;
+	const NONE = new Set<DropzoneRole>();
 </script>
 
 <svelte:head><title>Settings · Members</title></svelte:head>
 
 <NoJsOutcome class="mb-4" />
-{#snippet roleBoxes(selected: Set<DropzoneRole>)}
+{#snippet roleBoxes(selected: Set<DropzoneRole>, isSelf: boolean, held: ReadonlySet<DropzoneRole>)}
 	<fieldset>
 		<legend class="text-sm font-medium">Roles</legend>
 		<p class="text-xs text-muted">People can hold several roles.</p>
 		<div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
 			{#each DROPZONE_ROLES as role (role)}
+				{@const lock = roleLock(role, { isOwner: data.isOwner, isSelf, has: held })}
 				<label
-					class="flex cursor-pointer items-start gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors has-[:checked]:border-primary/50 has-[:checked]:bg-primary/5 hover:border-border-strong {canPick(role) ? '' : 'cursor-not-allowed opacity-50'}"
+					class="flex items-start gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors has-[:checked]:border-primary/50 has-[:checked]:bg-primary/5 {lock ? 'cursor-not-allowed' : 'cursor-pointer hover:border-border-strong'}"
+					data-locked={lock ? '' : undefined}
 				>
-					<input type="checkbox" name="roles" value={role} checked={selected.has(role)} disabled={!canPick(role)} class="mt-0.5 size-4 accent-[var(--dz-primary)]" />
+					<input type="checkbox" name="roles" value={role} checked={selected.has(role)} disabled={!!lock} class="mt-0.5 size-4 accent-[var(--dz-primary)]" />
+					<!-- A disabled box isn't posted: keep a held, locked role so Save doesn't read it as dropped. -->
+					{#if lock && selected.has(role)}<input type="hidden" name="roles" value={role} />{/if}
 					<span>
-						<span class="block text-sm font-medium">{ROLE_LABELS[role]}</span>
-						<span class="block text-xs text-muted">{ROLE_HELP[role]}</span>
+						<span class="block text-sm font-medium {lock ? 'opacity-60' : ''}">{ROLE_LABELS[role]}</span>
+						<span class="block text-xs text-muted {lock ? 'opacity-60' : ''}">{ROLE_HELP[role]}</span>
+						{#if lock}<span class="mt-0.5 block text-xs font-medium text-muted" data-testid="role-lock">{lock}</span>{/if}
 					</span>
 				</label>
 			{/each}
@@ -170,7 +176,7 @@
 	>
 		<Input label="Email" name="email" type="email" required autocomplete="off" />
 		<Input label="Name" name="name" hint="Only needed for people without an account." autocomplete="off" />
-		{@render roleBoxes(new Set<DropzoneRole>(['staff']))}
+		{@render roleBoxes(new Set<DropzoneRole>(['staff']), false, NONE)}
 		<Button type="submit" class="w-full" loading={pending}>Send invite</Button>
 	</form>
 </Dialog>
@@ -185,7 +191,7 @@
 				use:enhance={toastEnhance({ pending: (v) => (pending = v), onSuccess: () => (editingId = null) })}
 			>
 				<input type="hidden" name="userId" value={editing.userId} />
-				{@render roleBoxes(editRoles)}
+				{@render roleBoxes(editRoles, editing.userId === data.me, editRoles)}
 				<label class="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2.5">
 					<span>
 						<span class="block text-sm font-medium">Tandem instructor colour</span>
