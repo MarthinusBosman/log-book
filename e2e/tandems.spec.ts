@@ -185,13 +185,19 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await page.getByRole('button', { name: 'More jumpers' }).click();
 	await expect(page.getByTestId('count')).toHaveText('2');
 	await clickVisible(page, ['next', 'next-mobile']);
+	// Only the lead must give an email + mobile (a parent booking for the kids): Max leaves them empty.
+	await expect(page.getByTestId('contact-optional')).toHaveCount(1);
 	for (const [i, name] of ['Lee Lead', 'Max Mate'].entries()) {
 		await page.locator(`input[name=j${i}_name]`).fill(name);
-		await page.locator(`input[name=j${i}_email]`).fill(`j${i}@example.com`);
-		await page.locator(`input[name=j${i}_phone]`).fill('0820001111');
+		if (i === 0) {
+			await page.locator(`input[name=j${i}_email]`).fill(`j${i}@example.com`);
+			await page.locator(`input[name=j${i}_phone]`).fill('0820001111');
+		}
 		await page.locator(`input[name=j${i}_dob]`).fill('1991-06-06');
 		await page.locator(`input[name=j${i}_weightKg]`).fill('70');
 	}
+	await expect(page.getByTestId('contact-optional')).toHaveText('No email or mobile? Max’s indemnity link is in your confirmation to pass on.');
+	await expect(page.getByLabel('Email (optional)')).toHaveValue('');
 	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
 	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
 	await clickVisible(page, ['next', 'next-mobile']);

@@ -314,8 +314,8 @@ export async function createOnlineBooking(
 		dropzoneId: string;
 		date: string;
 		time: string;
-		/** name/email/phone required; any other passenger fields (extras, DOB, emergency…) are stored too. */
-		jumpers: (Partial<PassengerInput> & { name: string; email: string; phone?: string | null })[];
+		/** name required (the booking page also requires the lead's email + phone); other passenger fields (extras, DOB, emergency…) are stored too. */
+		jumpers: (Partial<PassengerInput> & { name: string; email?: string | null; phone?: string | null })[];
 		depositPaid?: boolean;
 		now?: number;
 	}
@@ -337,7 +337,7 @@ export async function createOnlineBooking(
 				{
 					...j,
 					name: j.name,
-					email: j.email,
+					email: j.email ?? null,
 					phone: j.phone ?? null,
 					jumpDate: input.date,
 					bookingTime: input.time,

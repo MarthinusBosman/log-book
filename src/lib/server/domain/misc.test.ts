@@ -129,10 +129,12 @@ describe('tandems & online booking', () => {
 			time: '09:00',
 			jumpers: [
 				{ name: 'A', email: 'a@x.co' },
-				{ name: 'B', email: 'b@x.co' }
+				// A fellow jumper booked without their own contact details (the lead's email lists them).
+				{ name: 'B' }
 			],
 			depositPaid: true
 		});
+		expect(r.passengers[1]).toMatchObject({ name: 'B', email: null, phone: null, onlineBooking: true });
 		expect(r.depositMinor).toBe(2 * P.tandem_deposit!);
 		expect(r.passengers[0]).toMatchObject({ onlineBooking: true, depositMinor: P.tandem_deposit, paymentStatus: 'deposit_paid', bookingTime: '09:00' });
 		expect(r.passengers[0].confirmationNumber).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);

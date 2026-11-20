@@ -112,6 +112,7 @@
 	const softWarnings = (j: Jumper) => limitWarnings(overWeight(j) ? { heightCm: j.heightCm } : j, data.limits);
 	// Under the minimum age the booking can't go ahead at all, so don't ask for a guardian.
 	const isMinor = (j: Jumper) => !!j.dob && !!date && ageOn(j.dob, date) < 18 && !tooYoung(j);
+	const firstName = (j: Jumper) => j.name.trim().split(/\s+/)[0] || null;
 
 	/** Messages shown under each invalid field after Continue / Confirm (keyed by input name). */
 	let fieldErrors = $state<Record<string, string>>({});
@@ -297,8 +298,11 @@
 						</h2>
 						<div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<Input label="Full name" name="j{i}_name" error={fieldError(`j${i}_name`)} bind:value={j.name} required autocomplete={i === 0 ? 'name' : 'off'} class="sm:col-span-2" />
-							<Input label="Email" name="j{i}_email" error={fieldError(`j${i}_email`)} type="email" bind:value={j.email} required inputmode="email" autocomplete={i === 0 ? 'email' : 'off'} />
-							<Input label="Mobile number" name="j{i}_phone" error={fieldError(`j${i}_phone`)} type="tel" bind:value={j.phone} required inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
+							<Input label={i === 0 ? 'Email' : 'Email (optional)'} name="j{i}_email" error={fieldError(`j${i}_email`)} type="email" bind:value={j.email} required={i === 0} inputmode="email" autocomplete={i === 0 ? 'email' : 'off'} />
+							<Input label={i === 0 ? 'Mobile number' : 'Mobile number (optional)'} name="j{i}_phone" error={fieldError(`j${i}_phone`)} type="tel" bind:value={j.phone} required={i === 0} inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
+							{#if i > 0}
+								<p class="-mt-1 text-xs text-muted sm:col-span-2" data-testid="contact-optional">No email or mobile? {firstName(j) ? `${firstName(j)}’s` : 'Their'} indemnity link is in your confirmation to pass on.</p>
+							{/if}
 							<Input label="Date of birth" name="j{i}_dob" error={fieldError(`j${i}_dob`) ?? (tooYoung(j) ? youngMsg : null)} type="date" bind:value={j.dob} required min="1900-01-01" max={data.today} autocomplete={i === 0 ? 'bday' : 'off'} data-dob />
 							<div class="grid grid-cols-2 gap-3">
 								<Input label="Weight (kg)" name="j{i}_weightKg" error={fieldError(`j${i}_weightKg`) ?? (overWeight(j) ? weightMsg : null)} type="number" inputmode="decimal" min="20" max="250" step="0.1" bind:value={j.weightKg} required data-weight />

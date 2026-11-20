@@ -76,8 +76,10 @@ export const actions: Actions = {
 				const j = parsePassengerForm(jumperForm(f, i));
 				const who = count > 1 ? `Jumper ${i + 1}: ` : '';
 				if (!j.name) throw new DomainError('invalid', `${who}please enter a full name`);
-				if (!j.email) throw new DomainError('invalid', `${who}please enter an email address`);
-				if (!j.phone) throw new DomainError('invalid', `${who}please enter a phone number`);
+				// Only the lead must give an email + mobile: their confirmation lists the whole group with
+				// each jumper's indemnity link, so a parent can book (and share links for) the kids.
+				if (i === 0 && !j.email) throw new DomainError('invalid', `${who}please enter an email address`);
+				if (i === 0 && !j.phone) throw new DomainError('invalid', `${who}please enter a phone number`);
 				if (!j.dob) throw new DomainError('invalid', `${who}please enter a date of birth`);
 				if (ageOn(j.dob, date) < MIN_AGE) throw new DomainError('invalid', `${who}tandem passengers must be at least ${MIN_AGE} years old on the jump date`);
 				if (j.weightKg == null) throw new DomainError('invalid', `${who}please enter a weight`);
@@ -90,7 +92,7 @@ export const actions: Actions = {
 				if (!j.emergencyName || !j.emergencyPhone) throw new DomainError('invalid', `${who}please add an emergency contact`);
 				j.heardFrom = lead.heardFrom ?? null;
 				j.note = i === 0 ? (lead.note ?? null) : null;
-				return { ...j, name: j.name, email: j.email };
+				return { ...j, name: j.name, email: j.email ?? null };
 			});
 
 			const res = await createOnlineBooking(locals.db, { dropzoneId: dz.id, date, time, jumpers, depositPaid: false });

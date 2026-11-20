@@ -154,7 +154,7 @@ DB functions:
 `listPassengers(db, dzId, {tab: ready|completed|all, date?, search?})`, `recordTandemPayment(db, {passengerId, amountMinor, provider, isDeposit?})`, `tandemOutstanding(p)`.
 A passenger booked while the DZ had no tandem price has `totalMinor` 0 and stays `unpaid` until money is taken (UI: "No price", `isUnpriced()` in `#lib/components/tandems/model.ts`); `applyCurrentTandemPrice(db, id)` puts today's price on such a booking (priced bookings keep their quote).
 Booking: `addBookingSlots(db, {dropzoneId, date, time, capacity, repeat: none|daily|weekly})` → `{added, existing}`, `availabilityForDate(db, dzId, date)` → slots with `remaining`, `bookableDates(db, dzId, from, to)`,
-`createOnlineBooking(db, {dropzoneId, date, time, jumpers[1..5], depositPaid?})` throws `booking_full`.
+`createOnlineBooking(db, {dropzoneId, date, time, jumpers[1..5], depositPaid?})` throws `booking_full`. Each jumper needs a name; the public booking page requires email + mobile for the lead only (fellow jumpers' may be null: the lead's confirmation lists their indemnity links).
 
 ### indemnity.ts
 `listSections`, `addSection`, `addStarterSections(db, dzId, audience)` (empty form only: sample wording from `#lib/domain/waiver-starter.ts`, form stays off), `updateSection`, `deleteSection`, `setIndemnityActive(db, dzId, audience, bool)`, `snapshotForm`,
