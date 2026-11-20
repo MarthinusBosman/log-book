@@ -5,6 +5,7 @@ import { logbookJumps } from '../db/schema.ts';
 import { isDomainError } from './errors.ts';
 import { addJump, assertJumpDateInRange, deleteJump, getJump, importJumps, jumpSequenceHints, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
 import { setRatings } from './profile.ts';
+import { listNotifications } from './notifications.ts';
 import { addSlot, completeLoad, createLoads } from './loads.ts';
 import { DAY, freshDb, makeDropzone, makeUser } from './testing.ts';
 
@@ -88,6 +89,8 @@ describe('sign-off', () => {
 		const signed = await signJump(db, { jumpId: j.id, signerUserId: instructor.id, now: Date.parse('2026-11-14T12:00:00Z') });
 		expect(signed).toMatchObject({ signerUserId: instructor.id, signerName: 'Ivan Instructor', signerLicence: 'D-4242' });
 		expect(signed.signedAt).toBeInstanceOf(Date);
+		const [note] = await listNotifications(db, owner.id);
+		expect(note).toMatchObject({ type: 'jump_signed', body: `Ivan Instructor signed your jump #${j.jumpNumber}.`, href: `/app/logbook/${j.id}` });
 		// a rating also qualifies
 		await setRatings(db, unlicensed.id, 'pasa', [{ rating: 'Coach' }]);
 		const j2 = await addJump(db, owner.id, { jumpDate: DAY });

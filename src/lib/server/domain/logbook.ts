@@ -190,7 +190,7 @@ export async function signJump(
 		type: 'jump_signed',
 		actorUserId: signer.id,
 		dropzoneId: jump.dropzoneId,
-		payload: { actorName: signer.name, jumpNumber: jump.jumpNumber },
+		payload: { actorName: signer.name, jumpNumber: jump.jumpNumber, jumpId: jump.id },
 		now
 	});
 	return rows[0];

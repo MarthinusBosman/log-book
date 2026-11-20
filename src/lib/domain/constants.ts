@@ -466,8 +466,12 @@ export function renderNotification(
 			return { title: 'Checked in', body: `You have been checked in at ${dz}.`, href: '/app' };
 		case 'checked_out':
 			return { title: 'Checked out', body: `You have been checked out at ${dz}.`, href: '/app' };
-		case 'jump_signed':
-			return { title: 'Jump signed', body: `${p.actorName ?? 'Someone'} signed your jump.`, href: '/app/logbook' };
+		case 'jump_signed': {
+			// jumpId/jumpNumber arrived later: older notifications fall back to the logbook list.
+			const num = typeof p.jumpNumber === 'number' ? ` #${p.jumpNumber}` : '';
+			const href = typeof p.jumpId === 'string' && /^[\w-]+$/.test(p.jumpId) ? `/app/logbook/${p.jumpId}` : '/app/logbook';
+			return { title: 'Jump signed', body: `${p.actorName ?? 'Someone'} signed your jump${num}.`, href };
+		}
 		case 'topup_paid':
 		case 'topup_declined': {
 			const amount = typeof p.amount === 'string' ? p.amount : null;

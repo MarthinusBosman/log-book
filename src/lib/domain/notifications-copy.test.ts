@@ -10,6 +10,20 @@ describe('notification copy', () => {
 		expect(renderNotification('load_completed', { loadNumber: 4, day: '2026-11-11' }).body).toContain('Load 4 (Wed 11 Nov) is in your logbook');
 	});
 
+	test('jump sign-off names the jump and links to it (older ones fall back to the logbook)', () => {
+		expect(renderNotification('jump_signed', { actorName: 'Tessa Botha', jumpNumber: 214, jumpId: 'abc123' })).toEqual({
+			title: 'Jump signed',
+			body: 'Tessa Botha signed your jump #214.',
+			href: '/app/logbook/abc123'
+		});
+		expect(renderNotification('jump_signed', { actorName: 'Tessa Botha' })).toEqual({
+			title: 'Jump signed',
+			body: 'Tessa Botha signed your jump.',
+			href: '/app/logbook'
+		});
+		expect(renderNotification('jump_signed', { jumpId: '../../evil' }).href).toBe('/app/logbook');
+	});
+
 	test('top-up outcomes link to that dropzone wallet and cope with a missing amount', () => {
 		expect(renderNotification('topup_paid', { dropzoneName: 'Skydive Demo', dropzoneSlug: 'demo', amount: 'R 500.00' })).toEqual({
 			title: 'Wallet topped up',

@@ -510,8 +510,11 @@ test('sign-off: a licensed jumper signs with a drawn signature; a second signer 
 	const forced = await b.request.post(link, { form: { confirm: '1' }, headers: { accept: 'application/json', origin: new URL(link).origin } });
 	expect(await forced.text()).toContain('already been signed by Ina Instructor');
 
-	// The jumper sees the signer and the drawn signature
-	await page.goto(jumpUrl);
+	// The jumper is told which jump was signed; the note opens that jump
+	await page.goto('/app/notifications');
+	await page.getByTestId('notification-list').getByRole('button', { name: /Ina Instructor signed your jump #120\./ }).click();
+	await expect(page).toHaveURL(jumpUrl);
+	// …and sees the signer and the drawn signature
 	await expect(page.getByTestId('signed')).toContainText('Signed by Ina Instructor');
 	await expect(page.getByTestId('signed')).toContainText('Licence D-777');
 	const img = page.getByTestId('signature-img');
