@@ -64,6 +64,17 @@ export function tandemOverFree(withVideo: boolean, free: number): string | null 
 	return `A tandem needs ${needed} slots, but ${left}. Pick another load or make space first.`;
 }
 
+/**
+ * Tandem tab: the passenger's booked outside video and the picked videographer should agree.
+ * Only a hint (a camera flyer may be swapped in later, or film for free), never a block.
+ */
+export function tandemVideoHint(name: string, extras: readonly string[], withVideo: boolean): string | null {
+	const booked = extras.includes('outside_video');
+	if (booked && !withVideo) return `${name} booked outside video: pick who films them under 3. Outside video.`;
+	if (!booked && withVideo) return `${name} didn't book outside video, so it isn't charged. Add the extra in their slot afterwards if they want it.`;
+	return null;
+}
+
 /** The single "next step" button on a load card. */
 export type NextStep = { action: string; label: string; tone: 'primary' | 'warning' | 'success' };
 export function nextStep(status: LoadStatus): NextStep | null {

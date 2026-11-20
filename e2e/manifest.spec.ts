@@ -561,3 +561,68 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await expect(sheet.locator('section').nth(1)).toContainText('· 09:10');
 	await away.close();
 });
+
+test('Tandem tab adds a passenger + TI group and flags booked outside video without a camera flyer', async ({ page }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Tina Tandem');
+	await page.getByLabel('Email').fill(`tandemtab-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Tandem tab E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// The owner is the TI; outside video is priced so the walk-in can book it.
+	await page.goto('/app/settings/members');
+	await page.getByRole('link', { name: 'Edit roles for Tina Tandem' }).click();
+	await page.locator('dialog[open]').getByRole('checkbox', { name: /Tandem instructor/ }).check();
+	await page.locator('dialog[open]').getByRole('button', { name: 'Save roles' }).click();
+	await expect(page.getByText('Roles updated for Tina Tandem')).toBeVisible();
+	await page.goto('/app/pricelist');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Outside video', { exact: true }).fill('900');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.getByText('Price list updated')).toBeVisible();
+
+	// A walk-in for today with a long name and booked outside video.
+	const pax = 'Maximiliana Wolfeschlegelsteinhausen-Bergerdorff';
+	await page.goto('/app/tandems?new=1');
+	await page.waitForLoadState('networkidle');
+	const create = page.locator('dialog[open] form[method=POST]');
+	await create.getByLabel('Full name').fill(pax);
+	await create.getByLabel('Weight (kg)').fill('70');
+	await create.locator('label', { hasText: 'Outside video' }).getByRole('checkbox').check();
+	await create.getByRole('button', { name: 'Create tandem passenger' }).click();
+	await expect(page.locator('[aria-live]').getByText(/created|added/i).first()).toBeVisible();
+
+	await page.goto('/app/manifest?new=1');
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-TAN');
+	await dialog.getByLabel('Slots (pax)').fill('4');
+	await dialog.getByRole('button', { name: 'Create load', exact: true }).click();
+	await page.locator('[data-testid=load-card][data-load-number="1"]').getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('tab', { name: 'Tandem' }).click();
+	const panel = page.getByRole('tabpanel');
+
+	// The passenger list stays inside the panel on a phone (a fieldset used to grow to its
+	// longest unbreakable line and push the rows past the screen edge).
+	await page.setViewportSize({ width: 390, height: 844 });
+	const overflow = () => panel.locator('form').evaluate((f) => f.querySelector('fieldset')!.getBoundingClientRect().right - f.getBoundingClientRect().right);
+	expect(await overflow()).toBeLessThanOrEqual(0.5);
+
+	await panel.getByRole('radio', { name: new RegExp(pax) }).check();
+	await panel.getByLabel('2. Tandem instructor').selectOption({ label: 'Tina Tandem' });
+	const hint = panel.getByTestId('tandem-video-hint');
+	await expect(hint).toHaveText(`${pax} booked outside video: pick who films them under 3. Outside video.`);
+	await expect(panel.getByText('Uses 2 slots')).toBeVisible();
+	await panel.getByTestId('add-tandem').click();
+	await expect(page.locator(`[data-testid=detail-slot][data-slot-name="${pax}"]`)).toBeVisible();
+	await expect(page.locator('[data-testid=detail-slot][data-slot-name="Tina Tandem"]')).toBeVisible();
+	// The passenger left the Tandem list and the form reset.
+	await expect(panel.getByRole('radio', { name: new RegExp(pax) })).toHaveCount(0);
+	await expect(hint).toHaveCount(0);
+});

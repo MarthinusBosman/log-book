@@ -5,7 +5,7 @@
 	import { cn } from '#lib/ui/cn.ts';
 	import { page } from '$app/state';
 	import { act } from './forms.ts';
-	import { alsoOnLabel, formAction, pickedOverFree, tandemOverFree } from './manifest.ts';
+	import { alsoOnLabel, formAction, pickedOverFree, tandemOverFree, tandemVideoHint } from './manifest.ts';
 	import JumpFields from './JumpFields.svelte';
 	import PeoplePicker, { type Person } from './PeoplePicker.svelte';
 
@@ -88,6 +88,7 @@
 	const overChecked = $derived(pickedOverFree(selChecked.length, free));
 	const overMembers = $derived(pickedOverFree(selMembers.length, free));
 	const overTandem = $derived(tandemOverFree(!!videoId, free));
+	const videoHint = $derived(passenger ? tandemVideoHint(passenger.name, passenger.extras, !!videoId) : null);
 
 	const tabs = $derived([
 		{ id: 'checked', label: 'Checked in', count: checkedIn.filter((c) => !c.onLoad && !flying(c.id)).length },
@@ -237,6 +238,7 @@
 								{#if passenger.depositMinor}<div class="flex justify-between text-muted"><span>Deposit paid</span><span class="tabular-nums">−{formatMoney(passenger.depositMinor, currency)}</span></div>{/if}
 								<div class="mt-2 flex justify-between border-t border-border pt-2 font-semibold"><span>Due at manifest</span><span class="tabular-nums">{formatMoney(passenger.totalMinor - passenger.depositMinor, currency)}</span></div>
 								<p class="mt-1 text-xs text-subtle">Uses {videoId ? 3 : 2} slots</p>
+								{#if videoHint}<p class="mt-2 border-t border-border pt-2 text-xs text-warning" data-testid="tandem-video-hint">{videoHint}</p>{/if}
 							</div>
 						{/if}
 						<input type="text" name="note" placeholder="Additional tandem note (optional)" class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary" />

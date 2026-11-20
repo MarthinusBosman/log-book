@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, tandemOverFree, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, tandemOverFree, tandemVideoHint, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -204,5 +204,16 @@ describe('tandemOverFree (Tandem tab)', () => {
 		expect(tandemOverFree(false, 1)).toBe('A tandem needs 2 slots, but only 1 slot is left. Pick another load or make space first.');
 		expect(tandemOverFree(true, 1)).toBe('A tandem needs 3 slots, but only 1 slot is left. Pick another load or make space first.');
 		expect(tandemOverFree(false, 0)).toBe('This load is full. Pick another load or make space first.');
+	});
+});
+
+describe('tandemVideoHint (Tandem tab)', () => {
+	test('quiet when the booking and the picked camera flyer agree', () => {
+		expect(tandemVideoHint('Kyle', ['outside_video', 'max_altitude'], true)).toBeNull();
+		expect(tandemVideoHint('Kyle', ['handcam'], false)).toBeNull();
+	});
+	test('booked video with nobody filming, and filming nobody pays for', () => {
+		expect(tandemVideoHint('Kyle', ['outside_video'], false)).toBe('Kyle booked outside video: pick who films them under 3. Outside video.');
+		expect(tandemVideoHint('Sarah', ['beach_landing'], true)).toBe("Sarah didn't book outside video, so it isn't charged. Add the extra in their slot afterwards if they want it.");
 	});
 });

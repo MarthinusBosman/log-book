@@ -225,6 +225,12 @@
 		@apply min-h-dvh font-sans;
 	}
 
+	/* Fieldsets default to min-width: min-content, so one long unbreakable line inside
+	   (a `truncate` name or extras list) widens the whole form past a phone's viewport. */
+	fieldset {
+		min-width: 0;
+	}
+
 	::selection {
 		background: rgb(30 107 255 / 0.35);
 	}
