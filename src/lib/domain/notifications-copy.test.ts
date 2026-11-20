@@ -10,6 +10,16 @@ describe('notification copy', () => {
 		expect(renderNotification('load_completed', { loadNumber: 4, day: '2026-11-11' }).body).toContain('Load 4 (Wed 11 Nov) is in your logbook');
 	});
 
+	test('load completed links to the jumper’s own entry (older ones fall back to the logbook)', () => {
+		expect(renderNotification('load_completed', { loadNumber: 4, day: '2026-11-11', jumpId: 'j1', jumpNumber: 121 })).toEqual({
+			title: 'Load completed',
+			body: 'Load 4 (Wed 11 Nov) is in your logbook as jump #121. Add your freefall time and notes.',
+			href: '/app/logbook/j1'
+		});
+		expect(renderNotification('load_completed', { loadNumber: 4, day: '2026-11-11' }).href).toBe('/app/logbook');
+		expect(renderNotification('load_completed', { jumpId: '../x' }).href).toBe('/app/logbook');
+	});
+
 	test('jump sign-off names the jump and links to it (older ones fall back to the logbook)', () => {
 		expect(renderNotification('jump_signed', { actorName: 'Tessa Botha', jumpNumber: 214, jumpId: 'abc123' })).toEqual({
 			title: 'Jump signed',

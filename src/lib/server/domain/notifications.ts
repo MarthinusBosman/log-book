@@ -15,6 +15,8 @@ export type NotifyInput = {
 	dropzoneId?: string | null;
 	actorUserId?: string | null;
 	payload?: NotificationPayload;
+	/** Per-recipient additions merged over `payload` (e.g. that jumper's own logbook entry). */
+	payloadFor?: (userId: string) => NotificationPayload | undefined;
 	now?: number;
 };
 
@@ -31,7 +33,7 @@ export function notifyStatements(db: Database, input: NotifyInput): Statement[] 
 			userId,
 			dropzoneId: input.dropzoneId ?? null,
 			type: input.type,
-			payload: input.payload ?? {},
+			payload: { ...(input.payload ?? {}), ...(input.payloadFor?.(userId) ?? {}) },
 			actorUserId: input.actorUserId ?? null,
 			createdAt
 		}))

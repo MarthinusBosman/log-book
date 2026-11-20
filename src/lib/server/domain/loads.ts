@@ -483,6 +483,7 @@ export async function completeLoad(db: Database, loadId: string, opts: { now?: n
 		statements.push(db.update(tandemPassengers).set({ status: 'completed' }).where(inArray(tandemPassengers.id, tandemIds)));
 	}
 	const notifyIds = jumperIds(load);
+	const jumpOf = new Map(jumps.map((j) => [j.userId, j]));
 	statements.push(
 		...notifyStatements(db, {
 			userIds: notifyIds,
@@ -490,6 +491,11 @@ export async function completeLoad(db: Database, loadId: string, opts: { now?: n
 			dropzoneId: dz.id,
 			actorUserId: opts.by,
 			payload: { dropzoneName: dz.name, loadNumber: load.loadNumber, day: load.day },
+			// Each jumper's notification opens their own new logbook entry.
+			payloadFor: (userId) => {
+				const j = jumpOf.get(userId);
+				return j ? { jumpId: j.id, jumpNumber: j.jumpNumber } : undefined;
+			},
 			now
 		})
 	);

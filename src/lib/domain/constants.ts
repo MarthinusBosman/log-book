@@ -430,12 +430,16 @@ export function renderNotification(
 				href: '/app/check-in'
 			};
 		}
-		case 'load_completed':
+		case 'load_completed': {
+			// jumpId/jumpNumber arrived later: older notifications fall back to the logbook list.
+			const num = typeof p.jumpNumber === 'number' ? ` as jump #${p.jumpNumber}` : '';
+			const href = typeof p.jumpId === 'string' && /^[\w-]+$/.test(p.jumpId) ? `/app/logbook/${p.jumpId}` : '/app/logbook';
 			return {
 				title: 'Load completed',
-				body: `Load ${n} (${notificationDay(p.day)}) is in your logbook. Add your freefall time and notes.`,
-				href: '/app/logbook'
+				body: `Load ${n} (${notificationDay(p.day)}) is in your logbook${num}. Add your freefall time and notes.`,
+				href
 			};
+		}
 		case 'repack_due':
 			return {
 				title: 'Repack notice',

@@ -310,6 +310,11 @@ describe('lifecycle', () => {
 
 		expect((await db.select().from(tandemPassengers).where(eq(tandemPassengers.id, pax.id)))[0].status).toBe('completed');
 		expect((await notes(a.id)).map((n) => n.type)).toContain('load_completed');
+		// each jumper's note points at their own new entry
+		const noteA = (await notes(a.id)).find((n) => n.type === 'load_completed')!;
+		expect(noteA.payload).toMatchObject({ loadNumber: load.loadNumber, jumpId: ja.id, jumpNumber: 121 });
+		const soloJump = (await db.select().from(logbookJumps).where(eq(logbookJumps.userId, solo.id)))[0];
+		expect((await notes(solo.id)).find((n) => n.type === 'load_completed')!.payload).toMatchObject({ jumpId: soloJump.id, jumpNumber: 1 });
 
 		// staff pay credited to wallets (DZ setting)
 		expect((await getAccount(db, ti.id, dz.id))!.availableMinor).toBe(P.pay_tandem!);
