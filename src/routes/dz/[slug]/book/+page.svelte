@@ -98,6 +98,11 @@
 	const first = (j: Jumper, i: number) => j.name.trim().split(/\s+/)[0] || `Jumper ${i + 1}`;
 	const tooYoung = (j: Jumper) => !!j.dob && !!date && ageOn(j.dob, date) < data.minAge;
 	const youngMsg = $derived(`Tandem passengers must be at least ${data.minAge} on the jump date`);
+	// Over the weight limit blocks the booking: say so once, under the field, as soon as it's typed.
+	const overWeight = (j: Jumper) => (j.weightKg ?? 0) > data.limits.maxWeightKg;
+	const weightMsg = $derived(`The tandem weight limit is ${data.limits.maxWeightKg} kg — please contact us`);
+	/** Non-blocking notes (close to the weight limit, height outside the range) for the amber box. */
+	const softWarnings = (j: Jumper) => limitWarnings(overWeight(j) ? { heightCm: j.heightCm } : j, data.limits);
 	// Under the minimum age the booking can't go ahead at all, so don't ask for a guardian.
 	const isMinor = (j: Jumper) => !!j.dob && !!date && ageOn(j.dob, date) < 18 && !tooYoung(j);
 
@@ -146,7 +151,7 @@
 		}
 		for (const el of fs.querySelectorAll<HTMLInputElement>('input[data-weight]')) {
 			const w = Number(el.value);
-			el.setCustomValidity(w > data.limits.maxWeightKg ? `The tandem weight limit is ${data.limits.maxWeightKg} kg — please contact us` : '');
+			el.setCustomValidity(w > data.limits.maxWeightKg ? weightMsg : '');
 		}
 		// Mark every problem in the step at once (not one native bubble per Continue tap), each
 		// under its own field, then focus the first one.
@@ -277,7 +282,7 @@
 			<fieldset data-step="1" hidden={step !== 1} class="flex flex-col gap-4">
 				<legend class="sr-only">Passenger details</legend>
 				{#each jumpers as j, i (i)}
-					{@const warn = limitWarnings(j, data.limits)}
+					{@const warn = softWarnings(j)}
 					<section class="rounded-2xl border border-border bg-surface p-4 sm:p-5">
 						<h2 class="flex items-center gap-2 font-semibold">
 							<span class="grid size-7 place-items-center rounded-full bg-primary/15 text-xs font-bold text-primary">{i + 1}</span>
@@ -289,13 +294,13 @@
 							<Input label="Mobile number" name="j{i}_phone" error={fieldError(`j${i}_phone`)} type="tel" bind:value={j.phone} required inputmode="tel" autocomplete={i === 0 ? 'tel' : 'off'} />
 							<Input label="Date of birth" name="j{i}_dob" error={fieldError(`j${i}_dob`) ?? (tooYoung(j) ? youngMsg : null)} type="date" bind:value={j.dob} required min="1900-01-01" max={data.today} autocomplete={i === 0 ? 'bday' : 'off'} data-dob />
 							<div class="grid grid-cols-2 gap-3">
-								<Input label="Weight (kg)" name="j{i}_weightKg" error={fieldError(`j${i}_weightKg`)} type="number" inputmode="decimal" min="20" max="250" step="0.1" bind:value={j.weightKg} required data-weight />
+								<Input label="Weight (kg)" name="j{i}_weightKg" error={fieldError(`j${i}_weightKg`) ?? (overWeight(j) ? weightMsg : null)} type="number" inputmode="decimal" min="20" max="250" step="0.1" bind:value={j.weightKg} required data-weight />
 								<Input label="Height (cm)" name="j{i}_heightCm" error={fieldError(`j${i}_heightCm`)} type="number" inputmode="numeric" min="80" max="250" bind:value={j.heightCm} />
 							</div>
 						</div>
 						{#if warn.length}
 							<p class="mt-3 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning" role="status">
-								{warn.join(' · ')}. Tandem limits are {data.limits.maxWeightKg} kg and {data.limits.minHeightCm}–{data.limits.maxHeightCm} cm.
+								{warn.join(' · ')}.
 							</p>
 						{/if}
 						{#if isMinor(j)}

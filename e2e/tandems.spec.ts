@@ -607,6 +607,21 @@ test('booking: Continue marks every missing field at once; too young shows inlin
 	await page.locator('input[name=j0_dob]').fill(`${y - 16}-01-01`);
 	await expect(page.locator('input[name=j0_dob]')).not.toHaveAttribute('aria-invalid', 'true');
 	await expect(page.locator('input[name=j0_guardianName]')).toBeVisible();
+
+	// Over the weight limit: one message, under the field, straight away (not repeated in the
+	// amber notes box); that box keeps only soft notes such as the height range.
+	const notes = page.locator('fieldset[data-step="1"] p[role=status]');
+	await page.locator('input[name=j0_weightKg]').fill('130');
+	await expect(page.locator('input[name=j0_weightKg]')).toHaveAttribute('aria-invalid', 'true');
+	await expect(page.locator('input[name=j0_weightKg]')).toHaveAccessibleDescription(/weight limit is 100 kg/);
+	await expect(page.locator('fieldset[data-step="1"]')).not.toContainText('130 kg is over');
+	await page.locator('input[name=j0_heightCm]').fill('210');
+	await expect(notes).toHaveText('Height 210 cm is outside 140–200 cm.');
+	await expect(notes).not.toContainText('Weight');
+	// Close to the limit is a soft note, not an error.
+	await page.locator('input[name=j0_weightKg]').fill('98');
+	await expect(page.locator('input[name=j0_weightKg]')).not.toHaveAttribute('aria-invalid', 'true');
+	await expect(notes).toContainText('Weight 98 kg is close to the 100 kg limit');
 });
 
 // New dropzones take their country (and so currency) from the browser timezone: pin it so CI (UTC) quotes rand too.
