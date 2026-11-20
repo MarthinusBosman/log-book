@@ -275,12 +275,31 @@ export async function updateLoad(db: Database, loadId: string, patch: LoadPatch,
 	if (patch.shutdownMinutes != null && (!Number.isInteger(patch.shutdownMinutes) || patch.shutdownMinutes < 0)) {
 		throw new DomainError('invalid', 'Shutdown minutes must be a positive whole number');
 	}
+	if (patch.pilotUserId && patch.pilotUserId !== load.pilotUserId) {
+		const jumping = load.slots.find((s) => s.userId === patch.pilotUserId);
+		if (jumping) {
+			throw new DomainError('conflict', `${jumping.displayName} is manifested on this load. Take them off it first, or pick another pilot.`, {
+				userId: patch.pilotUserId
+			});
+		}
+	}
 	const next = { ...load, ...set } as Load;
 	if ((next.capacity ?? 0) < load.slots.length) {
 		throw new DomainError('load_full', 'Capacity is lower than the number of manifested slots');
 	}
 	await db.update(loads).set(set).where(eq(loads.id, loadId));
 	return getLoad(db, loadId);
+}
+
+/** The load's pilot can't also take a jumper slot on it (they'd count twice in the weight too). */
+function assertNotFlying(load: Pick<Load, 'pilotUserId' | 'pilotName'>, userIds: Iterable<string | null | undefined>, self = false): void {
+	if (!load.pilotUserId) return;
+	for (const id of userIds) {
+		if (id === load.pilotUserId) {
+			const who = self ? "You're" : `${load.pilotName || 'That person'} is`;
+			throw new DomainError('conflict', `${who} flying this load, so ${self ? 'you' : 'they'} can't jump on it.`, { userId: id });
+		}
+	}
 }
 
 /** Open (jumpers may self-manifest) / close a load. */
@@ -616,6 +635,7 @@ export async function addSlots(db: Database, loadId: string, inputs: SlotInput[]
 		}
 		adding.add(i.userId);
 	}
+	assertNotFlying(load, adding, opts.selfManifest);
 	const dz = await dzRow(db, load.dropzoneId);
 	const prices = await getPriceMap(db, dz.id);
 	const start = load.slots.reduce((m, s) => Math.max(m, s.position), -1) + 1;
@@ -861,6 +881,7 @@ export async function moveSlot(
 	const targets = opts.withGroup && slot.groupId ? from.slots.filter((s) => s.groupId === slot.groupId) : [slot];
 	const onTarget = new Set(to.slots.map((s) => s.userId).filter(Boolean));
 	if (targets.some((t) => t.userId && onTarget.has(t.userId))) throw new DomainError('already_on_load', 'Already on the target load');
+	assertNotFlying(to, targets.map((t) => t.userId));
 	assertFits(to, to.slots, targets);
 	const start = to.slots.reduce((m, s) => Math.max(m, s.position), -1) + 1;
 	const dz = await dzRow(db, from.dropzoneId);

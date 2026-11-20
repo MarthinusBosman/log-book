@@ -25,8 +25,11 @@
 		staff: Staff[];
 		passengers: Passenger[];
 		teams: Team[];
+		/** The load's pilot: shown but not pickable as a jumper. */
+		pilotId?: string | null;
 	};
-	let { loadId, currency, free, walletEnabled, checkedIn, members, staff, passengers, teams }: Props = $props();
+	let { loadId, currency, free, walletEnabled, checkedIn, members, staff, passengers, teams, pilotId = null }: Props = $props();
+	const flying = (id: string) => (pilotId && id === pilotId ? 'Flying this load' : null);
 
 	let tab = $state('checked');
 	let busy = $state(false);
@@ -59,11 +62,12 @@
 			weightKg: c.weightKg,
 			warn: c.expired ? 'Expired' : null,
 			onLoad: c.onLoad,
+			blocked: flying(c.id),
 			alsoOn: c.otherLoads
 		}))
 	);
 	const memberPeople = $derived<Person[]>(
-		members.map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, sub: m.licence ?? m.roles.map((r) => ROLE_LABELS[r]).join(', '), onLoad: m.onLoad, alsoOn: m.otherLoads }))
+		members.map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, sub: m.licence ?? m.roles.map((r) => ROLE_LABELS[r]).join(', '), onLoad: m.onLoad, blocked: flying(m.id), alsoOn: m.otherLoads }))
 	);
 	const staffPeople = $derived<Person[]>(
 		staff.map((s) => ({
@@ -73,15 +77,16 @@
 			sub: s.roles.filter((r) => r !== 'jumper').map((r) => ROLE_LABELS[r]).join(', '),
 			colour: s.colour,
 			onLoad: s.onLoad,
+			blocked: flying(s.id),
 			alsoOn: s.otherLoads
 		}))
 	);
-	const tis = $derived(staff.filter((s) => s.roles.includes('tandem_instructor') && !s.onLoad));
-	const videos = $derived(staff.filter((s) => s.roles.includes('videographer') && !s.onLoad));
+	const tis = $derived(staff.filter((s) => s.roles.includes('tandem_instructor') && !s.onLoad && !flying(s.id)));
+	const videos = $derived(staff.filter((s) => s.roles.includes('videographer') && !s.onLoad && !flying(s.id)));
 	const passenger = $derived(passengers.find((p) => p.id === passengerId) ?? null);
 
 	const tabs = $derived([
-		{ id: 'checked', label: 'Checked in', count: checkedIn.filter((c) => !c.onLoad).length },
+		{ id: 'checked', label: 'Checked in', count: checkedIn.filter((c) => !c.onLoad && !flying(c.id)).length },
 		{ id: 'tandem', label: 'Tandem', count: passengers.length },
 		{ id: 'team', label: 'Team', count: teams.length },
 		{ id: 'staff', label: 'Staff' },

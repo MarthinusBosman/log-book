@@ -176,6 +176,7 @@
 				staff={data.staff}
 				passengers={data.passengers}
 				teams={data.teams}
+				pilotId={load.pilotUserId}
 			/>
 		{:else}
 			<div class="rounded-2xl border border-border bg-surface p-5 text-sm text-muted">

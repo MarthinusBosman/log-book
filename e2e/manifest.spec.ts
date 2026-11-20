@@ -421,6 +421,32 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await expect(row.locator('[data-also-on]')).toHaveText('On load 1');
 	await expect(row.getByRole('checkbox')).toBeEnabled();
 
+	// Pilots can't jump on the load they fly: make Olga a pilot too, fly load 2 → her row is
+	// disabled there; on load 1 (where she jumps) picking her as pilot is refused.
+	await page.goto('/app/settings/members');
+	await page.getByRole('link', { name: 'Edit roles for Olga Onload' }).click();
+	await page.locator('dialog[open]').getByRole('checkbox', { name: /Pilot/ }).check();
+	await page.locator('dialog[open]').getByRole('button', { name: 'Save roles' }).click();
+	await expect(page.getByText('Roles updated for Olga Onload')).toBeVisible();
+	await page.goto('/app/manifest');
+	await page.locator('[data-testid=load-card][data-load-number="2"]').getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.getByText('Plane, pilot & time').click();
+	await page.getByLabel('Pilot', { exact: true }).selectOption({ label: 'Olga Onload' });
+	await page.getByRole('button', { name: 'Save load' }).click();
+	await expect(page.locator('[aria-live]').getByText('Load updated')).toBeVisible();
+	await page.getByRole('tab', { name: 'Members' }).click();
+	const pilotRow = page.getByRole('tabpanel').locator('label', { has: page.getByRole('checkbox', { name: /Olga Onload/ }) });
+	await expect(pilotRow).toContainText('Flying this load');
+	await expect(pilotRow.getByRole('checkbox')).toBeDisabled();
+	await page.goto('/app/manifest');
+	await load1.getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.getByText('Plane, pilot & time').click();
+	await page.getByLabel('Pilot', { exact: true }).selectOption({ label: 'Olga Onload' });
+	await page.getByRole('button', { name: 'Save load' }).click();
+	await expect(page.locator('[aria-live]').getByText('Olga Onload is manifested on this load. Take them off it first, or pick another pilot.')).toBeVisible();
+
 	// on a phone the panel sits below the slot list: the board's "Add slots" lands on it
 	await page.setViewportSize({ width: 390, height: 844 });
 	await page.goto('/app/manifest');

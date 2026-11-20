@@ -23,6 +23,7 @@ import {
 	moveSlot,
 	setLoadOpen,
 	startCall,
+	updateLoad,
 	updateSlot
 } from './loads.ts';
 import { createAircraft } from './dropzone-admin.ts';
@@ -154,6 +155,30 @@ describe('manifest rules', () => {
 		expect(isDomainError(await addSlot(db, load.id, { userId: walkin.id, jumpType: 'belly' }).catch((e) => e), 'not_checked_in')).toBe(true);
 		await checkIn(db, { dropzoneId: dz.id, userId: walkin.id });
 		await addSlot(db, load.id, { userId: walkin.id, jumpType: 'belly' });
+	});
+
+	test("the load's pilot can't jump on it: add, self-manifest, move and pilot change refused", async () => {
+		const { dz } = await makeDropzone(db);
+		const pilot = await makeMember(db, dz.id, ['pilot'], { name: 'Pat Pilot', weightKg: 80 });
+		const [load, other] = await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 6, count: 2, pilotUserId: pilot.id, open: true, now: NOW });
+		const u = await makeUser(db);
+		const err = await addSlots(db, load.id, [{ userId: u.id, jumpType: 'belly' }, { userId: pilot.id, jumpType: 'belly' }], { now: NOW }).catch((e) => e);
+		expect(isDomainError(err, 'conflict')).toBe(true);
+		expect(err.message).toBe("Pat Pilot is flying this load, so they can't jump on it.");
+		expect((await getLoad(db, load.id)).slots).toHaveLength(0); // all-or-nothing
+		const self = await joinLoad(db, { loadId: load.id, userId: pilot.id, jumpType: 'belly', now: NOW }).catch((e) => e);
+		expect(self.message).toBe("You're flying this load, so you can't jump on it.");
+
+		// Jumping on another load is fine, but not moving that slot onto the load they fly.
+		await updateLoad(db, other.id, { pilotUserId: null, pilotName: 'Someone else', pilotWeightKg: 70 }, NOW);
+		const slot = await addSlot(db, other.id, { userId: pilot.id, jumpType: 'belly' }, { now: NOW });
+		expect(isDomainError(await moveSlot(db, slot.id, load.id, { now: NOW }).catch((e) => e), 'conflict')).toBe(true);
+
+		// Making a manifested jumper the pilot is refused too; keeping the same pilot is fine.
+		const changed = await updateLoad(db, other.id, { pilotUserId: pilot.id }, NOW).catch((e) => e);
+		expect(isDomainError(changed, 'conflict')).toBe(true);
+		expect(changed.message).toBe('Pat Pilot is manifested on this load. Take them off it first, or pick another pilot.');
+		await updateLoad(db, load.id, { pilotUserId: pilot.id, requirements: 'Sunset' }, NOW);
 	});
 
 	test('self-manifest only on open loads; staff add notifies the jumper', async () => {

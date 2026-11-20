@@ -7,6 +7,8 @@
 		weightKg?: number | null;
 		warn?: string | null;
 		onLoad?: boolean;
+		/** Why this person can't be picked here (e.g. "Flying this load"); disables the row. */
+		blocked?: string | null;
 		/** other loads that day this person is already on (load numbers) */
 		alsoOn?: number[];
 		colour?: string | null;
@@ -56,11 +58,12 @@
 	<ul class="max-h-64 overflow-y-auto rounded-xl border border-border bg-surface p-1" role="list">
 		{#each filtered as p (p.id)}
 			{@const on = selected.includes(p.id)}
+			{@const off = p.onLoad || !!p.blocked}
 			<li>
 				<label
 					class={cn(
 						'flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm transition-colors',
-						p.onLoad ? 'cursor-not-allowed opacity-50' : on ? 'bg-primary/10' : 'hover:bg-surface-2'
+						off ? 'cursor-not-allowed opacity-50' : on ? 'bg-primary/10' : 'hover:bg-surface-2'
 					)}
 				>
 					<input
@@ -68,7 +71,7 @@
 						{name}
 						value={p.id}
 						checked={on}
-						disabled={p.onLoad}
+						disabled={off}
 						onchange={(e) => toggle(p.id, (e.currentTarget as HTMLInputElement).checked)}
 						class="size-4 shrink-0 accent-[var(--dz-primary)]"
 					/>
@@ -77,10 +80,10 @@
 						<span class="flex items-center gap-1.5 truncate font-medium">
 							{#if p.colour}<span class="size-2 rounded-full" style="background:{p.colour}"></span>{/if}{p.name}
 						</span>
-						{#if p.sub || p.onLoad}<span class="block truncate text-xs text-muted">{p.onLoad ? 'Already on this load' : p.sub}</span>{/if}
+						{#if p.sub || off}<span class="block truncate text-xs text-muted">{p.onLoad ? 'Already on this load' : (p.blocked ?? p.sub)}</span>{/if}
 					</span>
 					{#if p.warn}<span class="shrink-0 rounded-md bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger uppercase">{p.warn}</span>{/if}
-					{#if !p.onLoad && p.alsoOn?.length}
+					{#if !off && p.alsoOn?.length}
 						<span class="shrink-0 rounded-md border border-border px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-muted" data-also-on title="Already manifested on another load today">
 							{alsoOnLabel(p.alsoOn, true)}
 						</span>
