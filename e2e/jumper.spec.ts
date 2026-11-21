@@ -197,12 +197,15 @@ test('self-manifest stops at boarding: the jumper can no longer join or leave', 
 	await expect(page.getByTestId('checked-in')).toBeVisible();
 	await page.waitForLoadState('networkidle');
 	const load1 = page.locator('[data-testid=load-card][data-load="1"]');
+	// same count as the dashboard's "N open now" (boarding/full/own loads aren't joinable)
+	await expect(page.getByTestId('loads-summary')).toHaveText('2 open to join');
 	const load2Id = new URLSearchParams(
 		(await page.locator('[data-testid=load-card][data-load="2"]').getByTestId('join-solo').getAttribute('href'))!.slice(1)
 	).get('join')!;
 	await load1.getByTestId('join-solo').click();
 	await load1.getByRole('button', { name: 'Join this load' }).click();
 	await expect(load1.getByText('You’re on this load')).toBeVisible();
+	await expect(page.getByTestId('loads-summary')).toHaveText('1 open to join');
 
 	// Team jump with no team yet: just the way to a team (no jump type, price or dead button),
 	// and the link opens the create form (it used to point at a 404).
@@ -226,6 +229,7 @@ test('self-manifest stops at boarding: the jumper can no longer join or leave', 
 
 	await page.goto('/app/check-in');
 	await expect(load1.getByTestId('boarding-note')).toBeVisible();
+	await expect(page.getByTestId('loads-summary')).toHaveText('2 today');
 	await expect(load1.getByRole('button', { name: 'Leave' })).toHaveCount(0);
 	const load2 = page.locator('[data-testid=load-card][data-load="2"]');
 	await expect(load2.getByRole('button', { name: 'Boarding · ask manifest' })).toBeDisabled();

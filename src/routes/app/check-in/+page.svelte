@@ -3,14 +3,14 @@
 	import { enhance } from '$app/forms';
 	import { page } from '$app/state';
 	import { openInPlace } from '#lib/components/staffadmin/open-dialog.ts';
-	import { formatMoney } from '#lib/domain/constants.ts';
+	import { formatMoney, SELF_SERVICE_LOAD_STATUSES } from '#lib/domain/constants.ts';
 	import { Badge, Button, Card, ConfirmAction, EmptyState, Icon, Input, Select, toast } from '#lib/ui/index.ts';
 	import PageHeader from '#lib/components/jumper/PageHeader.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import Toggle from '#lib/components/jumper/Toggle.svelte';
 	import LoadCard from '#lib/components/jumper/LoadCard.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
-	import { fmtTime } from '#lib/components/jumper/format.ts';
+	import { fmtTime, joinableCount } from '#lib/components/jumper/format.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -204,7 +204,10 @@
 
 			<div class="flex items-end justify-between">
 				<h2 class="text-lg font-semibold tracking-tight">Today’s loads</h2>
-				<p class="text-sm text-muted">{data.loads.length} open</p>
+				{#if data.loads.length}
+					{@const joinable = joinableCount(data.loads, SELF_SERVICE_LOAD_STATUSES)}
+					<p class="text-sm text-muted" data-testid="loads-summary">{joinable ? `${joinable} open to join` : `${data.loads.length} today`}</p>
+				{/if}
 			</div>
 			{#each data.loads as load (load.id)}
 				<LoadCard

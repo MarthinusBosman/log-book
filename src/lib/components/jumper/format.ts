@@ -138,14 +138,24 @@ export function dueLabel(info: { status: DueStatus; daysLeft: number | null }, w
 	}
 }
 
-/** Countdown text for a future instant: '12:04' (mm:ss) or '1h 05m'; null when past. */
+/**
+ * Countdown text for a future instant: '12m 04s', '45s' or '1h 05m'; null when past. Units on
+ * purpose: a bare '11:29' next to a load's scheduled time ('Cessna Caravan · 11:00') reads as a
+ * clock time.
+ */
 export function countdown(target: number, now: number): string | null {
 	const s = Math.floor((target - now) / 1000);
 	if (s <= 0) return null;
 	const h = Math.floor(s / 3600);
 	const m = Math.floor((s % 3600) / 60);
 	if (h) return `${h}h ${String(m).padStart(2, '0')}m`;
-	return `${m}:${String(s % 60).padStart(2, '0')}`;
+	if (!m) return `${s}s`;
+	return `${m}m ${String(s % 60).padStart(2, '0')}s`;
+}
+
+/** Loads a jumper can still join (self-service status, not full, not already on it); matches the dashboard's "N open now". */
+export function joinableCount(loads: { status: string; full: boolean; mine: unknown }[], selfService: readonly string[]): number {
+	return loads.filter((l) => selfService.includes(l.status) && !l.full && !l.mine).length;
 }
 
 /** Jumper's wallet as the self-manifest join form sees it. */

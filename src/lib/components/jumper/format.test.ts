@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { exportQuery, fmtFreefall, groupByDay, loggedScope, relativeTime, walletShortfall } from './format.ts';
+import { countdown, exportQuery, fmtFreefall, groupByDay, joinableCount, loggedScope, relativeTime, walletShortfall } from './format.ts';
 
 test('relativeTime prints older instants on the given timezone calendar', () => {
 	const now = Date.parse('2026-11-18T10:00:00Z');
@@ -78,4 +78,31 @@ test('fmtFreefall', () => {
 	expect(fmtFreefall(45)).toBe('45s');
 	expect(fmtFreefall(275)).toBe('4m 35s');
 	expect(fmtFreefall(3 * 3600 + 120)).toBe('3h 02m');
+});
+
+describe('countdown', () => {
+	test('carries units so it never reads as a clock time', () => {
+		const now = 1_000_000;
+		expect(countdown(now + (11 * 60 + 29) * 1000, now)).toBe('11m 29s');
+		expect(countdown(now + (5 * 60 + 4) * 1000 + 500, now)).toBe('5m 04s');
+		expect(countdown(now + 45_000, now)).toBe('45s');
+		expect(countdown(now + (65 * 60) * 1000, now)).toBe('1h 05m');
+		expect(countdown(now, now)).toBeNull();
+		expect(countdown(now - 1000, now)).toBeNull();
+	});
+});
+
+describe('joinableCount', () => {
+	test('counts loads the jumper can still join, like the dashboard', () => {
+		const ss = ['planned', 'open', 'called'];
+		const loads = [
+			{ status: 'boarding', full: false, mine: null },
+			{ status: 'called', full: false, mine: null },
+			{ status: 'open', full: true, mine: null },
+			{ status: 'open', full: false, mine: { slotId: 's' } },
+			{ status: 'open', full: false, mine: null }
+		];
+		expect(joinableCount(loads, ss)).toBe(2);
+		expect(joinableCount([], ss)).toBe(0);
+	});
 });
