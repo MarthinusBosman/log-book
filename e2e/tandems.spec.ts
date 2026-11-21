@@ -513,6 +513,21 @@ test('booking: the time picker is one tab stop and arrow keys move between times
 	await page.keyboard.press('Tab');
 	await expect(radios.nth(1)).not.toBeFocused();
 	await expect(group.locator(':focus')).toHaveCount(0);
+
+	// A group bigger than a time's places: picking that time keeps the group size (it used to drop
+	// jumpers silently) and says so, with a one-tap way to book what fits.
+	await page.reload();
+	await page.waitForLoadState('networkidle');
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	await page.getByRole('button', { name: 'More jumpers' }).click();
+	await page.getByRole('button', { name: 'More jumpers' }).click();
+	await expect(page.getByTestId('count')).toHaveText('3');
+	await page.locator('[data-time="11:00"]').click();
+	await expect(page.getByTestId('count')).toHaveText('3');
+	await expect(page.getByTestId('too-few')).toContainText('Only 2 places left at 11:00 for your group of 3.');
+	await page.getByTestId('too-few').getByRole('button', { name: 'book 2 jumpers at 11:00' }).click();
+	await expect(page.getByTestId('count')).toHaveText('2');
+	await expect(page.getByTestId('too-few')).toHaveCount(0);
 });
 
 test('booking: the calendar is one tab stop and arrow keys move between bookable days', async ({ page }) => {

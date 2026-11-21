@@ -81,9 +81,10 @@
 		if (jumpers.length < count) jumpers.push(...Array.from({ length: count - jumpers.length }, blank));
 		else if (jumpers.length > count) jumpers.length = count;
 	});
-	$effect(() => {
-		if (count > maxCount) count = maxCount;
-	});
+	// Never shrink the group behind the customer's back when they pick a time with fewer places
+	// than jumpers: keep the count and say so next to the times (Continue is blocked until fixed).
+	const tooFew = $derived(!!time && slotLeft > 0 && slotLeft < count);
+	const placesLeft = (n: number) => `${n} place${n === 1 ? '' : 's'} left`;
 
 	const money = (m: number) => formatMoney(m, data.dz.currency);
 	const extraPrice = (code: SlotExtra) => data.offer.extras.find((e) => e.code === code)?.priceMinor ?? 0;
@@ -264,12 +265,25 @@
 										)}
 									>
 										<span class="font-mono text-base font-semibold tabular-nums">{t.time}</span>
-										<span class={cn('text-[11px]', time === t.time ? 'text-primary-fg' : t.remaining <= 2 && t.remaining ? 'text-warning' : 'text-muted')}>
+										<span
+											class={cn(
+												'text-[11px]',
+												time === t.time ? 'text-primary-fg' : t.remaining && (t.remaining <= 2 || t.remaining < count) ? 'text-warning' : 'text-muted'
+											)}
+										>
 											{t.remaining ? `${t.remaining} left` : 'Full'}
 										</span>
 									</button>
 								{/each}
 							</div>
+							{#if tooFew}
+								<p data-testid="too-few" role="status" class="mt-3 rounded-xl border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+									Only {placesLeft(slotLeft)} at {time} for your group of {count}. Pick another time, or
+									<button type="button" class="font-medium underline underline-offset-2 hover:no-underline" onclick={() => (count = slotLeft)}>
+										book {slotLeft} {slotLeft === 1 ? 'jumper' : 'jumpers'} at {time}
+									</button>.
+								</p>
+							{/if}
 						{:else}
 							<p class="mt-2 text-sm text-muted">Days with open places are highlighted.</p>
 						{/if}
