@@ -830,3 +830,55 @@ test('slots: a time that has already passed today is refused, repeats start on t
 	await expect(page.getByTestId('slot-day')).toHaveCount(4);
 	await expect(page.getByTestId('slot-day').filter({ hasText: 'Today' })).toHaveCount(0);
 });
+
+test('booking: paying at the dropzone doesn’t promise a deposit that is never taken', async ({ page }) => {
+	const stamp = `${test.info().project.name}-${Date.now()}`;
+	const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Dee Deposit');
+	await page.getByLabel('Email').fill(`deposit-${stamp}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Deposit DZ ${stamp}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/pricelist');
+	await page.waitForLoadState('networkidle');
+	await page.locator('input[name=tandem_slot]').first().fill('3200');
+	await page.locator('input[name=tandem_deposit]').first().fill('500');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.getByText('Price list updated')).toBeVisible();
+	await page.goto('/app/tandems/slots');
+	await page.getByLabel('Date', { exact: true }).fill(tomorrow);
+	await page.getByLabel('Time', { exact: true }).fill('10:00');
+	await page.getByLabel('Places', { exact: true }).fill('2');
+	await page.getByRole('button', { name: 'Add slots' }).click();
+	await expect(page.locator('[data-testid="slot-day"]').first()).toContainText('10:00');
+	await page.goto('/app/tandems');
+	const href = await page.getByRole('link', { name: /\/dz\/.+\/book$/ }).getAttribute('href');
+
+	await page.goto(href!);
+	await page.waitForLoadState('networkidle');
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	await page.locator('[data-time="10:00"]').click();
+	await clickVisible(page, ['next', 'next-mobile']);
+	await page.locator('input[name=j0_name]').fill('Pat Passenger');
+	await page.locator('input[name=j0_email]').fill('pat@example.com');
+	await page.locator('input[name=j0_phone]').fill('0820001111');
+	await page.locator('input[name=j0_dob]').fill('1990-05-05');
+	await page.locator('input[name=j0_weightKg]').fill('72');
+	await page.locator('input[name=j0_emergencyName]').fill('Sam Contact');
+	await page.locator('input[name=j0_emergencyPhone]').fill('0820002222');
+	await clickVisible(page, ['next', 'next-mobile']);
+	await expect(page.getByTestId('step-heading')).toHaveText('Make it yours');
+	// No online payment connected: only "Pay at the dropzone", which takes no deposit. The page used
+	// to say "A deposit of R 500,00 per jumper secures your place" (and list a Deposit row) anyway.
+	await expect(page.getByTestId('terms')).toBeVisible();
+	expect(await page.getByTestId('deposit-note').count()).toBe(0);
+	expect(await page.getByTestId('pay-deposit').count()).toBe(0);
+	await expect(page.locator('main')).not.toContainText('secures your place');
+	await expect(page.getByTestId('due-now')).toContainText('pay at the DZ');
+	await expect(page.locator('aside dt', { hasText: 'Deposit' })).toHaveCount(0);
+});

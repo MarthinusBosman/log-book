@@ -113,6 +113,7 @@ test('payments: connect providers → tandem deposit via PayFast ITN → wallet 
 	await clickVisible(page, ['next', 'next-mobile']);
 	await page.getByTestId('provider-payfast').check();
 	await page.getByTestId('pay-deposit').check();
+	await expect(page.getByTestId('deposit-note')).toContainText('secures your place');
 	await page.getByTestId('terms').check();
 	await clickVisible(page, ['confirm', 'confirm-mobile']);
 	// /pay/:id auto-posts the signed form to (mock) PayFast, which checks the signature.

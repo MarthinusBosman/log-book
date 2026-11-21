@@ -427,11 +427,12 @@
 					{:else if online}
 						<input type="hidden" name="pay" value="full" />
 					{/if}
-					{#if data.offer.depositMinor > 0}
-						<p class="mt-3 text-sm text-muted">
+					{#if online && data.offer.depositMinor > 0}
+						<p class="mt-3 text-sm text-muted" data-testid="deposit-note">
 							A deposit of <span class="font-medium text-fg">{money(data.offer.depositMinor)}</span> per jumper secures your place. It’s non-refundable if you cancel within 48 hours.
 						</p>
 					{/if}
+					<!-- pay at the dropzone takes no deposit, so the note (and the summary's Deposit row) only show for online payment -->
 					{#if online}
 						<p class="mt-2 text-xs text-subtle">You’ll be taken to {providerLabel}’s secure page. Your payment goes straight to {data.dz.name}.</p>
 					{/if}
@@ -493,7 +494,7 @@
 						<dt>Total</dt>
 						<dd class="text-right tabular-nums" data-testid="total">{priced ? money(total) : UNPRICED}</dd>
 					</div>
-					{#if deposit > 0}
+					{#if online && deposit > 0}
 						<div class="flex justify-between text-xs text-muted"><dt>Deposit</dt><dd class="tabular-nums">{money(deposit)}</dd></div>
 					{/if}
 					<div class="flex justify-between text-xs text-muted"><dt>Due today</dt><dd class="tabular-nums" data-testid="due-now">{online ? `${money(dueNow)} · online` : `${money(0)} · pay at the DZ`}</dd></div>
