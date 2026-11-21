@@ -518,12 +518,17 @@ test('booking: the time picker is one tab stop and arrow keys move between times
 	// jumpers silently) and says so, with a one-tap way to book what fits.
 	await page.reload();
 	await page.waitForLoadState('networkidle');
-	await page.locator(`[data-date="${tomorrow}"]`).click();
-	await page.getByRole('button', { name: 'More jumpers' }).click();
-	await page.getByRole('button', { name: 'More jumpers' }).click();
+	const more = page.getByRole('button', { name: 'More jumpers' });
+	await more.click();
+	await more.click();
 	await expect(page.getByTestId('count')).toHaveText('3');
+	await page.locator(`[data-date="${tomorrow}"]`).click();
+	// Every time that day has 2 places: the stepper caps at 2 instead of the DZ's group maximum.
+	await expect(page.getByTestId('count-max')).toHaveText('up to 2');
+	await expect(more).toBeDisabled();
 	await page.locator('[data-time="11:00"]').click();
 	await expect(page.getByTestId('count')).toHaveText('3');
+	await expect(page.getByTestId('count-max')).toHaveText('up to 2 at 11:00');
 	await expect(page.getByTestId('too-few')).toContainText('Only 2 places left at 11:00 for your group of 3.');
 	await page.getByTestId('too-few').getByRole('button', { name: 'book 2 jumpers at 11:00' }).click();
 	await expect(page.getByTestId('count')).toHaveText('2');

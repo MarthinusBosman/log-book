@@ -74,7 +74,10 @@
 		const group = (e.currentTarget as HTMLElement).parentElement;
 		(group?.children[to] as HTMLElement | undefined)?.focus();
 	}
-	const maxCount = $derived(Math.min(data.maxJumpers, Math.max(1, slotLeft || data.maxJumpers)));
+	// The stepper's cap: the picked time's places, else the most any time on the picked day has
+	// (no point offering 5 when every time that day has 4 left), else the DZ's group maximum.
+	const dayMax = $derived(times.reduce((n, t) => Math.max(n, t.remaining), 0));
+	const maxCount = $derived(Math.min(data.maxJumpers, Math.max(1, (time ? slotLeft : dayMax) || data.maxJumpers)));
 
 	$effect(() => {
 		// keep the jumpers array in step with the count
@@ -294,7 +297,7 @@
 							<Button size="icon" variant="secondary" onclick={() => (count = Math.max(1, count - 1))} disabled={count <= 1} aria-label="Fewer jumpers">−</Button>
 							<span class="w-10 text-center text-2xl font-semibold tabular-nums" data-testid="count">{count}</span>
 							<Button size="icon" variant="secondary" onclick={() => (count = Math.min(maxCount, count + 1))} disabled={count >= maxCount} aria-label="More jumpers">+</Button>
-							<span class="text-sm text-muted">up to {maxCount}</span>
+							<span class="text-sm text-muted" data-testid="count-max">up to {maxCount}{time && slotLeft ? ` at ${time}` : ''}</span>
 						</div>
 					</div>
 				</div>
