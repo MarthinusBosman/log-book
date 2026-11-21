@@ -204,7 +204,7 @@
 					<div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Who are you paying for">
 						{#each [{ id: 'group', title: `Whole group · ${po.group.count} jumpers` }, { id: 'me', title: 'Just me' }] as o (o.id)}
 							<label class="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm has-[:checked]:border-primary/60 has-[:checked]:bg-primary/5">
-								<input type="radio" name="who" value={o.id} bind:group={who} class="size-4 accent-[var(--dz-primary)]" data-testid="who-{o.id}" />
+								<input type="radio" name="who" value={o.id} bind:group={who} class="size-4 shrink-0 accent-[var(--dz-primary)]" data-testid="who-{o.id}" />
 								<span class="font-medium">{o.title}</span>
 							</label>
 						{/each}
@@ -216,7 +216,7 @@
 					<div class="grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="How much to pay">
 						{#each [{ id: 'deposit', title: `Deposit · ${money(cur.deposit)}` }, { id: 'balance', title: `Full balance · ${money(cur.balance)}` }] as o (o.id)}
 							<label class="flex cursor-pointer items-center gap-3 rounded-xl border border-border p-3 text-sm has-[:checked]:border-primary/60 has-[:checked]:bg-primary/5">
-								<input type="radio" name="pay" value={o.id} bind:group={payWhat} class="size-4 accent-[var(--dz-primary)]" />
+								<input type="radio" name="pay" value={o.id} bind:group={payWhat} class="size-4 shrink-0 accent-[var(--dz-primary)]" />
 								<span class="font-medium tabular-nums">{o.title}</span>
 							</label>
 						{/each}

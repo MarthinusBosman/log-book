@@ -170,6 +170,35 @@ test('keyboard: every Tab stop on staff and jumper pages shows a focus ring', as
 	expect(misses).toEqual({});
 });
 
+/** Visible `size-N` boxes (icon tiles, checkboxes, radios) that flex layout squeezed out of square. */
+async function squashedBoxes(page: Page) {
+	return page.locator('[class*="size-"]').evaluateAll((els) =>
+		els
+			.filter((e) => /(^|\s)size-\d/.test(e.getAttribute('class') ?? '') && e.getClientRects().length)
+			.map((e) => ({ e, r: e.getBoundingClientRect() }))
+			.filter(({ r }) => Math.abs(r.width - r.height) > 1)
+			.map(({ e, r }) => `${Math.round(r.width)}×${Math.round(r.height)} ${e.closest('a,label,li,div')?.textContent?.trim().slice(0, 30)}`)
+	);
+}
+
+test('layout: icon tiles and checkboxes stay square next to wrapping text', async ({ page }) => {
+	await signup(page, 'Sam Square');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Square QA ${test.info().project.name} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	const misses: Record<string, string[]> = {};
+	for (const width of [1280, 390]) {
+		await page.setViewportSize({ width, height: 844 });
+		for (const path of ['/app/profile', '/app/check-in', '/app/feedback', '/app/profile/delete']) {
+			await page.goto(path);
+			const bad = await squashedBoxes(page);
+			if (bad.length) misses[`${width} ${path}`] = bad;
+		}
+	}
+	expect(misses).toEqual({});
+});
+
 test('keyboard: "Skip to content" is the first Tab stop and jumps past the navigation', async ({ page, browser }) => {
 	await signup(page, 'Kim Keyboard');
 	await page.goto('/app/logbook');

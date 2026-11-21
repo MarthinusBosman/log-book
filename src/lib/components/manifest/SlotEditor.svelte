@@ -122,7 +122,7 @@
 					{#if !s.userId}<Input label="Name" name="displayName" value={s.displayName} />{/if}
 					<label class="flex items-center gap-2.5 text-sm">
 						<input type="hidden" name="lmSent" value="1" />
-						<input type="checkbox" name="isLoadMaster" checked={s.isLoadMaster} class="size-4 accent-[var(--dz-primary)]" /> Load master (LM) for this load
+						<input type="checkbox" name="isLoadMaster" checked={s.isLoadMaster} class="size-4 shrink-0 accent-[var(--dz-primary)]" /> Load master (LM) for this load
 					</label>
 					<fieldset>
 						<legend class="mb-1.5 text-sm font-medium">Colour</legend>
@@ -147,7 +147,7 @@
 						<form method="POST" action={formAction(page.url, 'moveSlot')} class="flex flex-wrap items-end gap-2" use:enhance={act({ success: (d) => `Moved to load ${d.toLoadNumber}`, onSuccess: close })}>
 							<input type="hidden" name="slotId" value={s.id} />
 							<Select label="Move to load" name="toLoadId" class="min-w-40 flex-1" options={otherLoads.map((l) => ({ value: l.id, label: `Load ${l.loadNumber} · ${l.free} free`, disabled: l.free === 0 }))} />
-							{#if s.groupId}<label class="flex h-11 items-center gap-2 text-sm"><input type="checkbox" name="withGroup" checked class="size-4 accent-[var(--dz-primary)]" /> whole group</label>{/if}
+							{#if s.groupId}<label class="flex h-11 items-center gap-2 text-sm"><input type="checkbox" name="withGroup" checked class="size-4 shrink-0 accent-[var(--dz-primary)]" /> whole group</label>{/if}
 							<Button type="submit" variant="secondary" class="h-11">Move</Button>
 						</form>
 					{/if}
@@ -158,7 +158,7 @@
 						use:enhance={act({ confirm: () => removeSlotConfirm(s.displayName), success: 'Removed from load', onSuccess: close })}
 					>
 						<input type="hidden" name="slotId" value={s.id} />
-						{#if s.groupId}<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="withGroup" checked={!!s.tandemPassengerId} class="size-4 accent-[var(--dz-primary)]" /> Remove whole group</label>{/if}
+						{#if s.groupId}<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="withGroup" checked={!!s.tandemPassengerId} class="size-4 shrink-0 accent-[var(--dz-primary)]" /> Remove whole group</label>{/if}
 						<Button type="submit" variant="danger" class="ml-auto" data-testid="remove-slot">Remove from load</Button>
 					</form>
 				</section>

@@ -99,7 +99,7 @@
 				<input type="hidden" name="from" value={data.from ?? ''} />
 				{#if data.from}
 					<label class="flex items-start gap-3 text-sm">
-						<input type="checkbox" name="include_page" checked={includePage} class="mt-0.5 size-4 accent-[var(--color-primary)]" />
+						<input type="checkbox" name="include_page" checked={includePage} class="mt-0.5 size-4 shrink-0 accent-[var(--color-primary)]" />
 						<span>Include the page I was on <span class="break-all text-muted">({data.from})</span></span>
 					</label>
 				{/if}

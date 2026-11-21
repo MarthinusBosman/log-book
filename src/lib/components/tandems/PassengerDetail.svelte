@@ -252,7 +252,7 @@
 				/>
 				<Select label="Method" name="method" value="card" options={MANUAL_METHODS} />
 				<label class="col-span-2 flex items-center gap-2 text-sm text-muted">
-					<input type="checkbox" name="isDeposit" class="size-4 accent-[var(--dz-primary)]" /> This is a deposit
+					<input type="checkbox" name="isDeposit" class="size-4 shrink-0 accent-[var(--dz-primary)]" /> This is a deposit
 				</label>
 				<Button type="submit" variant="secondary" loading={busy === 'pay'} class="col-span-2">Mark payment</Button>
 			</form>

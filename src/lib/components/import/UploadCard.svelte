@@ -123,7 +123,7 @@
 					<p class="text-sm font-medium">Match your columns</p>
 					<div class="flex flex-wrap items-center gap-3 text-sm">
 						<label class="inline-flex items-center gap-2 text-muted">
-							<input type="checkbox" name="hasHeader" bind:checked={hasHeader} class="size-4 accent-[var(--dz-primary)]" />
+							<input type="checkbox" name="hasHeader" bind:checked={hasHeader} class="size-4 shrink-0 accent-[var(--dz-primary)]" />
 							First row is a header
 						</label>
 						<input type="hidden" name="hasHeader" value={hasHeader ? 'true' : 'false'} disabled={hasHeader} />

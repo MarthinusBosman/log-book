@@ -107,7 +107,7 @@
 						</div>
 					</fieldset>
 					{#if t.coachUserId || t.videoUserId}
-						<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="includeStaff" value="on" checked class="size-4 accent-[var(--dz-primary)]" /> Include the team’s coach / video</label>
+						<label class="flex items-center gap-2 text-sm"><input type="checkbox" name="includeStaff" value="on" checked class="size-4 shrink-0 accent-[var(--dz-primary)]" /> Include the team’s coach / video</label>
 					{/if}
 					{#if manifestMsg}<FormAlert tone={manifestMsg.tone} message={manifestMsg.text} />{/if}
 					<div class="flex flex-col gap-2 rounded-xl bg-surface-2/60 p-3 sm:flex-row sm:items-center sm:justify-between">

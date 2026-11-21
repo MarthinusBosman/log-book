@@ -85,7 +85,7 @@
 					<Input label="Type your email address: {p.email}" name="email" type="email" autocomplete="off" required />
 				{/if}
 				<label class="flex items-start gap-3 text-sm">
-					<input type="checkbox" name="understand" required class="mt-0.5 size-4 accent-[var(--color-danger)]" />
+					<input type="checkbox" name="understand" required class="mt-0.5 size-4 shrink-0 accent-[var(--color-danger)]" />
 					<span>I understand this can't be undone.</span>
 				</label>
 				<FormAlert message={form?.message ?? null} />

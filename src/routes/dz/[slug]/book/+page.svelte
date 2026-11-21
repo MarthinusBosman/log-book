@@ -404,7 +404,7 @@
 					<div class="mt-3 grid gap-2">
 						{#each data.providers as p (p.id)}
 							<label class="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 transition-colors has-[:checked]:border-primary/60 has-[:checked]:bg-primary/5">
-								<input type="radio" name="provider" value={p.id} bind:group={provider} class="mt-1 size-4 accent-[var(--dz-primary)]" data-testid="provider-{p.id}" />
+								<input type="radio" name="provider" value={p.id} bind:group={provider} class="mt-1 size-4 shrink-0 accent-[var(--dz-primary)]" data-testid="provider-{p.id}" />
 								<span class="min-w-0 flex-1">
 									<span class="flex items-center gap-2 font-medium">
 										{p.id === 'manual' ? p.label : `Pay online with ${p.label}`}
@@ -419,7 +419,7 @@
 						<div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2" role="radiogroup" aria-label="How much to pay now">
 							{#each [{ id: 'deposit', title: `Deposit · ${money(deposit)}`, note: 'Pay the rest at the dropzone' }, { id: 'full', title: `Full price · ${money(total)}`, note: 'Nothing left to pay on the day' }] as o (o.id)}
 								<label class="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-3 has-[:checked]:border-primary/60 has-[:checked]:bg-primary/5">
-									<input type="radio" name="pay" value={o.id} bind:group={payWhat} class="mt-1 size-4 accent-[var(--dz-primary)]" data-testid="pay-{o.id}" />
+									<input type="radio" name="pay" value={o.id} bind:group={payWhat} class="mt-1 size-4 shrink-0 accent-[var(--dz-primary)]" data-testid="pay-{o.id}" />
 									<span class="min-w-0 text-sm"><span class="block font-medium tabular-nums">{o.title}</span><span class="text-muted">{o.note}</span></span>
 								</label>
 							{/each}

@@ -122,19 +122,19 @@
 				<ul class="space-y-2 text-sm">
 					<li>
 						<a href="/app/import" class="flex items-center justify-between gap-3 rounded-xl border border-border p-3 transition-colors hover:border-border-strong" data-testid="import-link">
-							<span class="flex items-center gap-3"><span class="grid size-9 place-items-center rounded-lg bg-primary/10 text-primary"><JIcon name="download" class="size-4" /></span><span><span class="block font-medium">Import from Jump Master</span><span class="text-muted">Logbook, gear and profile</span></span></span>
+							<span class="flex items-center gap-3"><span class="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><JIcon name="download" class="size-4" /></span><span><span class="block font-medium">Import from Jump Master</span><span class="text-muted">Logbook, gear and profile</span></span></span>
 							<JIcon name="chevronRight" class="size-4 text-muted" />
 						</a>
 					</li>
 					<li>
 						<a href="/app/settings/linked-accounts" class="flex items-center justify-between gap-3 rounded-xl border border-border p-3 transition-colors hover:border-border-strong">
-							<span class="flex items-center gap-3"><span class="grid size-9 place-items-center rounded-lg bg-surface-2 text-muted"><JIcon name="link" class="size-4" /></span><span><span class="block font-medium">Linked accounts</span><span class="text-muted">Connected services</span></span></span>
+							<span class="flex items-center gap-3"><span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-muted"><JIcon name="link" class="size-4" /></span><span><span class="block font-medium">Linked accounts</span><span class="text-muted">Connected services</span></span></span>
 							<JIcon name="chevronRight" class="size-4 text-muted" />
 						</a>
 					</li>
 					<li>
 						<a href="/app/export" class="flex items-center justify-between gap-3 rounded-xl border border-border p-3 transition-colors hover:border-border-strong" data-testid="export-link">
-							<span class="flex items-center gap-3"><span class="grid size-9 place-items-center rounded-lg bg-surface-2 text-muted"><JIcon name="upload" class="size-4" /></span><span><span class="block font-medium">Export your data</span><span class="text-muted">Logbook CSV and full JSON backup</span></span></span>
+							<span class="flex items-center gap-3"><span class="grid size-9 shrink-0 place-items-center rounded-lg bg-surface-2 text-muted"><JIcon name="upload" class="size-4" /></span><span><span class="block font-medium">Export your data</span><span class="text-muted">Logbook CSV and full JSON backup</span></span></span>
 							<JIcon name="chevronRight" class="size-4 text-muted" />
 						</a>
 					</li>

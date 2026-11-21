@@ -121,7 +121,7 @@
 					</fieldset>
 					{#if team.coach || team.video}
 						<label class="flex items-center gap-2 text-sm text-muted">
-							<input type="checkbox" name="includeStaff" checked class="size-4 accent-[var(--dz-primary)]" />
+							<input type="checkbox" name="includeStaff" checked class="size-4 shrink-0 accent-[var(--dz-primary)]" />
 							Bring the team’s {team.coach && team.video ? 'coach and video' : team.coach ? 'coach' : 'videographer'}
 						</label>
 					{/if}

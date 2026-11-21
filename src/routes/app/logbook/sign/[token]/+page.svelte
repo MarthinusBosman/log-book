@@ -65,7 +65,7 @@
 						<SignaturePad bind:value={signature} />
 						<input type="hidden" name="signature" value={signature} />
 						<label class="flex items-start gap-3 text-sm">
-							<input type="checkbox" name="confirm" value="1" required class="mt-0.5 size-4 accent-[var(--dz-primary)]" />
+							<input type="checkbox" name="confirm" value="1" required class="mt-0.5 size-4 shrink-0 accent-[var(--dz-primary)]" />
 							<span>I witnessed or supervised this jump and confirm the details above are correct.</span>
 						</label>
 						<FormAlert message={form?.message} />

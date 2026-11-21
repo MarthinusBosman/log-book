@@ -77,7 +77,7 @@
 					class="flex items-start gap-3 rounded-xl border border-border px-3 py-2.5 transition-colors has-[:checked]:border-primary/50 has-[:checked]:bg-primary/5 {lock ? 'cursor-not-allowed' : 'cursor-pointer hover:border-border-strong'}"
 					data-locked={lock ? '' : undefined}
 				>
-					<input type="checkbox" name="roles" value={role} checked={selected.has(role)} disabled={!!lock} class="mt-0.5 size-4 accent-[var(--dz-primary)]" />
+					<input type="checkbox" name="roles" value={role} checked={selected.has(role)} disabled={!!lock} class="mt-0.5 size-4 shrink-0 accent-[var(--dz-primary)]" />
 					<!-- A disabled box isn't posted: keep a held, locked role so Save doesn't read it as dropped. -->
 					{#if lock && selected.has(role)}<input type="hidden" name="roles" value={role} />{/if}
 					<span>

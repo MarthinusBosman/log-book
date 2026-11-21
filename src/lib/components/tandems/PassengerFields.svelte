@@ -117,7 +117,7 @@
 				<label
 					class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-surface-2/60 px-3 py-1.5 text-sm transition-colors select-none has-[:checked]:border-primary/60 has-[:checked]:bg-primary/10 has-[:checked]:text-fg"
 				>
-					<input type="checkbox" name="extras" value={e.code} checked={values.extras?.includes(e.code)} class="size-4 accent-[var(--dz-primary)]" />
+					<input type="checkbox" name="extras" value={e.code} checked={values.extras?.includes(e.code)} class="size-4 shrink-0 accent-[var(--dz-primary)]" />
 					{SLOT_EXTRA_LABELS[e.code]}
 					<span class="text-xs text-muted">+{formatMoney(e.priceMinor, currency)}</span>
 				</label>

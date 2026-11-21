@@ -117,7 +117,7 @@
 			></textarea>
 		</div>
 		<label class="flex items-start gap-3 rounded-xl border border-border bg-surface-2/50 p-3 text-sm">
-			<input type="checkbox" name="open" checked class="mt-0.5 size-4 accent-[var(--dz-primary)]" />
+			<input type="checkbox" name="open" checked class="mt-0.5 size-4 shrink-0 accent-[var(--dz-primary)]" />
 			<span><span class="font-medium">Open for jumpers</span><span class="block text-muted">Checked-in jumpers can self-manifest from their phones.</span></span>
 		</label>
 	</form>

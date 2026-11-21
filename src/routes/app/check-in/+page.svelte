@@ -53,7 +53,7 @@
 			<Card>
 				<form method="POST" action="?/checkin" class="space-y-5" use:enhance={submit('checkin')} data-testid="checkin-form">
 					<div class="flex items-center gap-4">
-						<span class="grid size-14 place-items-center rounded-2xl bg-primary/10 text-primary"><Icon name="checkin" class="size-7" /></span>
+						<span class="grid size-14 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary"><Icon name="checkin" class="size-7" /></span>
 						<div>
 							<h2 class="text-lg font-semibold tracking-tight">Check in for today</h2>
 							<p class="text-sm text-muted">Manifest sees you’re on site and you can join loads.</p>
