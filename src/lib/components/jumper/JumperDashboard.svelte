@@ -7,7 +7,7 @@
 	import type { JumperDashboardData } from '#lib/server/jumper/dashboard.ts';
 	import JIcon, { type JIconName } from './JIcon.svelte';
 	import StatTile from './StatTile.svelte';
-	import { DUE_TONES, countdown, dueLabel, fmtDate, fmtFreefall, fmtNumber, fmtTime } from './format.ts';
+	import { DUE_TONES, countdown, dueLabel, fmtDate, fmtFreefall, fmtNumber, fmtTime, loggedScope } from './format.ts';
 
 	// No "Find a dropzone" button here: the dashboard page shows that nudge (with "Create one")
 	// above this card when the user has no dropzone, so it would appear twice.
@@ -31,7 +31,7 @@
 			? { href: '/app/check-in', label: 'Join a load', hint: data.joinableLoads ? `${data.joinableLoads} open now` : 'See today’s loads', icon: 'plane', testid: 'qa-join' }
 			: { href: '/app/check-in', label: 'Check in', hint: 'Start your jump day', icon: 'checkin', testid: 'qa-checkin' },
 		{ href: '/app/logbook/new', label: 'Log a jump', hint: `Next is #${data.totals.totalJumps + 1}`, icon: 'book', testid: 'qa-log' },
-		{ href: data.wallet ? `/app/wallet/${data.wallet.dropzone.slug}#topup` : '/app/wallet', label: 'Top up', hint: 'Add funds to your wallet', icon: 'wallet', testid: 'qa-topup' },
+		{ href: data.wallet ? `/app/wallet/${data.wallet.dropzone.slug}#topup` : '/app/wallet', label: 'Top up', hint: 'Add funds', icon: 'wallet', testid: 'qa-topup' },
 		{ href: '/app/my-gear', label: 'My gear', hint: 'Rigs, repacks, AAD', icon: 'parachute', testid: 'qa-gear' },
 		{ href: '/app/team', label: 'My teams', hint: 'Manifest together', icon: 'team', testid: 'qa-team' },
 		{ href: '/app/dropzones', label: 'Dropzones', hint: 'Find & follow', jicon: 'mapPin', testid: 'qa-dz' }
@@ -136,7 +136,7 @@
 				</span>
 				<span class="min-w-0 flex-1">
 					{#if data.checkin}
-						<span class="block truncate font-medium">Checked in at {data.checkin.dropzone.name}</span>
+						<span class="line-clamp-2 font-medium text-balance">Checked in at {data.checkin.dropzone.name}</span>
 						<span class="block truncate text-sm text-muted">
 							Since {fmtTime(data.checkin.checkedInAt, page.data.timezone ?? undefined)}{data.checkin.weightKg ? ` · ${data.checkin.weightKg} kg` : ''}{data.checkin.gearRental
 								? ' · rental gear'
@@ -155,7 +155,7 @@
 				<StatTile label="Total jumps" value={fmtNumber(data.totals.totalJumps)} hint="{data.totals.last30Days} in 30 days" href="/app/logbook">
 					{#snippet icon()}<Icon name="book" class="size-4" />{/snippet}
 				</StatTile>
-				<StatTile label="Freefall" value={fmtFreefall(data.totals.totalFreefallSeconds)} hint="{data.totals.logged} logged" href="/app/logbook">
+				<StatTile label="Freefall" value={fmtFreefall(data.totals.totalFreefallSeconds)} hint={loggedScope(data.totals)?.short ?? 'total time'} href="/app/logbook">
 					{#snippet icon()}<JIcon name="clock" class="size-4" />{/snippet}
 				</StatTile>
 				<StatTile

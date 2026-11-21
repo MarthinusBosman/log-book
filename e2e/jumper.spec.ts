@@ -495,6 +495,9 @@ test('sign-off: a licensed jumper signs with a drawn signature; a second signer 
 	await page.goto('/app/logbook');
 	await expect(page.getByTestId('breakdown-scope')).toHaveText('Covers the 1 jump logged here, not all 120.');
 	await expect(page.getByText('1 logged jump', { exact: true })).toBeVisible();
+	// The dashboard's Freefall tile words it the same way (it said a bare "1 logged")
+	await page.goto('/app');
+	await expect(page.getByTestId('jumper-dashboard').getByText('1 logged jump', { exact: true })).toBeVisible();
 	await page.goto(jumpUrl);
 	await page.getByTestId('create-sign-link').click();
 	const link = await page.getByLabel('Sign-off link').inputValue();
