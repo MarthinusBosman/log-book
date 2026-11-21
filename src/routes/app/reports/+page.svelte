@@ -114,7 +114,17 @@
 	</Card>
 
 	<Card class="lg:col-span-2">
-		{@render head('Revenue by item', `${money(data.revenue.totalMinor)} billed · ${money(data.revenue.totalMinor - data.revenue.paidMinor)} unpaid`, 'revenue')}
+		{@render head(
+			'Revenue by item',
+			[
+				`${money(data.revenue.totalMinor)} billed`,
+				data.revenue.depositMinor ? `${money(data.revenue.depositMinor)} paid as booking deposits` : '',
+				`${money(data.revenue.totalMinor - data.revenue.paidMinor)} unpaid`
+			]
+				.filter(Boolean)
+				.join(' · '),
+			'revenue'
+		)}
 		<BarList
 			class="mt-4"
 			label="Revenue by price item"

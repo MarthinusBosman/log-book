@@ -597,15 +597,29 @@ export async function walletFlows(db: Database, dropzoneId: string, from: string
 
 export type RevenueItem = { code: string; label: string; count: number; amountMinor: number };
 
-/** Pure: sum slot price lines by price code (deposits are negative lines and are reported separately). */
-export function revenueFromSlots(slotList: Pick<Slot, 'priceBreakdown' | 'paid' | 'totalMinor'>[]): { items: RevenueItem[]; totalMinor: number; paidMinor: number } {
+/**
+ * Pure: sum slot price lines by price code. A tandem deposit taken at booking is a negative
+ * line on the slot (the slot only bills the balance); it is money received, not a discount,
+ * so it stays out of `items` and is added back: `totalMinor` = everything billed for the jumps,
+ * `paidMinor` = paid slots + deposits, `depositMinor` = the deposits part of that.
+ */
+export function revenueFromSlots(slotList: Pick<Slot, 'priceBreakdown' | 'paid' | 'totalMinor'>[]): {
+	items: RevenueItem[];
+	totalMinor: number;
+	paidMinor: number;
+	depositMinor: number;
+} {
 	const by = new Map<string, RevenueItem>();
 	let totalMinor = 0;
 	let paidMinor = 0;
+	let depositMinor = 0;
 	for (const s of slotList) {
-		totalMinor += s.totalMinor;
-		if (s.paid) paidMinor += s.totalMinor;
+		const deposit = (s.priceBreakdown ?? []).reduce((sum, l) => (l.code === 'deposit' ? sum - l.amountMinor : sum), 0);
+		depositMinor += deposit;
+		totalMinor += s.totalMinor + deposit;
+		paidMinor += (s.paid ? s.totalMinor : 0) + deposit;
 		for (const line of s.priceBreakdown ?? []) {
+			if (line.code === 'deposit') continue;
 			const label = PRICE_ITEMS[line.code as PriceCode]?.label ?? line.label;
 			const it = by.get(line.code) ?? { code: line.code, label, count: 0, amountMinor: 0 };
 			it.count++;
@@ -613,7 +627,7 @@ export function revenueFromSlots(slotList: Pick<Slot, 'priceBreakdown' | 'paid' 
 			by.set(line.code, it);
 		}
 	}
-	return { items: [...by.values()].sort((a, b) => b.amountMinor - a.amountMinor), totalMinor, paidMinor };
+	return { items: [...by.values()].sort((a, b) => b.amountMinor - a.amountMinor), totalMinor, paidMinor, depositMinor };
 }
 
 /** Revenue by price item over completed loads in the range. */

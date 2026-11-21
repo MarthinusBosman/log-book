@@ -220,6 +220,27 @@ describe('reports', () => {
 		expect(r.totalMinor).toBe(900);
 		expect(r.paidMinor).toBe(500);
 		expect(r.items[0]).toMatchObject({ code: 'sport_slot', count: 2, amountMinor: 800, label: 'Sport slot' });
+		expect(r.depositMinor).toBe(0);
+	});
+
+	test('revenueFromSlots counts a booking deposit as paid, not as a negative item', () => {
+		const tandem = (paid: boolean) => ({
+			paid,
+			totalMinor: 3000,
+			priceBreakdown: [
+				{ code: 'tandem_slot', label: 'Tandem jump', amountMinor: 3400 },
+				{ code: 'tandem_handcam', label: 'Handcam', amountMinor: 100 },
+				{ code: 'deposit', label: 'Deposit paid', amountMinor: -500 }
+			]
+		});
+		const r = revenueFromSlots([tandem(false), tandem(true), { paid: false, totalMinor: 400, priceBreakdown: [{ code: 'sport_slot', label: 'x', amountMinor: 400 }] }]);
+		expect(r.items.map((i) => i.code)).toEqual(['tandem_slot', 'sport_slot', 'tandem_handcam']);
+		expect(r.items.reduce((s, i) => s + i.amountMinor, 0)).toBe(r.totalMinor);
+		expect(r.totalMinor).toBe(3500 * 2 + 400);
+		expect(r.depositMinor).toBe(1000);
+		// Unpaid = the unpaid tandem's balance + the sport slot; deposits and the paid tandem are in.
+		expect(r.paidMinor).toBe(1000 + 3000);
+		expect(r.totalMinor - r.paidMinor).toBe(3000 + 400);
 	});
 
 	test('revenue by item, wallet flows, tandems and load sheet over a range', async () => {
