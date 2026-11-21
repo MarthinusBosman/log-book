@@ -1,16 +1,21 @@
 import { redirect } from '@sveltejs/kit';
 import { addJump, nextJumpNumber } from '#lib/server/domain/logbook.ts';
 import { domainFail, requireUser, todayAt } from '#lib/server/jumper/forms.ts';
-import { dropzoneOptions, jumpFormEcho, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
+import { aircraftOptions, dropzoneOptions, jumpFormEcho, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const user = requireUser(locals, url);
 	const { current } = await parent();
-	const [next, dropzones, rigs] = await Promise.all([nextJumpNumber(locals.db, user.id), dropzoneOptions(locals, user.id), rigOptions(locals.db, user.id)]);
+	const [next, [dropzones, planes], rigs] = await Promise.all([
+		nextJumpNumber(locals.db, user.id),
+		dropzoneOptions(locals, user.id).then(async (dzs) => [dzs, await aircraftOptions(locals.db, user.id, dzs.map((d) => d.id))] as const),
+		rigOptions(locals.db, user.id)
+	]);
 	const activeRigs = rigs.filter((r) => r.active);
 	return {
 		dropzones,
+		planes,
 		rigs,
 		values: {
 			jumpNumber: next,

@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import { users } from '#lib/server/db/schema.ts';
 import { deleteJump, getJump, jumpSequenceHints, updateJump } from '#lib/server/domain/logbook.ts';
 import { domainFail, requireUser } from '#lib/server/jumper/forms.ts';
-import { dropzoneOptions, dzNameMap, jumpFormEcho, jumpRow, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
+import { aircraftOptions, dropzoneOptions, dzNameMap, jumpFormEcho, jumpRow, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
 import { createSignToken, qrSvg, SIGN_LINK_TTL_S } from '#lib/server/jumper/signoff.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -16,8 +16,9 @@ async function ownJump(locals: App.Locals, userId: string, id: string) {
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const user = requireUser(locals, url);
 	const jump = await ownJump(locals, user.id, params.id);
-	const [dropzones, rigs, names, hints] = await Promise.all([
-		dropzoneOptions(locals, user.id),
+	const [[dropzones, planes], rigs, names, hints] = await Promise.all([
+		// Verified jumps lock the aircraft field: no suggestions needed.
+		dropzoneOptions(locals, user.id).then(async (dzs) => [dzs, jump.verified ? [] : await aircraftOptions(locals.db, user.id, dzs.map((d) => d.id))] as const),
 		rigOptions(locals.db, user.id),
 		dzNameMap(locals.db, [jump]),
 		jumpSequenceHints(locals.db, user.id, jump)
@@ -39,6 +40,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			rigId: jump.rigId
 		},
 		dropzones,
+		planes,
 		rigs,
 		added: url.searchParams.has('added')
 	};

@@ -93,6 +93,7 @@
 			<JumpForm
 				values={f?.action === 'update' && f.values ? f.values : data.values}
 				dropzones={data.dropzones}
+				planes={data.planes}
 				rigs={data.rigs}
 				locked={j.verified}
 				action="?/update"

@@ -1,6 +1,6 @@
-import { eq, inArray, isNotNull, and } from 'drizzle-orm';
+import { eq, inArray, isNotNull, and, asc, count, desc, sql } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
-import { dropzones, logbookJumps, type LogbookJump } from '../db/schema.ts';
+import { aircraft, dropzones, logbookJumps, type LogbookJump } from '../db/schema.ts';
 import { listFollowedDropzones } from '../domain/dropzone-admin.ts';
 import { requestMemberships } from '../request-cache.ts';
 import { listUserRigs } from '../domain/gear.ts';
@@ -27,6 +27,37 @@ export async function dropzoneOptions(locals: Pick<App.Locals, 'db' | 'cache'>, 
 		for (const d of await db.select({ id: dropzones.id, name: dropzones.name }).from(dropzones).where(inArray(dropzones.id, missing))) map.set(d.id, d.name);
 	}
 	return [...map].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Aircraft names to suggest in the jump form: what the jumper has logged before (most used
+ * first), then the active fleet of the given dropzones. Case-insensitive duplicates collapse to
+ * the first spelling, so picking a suggestion keeps the logbook's plane names consistent.
+ */
+export async function aircraftOptions(db: Database, userId: string, dropzoneIds: string[], limit = 12): Promise<string[]> {
+	const uses = count().as('uses');
+	const [mine, fleet] = await Promise.all([
+		db
+			.select({ name: logbookJumps.aircraft, uses })
+			.from(logbookJumps)
+			.where(and(eq(logbookJumps.userId, userId), isNotNull(logbookJumps.aircraft), sql`trim(${logbookJumps.aircraft}) <> ''`))
+			.groupBy(logbookJumps.aircraft)
+			.orderBy(desc(uses), asc(logbookJumps.aircraft))
+			.limit(limit),
+		dropzoneIds.length
+			? db
+					.select({ name: aircraft.name })
+					.from(aircraft)
+					.where(and(inArray(aircraft.dropzoneId, dropzoneIds), eq(aircraft.active, true)))
+					.orderBy(asc(aircraft.name))
+			: Promise.resolve([] as { name: string }[])
+	]);
+	const out = new Map<string, string>();
+	for (const n of [...mine.map((m) => m.name), ...fleet.map((f) => f.name)]) {
+		const name = n?.trim();
+		if (name && !out.has(name.toLowerCase())) out.set(name.toLowerCase(), name);
+	}
+	return [...out.values()].slice(0, limit);
 }
 
 export async function rigOptions(db: Database, userId: string) {

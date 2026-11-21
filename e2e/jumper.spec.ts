@@ -313,9 +313,15 @@ test('jump form marks every bad field at once and focuses the first (with and wi
 	await expect(page.getByLabel('Location')).toHaveValue('Skydive Test Field');
 	await alt.fill('4000');
 	await ff.fill('0:45');
+	await page.getByLabel('Aircraft').fill('Cessna 206');
 	await page.getByTestId('save-jump').click();
 	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]{36}(\?added=1)?$/);
 	await expect(page.getByLabel('Freefall (sec)')).toHaveValue('45');
+	// The next jump suggests the plane already in the logbook.
+	await page.goto('/app/logbook/new');
+	await expect(page.getByLabel('Aircraft')).toHaveAttribute('list', 'aircraft-suggestions');
+	await expect(page.locator('#aircraft-suggestions option')).toHaveCount(1);
+	await expect(page.locator('#aircraft-suggestions option')).toHaveAttribute('value', 'Cessna 206');
 
 	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
 	const plain = await noJs.newPage();

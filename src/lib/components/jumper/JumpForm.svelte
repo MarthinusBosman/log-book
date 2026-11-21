@@ -23,6 +23,8 @@
 		values: Values;
 		dropzones: { id: string; name: string }[];
 		rigs: { id: string; name: string; active: boolean }[];
+		/** Aircraft names offered as suggestions (past jumps first, then the dropzones' fleets). */
+		planes?: string[];
 		/** Verified jumps: number, date, DZ and aircraft are locked. */
 		locked?: boolean;
 		action: string;
@@ -33,7 +35,7 @@
 		busy?: boolean;
 		onsubmit?: () => void;
 	};
-	let { values, dropzones, rigs, locked = false, action, submitLabel, error, fields, busy = $bindable(false) }: Props = $props();
+	let { values, dropzones, rigs, planes = [], locked = false, action, submitLabel, error, fields, busy = $bindable(false) }: Props = $props();
 	const fe = (name: string) => fields?.[name] ?? null;
 	let formEl: HTMLFormElement | undefined = $state();
 
@@ -84,7 +86,12 @@
 	</div>
 
 	<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-		<Input label="Aircraft" name="aircraft" placeholder="C182, Caravan…" value={values.aircraft ?? ''} readonly={locked} class="col-span-2 sm:col-span-1" />
+		<Input label="Aircraft" name="aircraft" placeholder="C182, Caravan…" value={values.aircraft ?? ''} readonly={locked} list={!locked && planes.length ? 'aircraft-suggestions' : undefined} autocomplete="off" class="col-span-2 sm:col-span-1" />
+		{#if !locked && planes.length}
+			<datalist id="aircraft-suggestions" data-testid="aircraft-suggestions">
+				{#each planes as p (p)}<option value={p}></option>{/each}
+			</datalist>
+		{/if}
 		<Input label="Altitude (ft)" name="altitudeFt" type="number" inputmode="numeric" min="0" max="40000" step="100" value={values.altitudeFt ?? ''} error={fe('altitudeFt')} />
 		<Input label="Freefall (sec)" name="freefallSeconds" inputmode="numeric" placeholder="45 or 0:45" value={ffText(values.freefallSeconds)} error={fe('freefallSeconds')} />
 	</div>
