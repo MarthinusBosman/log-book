@@ -198,7 +198,7 @@ test('signup → dashboard → logout → login → dashboard', async ({ page })
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 	// A brand-new dropzone gets the owner's setup checklist; every step links to its settings page.
-	await expect(page.getByTestId('setup-checklist')).toContainText('0 of 7 done');
+	await expect(page.getByTestId('setup-checklist')).toContainText('0 of 8 done');
 	// The icon-only Display button (phones) keeps its accessible name.
 	await expect(page.getByTestId('next-load').getByRole('link', { name: 'Display' })).toBeVisible();
 	// Already a member: the jumper card doesn't nudge them to find a dropzone.

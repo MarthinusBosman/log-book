@@ -43,7 +43,7 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	await page.getByLabel('Dropzone name').fill(dzName);
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
-	await expect(page.getByTestId('setup-checklist')).toContainText('0 of 7 done');
+	await expect(page.getByTestId('setup-checklist')).toContainText('0 of 8 done');
 	await expect(page.locator('a[href="/app/pricelist"]').first()).toBeAttached();
 
 	// Sport waiver: activate + one section → the "write your waivers" step ticks off
@@ -66,7 +66,7 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	await expect(page.getByTestId('toggle-sport')).toHaveText('Switch off');
 	await expect(signAsJumper).toBeVisible();
 	await page.goto('/app');
-	await expect(page.getByTestId('setup-checklist')).toContainText('1 of 7 done');
+	await expect(page.getByTestId('setup-checklist')).toContainText('1 of 8 done');
 
 	// Screen-reader heading outline: no skipped levels on card-heavy staff pages
 	for (const path of ['/app/pricelist', '/app/settings', '/app/waivers?tab=sport', '/app/my-gear']) {

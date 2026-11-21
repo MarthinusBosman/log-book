@@ -14,7 +14,7 @@ export const setupPending = (steps: SetupStep[]) => steps.some((s) => !s.done &&
 
 export async function setupChecklist(
 	db: Database,
-	dz: Pick<Dropzone, 'id' | 'slug' | 'description' | 'openDays' | 'photoFileId' | 'timezone'>,
+	dz: Pick<Dropzone, 'id' | 'slug' | 'description' | 'openDays' | 'photoFileId' | 'timezone' | 'lat' | 'lng'>,
 	now: number = Date.now()
 ): Promise<SetupStep[]> {
 	const today = localDate(now, dz.timezone);
@@ -41,6 +41,13 @@ export async function setupChecklist(
 	const [hasPlane, hasPrices, hasStaff, hasWaiver, hasSlots] = [r?.plane, r?.prices, r?.staff, r?.waiver, r?.slots].map((v) => Number(v) === 1);
 	return [
 		{ id: 'profile', title: 'Describe your dropzone', body: 'Description, opening days and hours.', href: '/app/settings', done: !!dz.description?.trim() && dz.openDays.length > 0 },
+		{
+			id: 'location',
+			title: 'Pin your location',
+			body: 'So jumpers nearby find you in the dropzone list.',
+			href: '/app/settings#location',
+			done: dz.lat != null && dz.lng != null
+		},
 		{ id: 'photo', title: 'Add a photo', body: 'Shown in the directory and on your booking page.', href: '/app/settings', done: !!dz.photoFileId, optional: true },
 		{ id: 'aircraft', title: 'Add your aircraft', body: 'Capacity and weight limit for every load.', href: '/app/aircraft', done: hasPlane },
 		{ id: 'prices', title: 'Set your prices', body: 'Manifest prices every slot from the pricelist.', href: '/app/pricelist', done: hasPrices },

@@ -108,7 +108,7 @@
 			</div>
 		</Card>
 
-		<Card title="Location" description="Used for distance in the dropzone list and for local dates.">
+		<Card id="location" class="scroll-mt-18 lg:scroll-mt-4" title="Location" description="Used for distance in the dropzone list and for local dates.">
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Input label="Address" name="address" value={data.dz.address ?? ''} class="sm:col-span-2" autocomplete="street-address" />
 				<Input

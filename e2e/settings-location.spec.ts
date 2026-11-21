@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { gapBelowTopBar } from './anchors.ts';
 
 /** Dropzone settings → Location: pasted pairs / map links fill both fields, "Use my location", no-JS paste. */
 
@@ -21,6 +22,13 @@ test.use({ permissions: ['geolocation'], geolocation: { latitude: -33.80123, lon
 
 test('location: paste a Google Maps pair or link into one field, use my location, save', async ({ page, browser }) => {
 	const email = await ownerWithDz(page);
+	// The setup checklist asks for the pin and lands on the Location card (not under the top bar).
+	const pinStep = page.getByTestId('setup-checklist').getByRole('link', { name: /Pin your location/ });
+	await expect(pinStep).toHaveAttribute('href', '/app/settings#location');
+	await expect(page.getByTestId('setup-checklist')).toContainText('0 of 8 done');
+	await pinStep.click();
+	await expect(page).toHaveURL(/\/app\/settings#location$/);
+	await expect.poll(() => gapBelowTopBar(page, 'location')).toBeGreaterThanOrEqual(8);
 	await page.goto('/app/settings');
 	await page.waitForLoadState('networkidle');
 	const lat = page.getByLabel('Latitude');
@@ -52,6 +60,8 @@ test('location: paste a Google Maps pair or link into one field, use my location
 	await page.reload();
 	await expect(lat).toHaveValue('-33.80123');
 	await expect(lng).toHaveValue('19.88456');
+	await page.goto('/app');
+	await expect(page.getByTestId('setup-checklist')).toContainText('1 of 8 done');
 
 	// Without JS the server splits the pasted pair
 	const ctx = await browser.newContext({ javaScriptEnabled: false });

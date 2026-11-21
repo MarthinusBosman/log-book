@@ -17,7 +17,7 @@ const pending = async (dz: Parameters<typeof setupChecklist>[1]) =>
 describe('setup checklist', () => {
 	test('a brand-new dropzone has every step open; each ticks off from real data', async () => {
 		const { dz } = await makeDropzone(db, {}, {});
-		expect(await pending(dz)).toEqual(['profile', 'photo', 'aircraft', 'prices', 'staff', 'waivers', 'booking']);
+		expect(await pending(dz)).toEqual(['profile', 'location', 'photo', 'aircraft', 'prices', 'staff', 'waivers', 'booking']);
 
 		await createAircraft(db, dz.id, { name: 'Caravan', capacity: 16, weightLimitKg: 1500 });
 		await makeMember(db, dz.id, ['jumper']); // jumpers aren't staff
@@ -25,11 +25,20 @@ describe('setup checklist', () => {
 		await makeMember(db, dz.id, ['manifest']);
 		await addSection(db, { dropzoneId: dz.id, audience: 'sport', title: 'Risk', content: 'Dangerous.' });
 		await addBookingSlots(db, { dropzoneId: dz.id, date: '2026-11-14', time: '09:00', capacity: 4 });
-		expect(await pending({ ...dz, description: 'Hi', openDays: ['sat'], photoFileId: 'f' })).toEqual(['prices']);
+		expect(await pending({ ...dz, description: 'Hi', openDays: ['sat'], photoFileId: 'f', lat: -33.03, lng: 18.17 })).toEqual(['prices']);
 		// the photo is optional: it never keeps the card on screen by itself
-		const steps = (await setupChecklist(db, { ...dz, description: 'Hi', openDays: ['sat'] }, NOW)).map((s) => (s.id === 'prices' ? { ...s, done: true } : s));
+		const steps = (await setupChecklist(db, { ...dz, description: 'Hi', openDays: ['sat'], lat: -33.03, lng: 18.17 }, NOW)).map((s) => (s.id === 'prices' ? { ...s, done: true } : s));
 		expect(steps.find((s) => s.id === 'photo')!.done).toBe(false);
 		expect(setupPending(steps)).toBe(false);
+	});
+
+	test('the location step needs both coordinates and links to the Location card', async () => {
+		const { dz } = await makeDropzone(db);
+		const step = async (d: typeof dz) => (await setupChecklist(db, d, NOW)).find((s) => s.id === 'location')!;
+		expect((await step(dz)).href).toBe('/app/settings#location');
+		expect((await step({ ...dz, lat: -33.03, lng: null })).done).toBe(false);
+		expect((await step({ ...dz, lat: 0, lng: 0 })).done).toBe(true); // 0 is a real coordinate
+		expect((await step({ ...dz, lat: -33.03, lng: 18.17 })).optional).toBeUndefined(); // keeps the card on screen
 	});
 
 	test('a priced dropzone has the prices step done', async () => {
