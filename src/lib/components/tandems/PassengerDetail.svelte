@@ -49,6 +49,8 @@
 	const ti = $derived(detail.group.find((g) => g.staffRole === 'tandem_instructor'));
 	const video = $derived(detail.group.find((g) => g.staffRole === 'videographer'));
 	const regLink = $derived(`${page.url.origin}/dz/${dz.slug}/book/${p.confirmationNumber}`);
+	// Mirrors confirmationRecipient(p, { guardian: true }) on the server.
+	const mailTo = $derived(p.email || p.guardianEmail || null);
 	let editing = $state(false);
 	let busy = $state<string | null>(null);
 
@@ -121,14 +123,17 @@
 			<Icon name="waiver" class="size-4" /> PDF
 		</Button>
 		<form method="POST" action={action('resend')} use:enhance={tracked('resend')}>
-			<Button size="sm" variant="secondary" type="submit" loading={busy === 'resend'} disabled={!p.email}>
-				<Icon name="arrowRight" class="size-4" /> Resend confirmation
+			<Button size="sm" variant="secondary" type="submit" loading={busy === 'resend'} disabled={!mailTo} title={mailTo ? `Email the confirmation to ${mailTo}` : undefined}>
+				<Icon name="arrowRight" class="size-4" /> {p.email || !mailTo ? 'Resend confirmation' : 'Email guardian'}
 			</Button>
 		</form>
 		<Button size="sm" variant="ghost" onclick={copyLink} data-testid="reg-link">
 			<Icon name="globe" class="size-4" />
 			{canShare ? 'Share link' : 'Copy link'}
 		</Button>
+		{#if !mailTo}
+			<p class="w-full text-xs text-muted" data-testid="no-email-hint">No email on file: {canShare ? 'share' : 'copy'} the link and send it by WhatsApp or SMS.</p>
+		{/if}
 	</div>
 
 	<!-- manifest -->

@@ -15,7 +15,7 @@ import { addTandemGroup, removeSlot } from '#lib/server/domain/loads.ts';
 import { DomainError, isDomainError } from '#lib/server/domain/errors.ts';
 import { getStorage } from '#lib/server/storage/index.ts';
 import { dropStoredTandemPdf } from '#lib/server/tandems/documents.ts';
-import { failFrom, moneyToMinor, publicOrigin, sendConfirmationEmail, staffContext, str, type StaffContext } from '#lib/server/tandems/http.ts';
+import { confirmationRecipient, failFrom, moneyToMinor, publicOrigin, sendConfirmationEmail, staffContext, str, type StaffContext } from '#lib/server/tandems/http.ts';
 import { parsePassengerForm } from '#lib/server/tandems/forms.ts';
 import { passengerDetail, tandemExtrasOffer, tandemLimits } from '#lib/server/tandems/detail.ts';
 import type { RequestEvent } from '@sveltejs/kit';
@@ -166,13 +166,14 @@ export const actions: Actions = {
 	resend: async (event) => {
 		const { id, dz } = await ctx(event);
 		const p = (await getPassenger(event.locals.db, id))!;
-		if (!p.email) return failFrom(new DomainError('invalid', 'This passenger has no email address'));
+		const to = confirmationRecipient(p, { guardian: true });
+		if (!to) return failFrom(new DomainError('invalid', 'This passenger has no email address'));
 		try {
-			await sendConfirmationEmail(dz, p, publicOrigin(event.url, APP_ORIGIN));
+			await sendConfirmationEmail(dz, p, publicOrigin(event.url, APP_ORIGIN), [], { guardian: true });
 		} catch {
 			return fail(502, { message: 'The email couldn’t be sent right now. Try again in a minute.' });
 		}
-		return { ok: true, message: `Confirmation sent to ${p.email}` };
+		return { ok: true, message: to.guardian ? `Confirmation sent to the guardian, ${to.to}` : `Confirmation sent to ${to.to}` };
 	},
 
 	regenerate: async (event) => {

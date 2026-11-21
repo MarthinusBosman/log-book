@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { confirmationUrl, moneyToMinor, sendConfirmationEmail } from './http.ts';
+import { confirmationRecipient, confirmationUrl, moneyToMinor, sendConfirmationEmail } from './http.ts';
 import { MANUAL_OPTION, payChoices } from './payments.ts';
 import { setMailer, type EmailMessage } from '../email/index.ts';
 import type { Dropzone, TandemPassenger } from '../db/schema.ts';
@@ -78,6 +78,24 @@ describe('booking confirmation email for a group', () => {
 		expect(text).not.toContain('Total:');
 		await sendConfirmationEmail(dz, sam, origin);
 		expect(sent[1].text).toMatch(/Total: R\s?3\s?400,00 · Paid: R\s?0,00/);
+	});
+
+	test('a passenger without an email only goes to the guardian when asked (staff resend)', async () => {
+		capture();
+		const max = { ...kim, name: 'Max Customer', guardianName: 'Nadia Customer', guardianEmail: 'nadia@example.com' } as TandemPassenger;
+		expect(confirmationRecipient(max)).toBeNull();
+		expect(await sendConfirmationEmail(dz, max, origin)).toBe(false);
+		expect(sent).toHaveLength(0);
+		expect(confirmationRecipient(max, { guardian: true })).toEqual({ to: 'nadia@example.com', guardian: true });
+		expect(await sendConfirmationEmail(dz, max, origin, [], { guardian: true })).toBe(true);
+		expect(sent[0].to).toBe('nadia@example.com');
+		expect(sent[0].subject).toBe('Max’s tandem skydive at Demo DZ — CCCC-3333');
+		const text = sent[0].text ?? '';
+		expect(text.startsWith('Hi Nadia,\n\nMax’s tandem skydive at Demo DZ is booked!')).toBe(true);
+		expect(text).toContain('Please sign Max’s indemnity (as parent or guardian) before the jump: https://dz.example/dz/demo/book/CCCC-3333#indemnity');
+		// Their own email always wins over the guardian's.
+		expect(confirmationRecipient({ ...max, email: 'max@example.com' }, { guardian: true })).toEqual({ to: 'max@example.com', guardian: false });
+		expect(confirmationRecipient({ ...kim, guardianEmail: null } as TandemPassenger, { guardian: true })).toBeNull();
 	});
 });
 

@@ -290,7 +290,13 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	await leeDrawer.getByRole('button', { name: 'Mark payment' }).click();
 	await expect(page.locator('[aria-live]').filter({ hasText: 'Tandem payment has been updated' }).first()).toBeVisible();
 	await expect(leeDrawer.getByTestId('pay-amount')).toHaveValue('');
-
+	await expect(leeDrawer.getByTestId('no-email-hint')).toHaveCount(0);
+	// Max Mate left email and mobile empty: Resend is off and the drawer says to send the link instead.
+	await page.goto(`/app/tandems?day=${tomorrow}`);
+	await page.getByTestId('tandem-row').filter({ hasText: 'Max Mate' }).click();
+	const maxDrawer = page.locator('dialog[open]');
+	await expect(maxDrawer.getByRole('button', { name: 'Resend confirmation' })).toBeDisabled();
+	await expect(maxDrawer.getByTestId('no-email-hint')).toHaveText(/^No email on file: (share|copy) the link and send it by WhatsApp or SMS\.$/);
 	// Signed waiver is listed with a PDF.
 	await page.goto('/app/waivers?tab=signed');
 	await expect(page.getByTestId('signed-row').filter({ hasText: 'Pat Passenger' })).toBeVisible();

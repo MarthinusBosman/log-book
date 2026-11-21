@@ -81,18 +81,42 @@ export function confirmationUrl(origin: string, dz: Pick<Dropzone, 'slug'>, p: P
 }
 
 /**
+ * Who a confirmation goes to: the passenger's own email, or (only when asked, for the staff
+ * "Resend" button) an under-18's guardian when the passenger has no email of their own.
+ * The online booking never mails guardians: the lead's email already carries every link.
+ */
+export function confirmationRecipient(
+	p: Pick<TandemPassenger, 'email' | 'guardianEmail' | 'guardianName'>,
+	opts: { guardian?: boolean } = {}
+): { to: string; guardian: boolean } | null {
+	if (p.email) return { to: p.email, guardian: false };
+	if (opts.guardian && p.guardianEmail) return { to: p.guardianEmail, guardian: true };
+	return null;
+}
+
+/**
  * Booking confirmation email (Mailer interface; console in dev). For a group booking the lead's
  * email gets `group` (the other jumpers): its link opens the page with the group listed (pay for
  * everyone, share sign links) and it lists each jumper's own indemnity link to forward.
+ * `guardian: true` lets it go to an under-18's guardian (see confirmationRecipient).
  */
-export async function sendConfirmationEmail(dz: Dropzone, p: TandemPassenger, origin: string, group: GroupMember[] = []): Promise<boolean> {
-	if (!p.email) return false;
+export async function sendConfirmationEmail(
+	dz: Dropzone,
+	p: TandemPassenger,
+	origin: string,
+	group: GroupMember[] = [],
+	opts: { guardian?: boolean } = {}
+): Promise<boolean> {
+	const recipient = confirmationRecipient(p, opts);
+	if (!recipient) return false;
+	const first = p.name.split(' ')[0];
+	const toGuardian = recipient.guardian;
 	const link = confirmationUrl(origin, dz, p, group);
 	const extras = p.extras.map((e) => SLOT_EXTRA_LABELS[e]).join(', ');
 	const lines = [
-		`Hi ${p.name.split(' ')[0]},`,
+		toGuardian ? (p.guardianName ? `Hi ${p.guardianName.split(' ')[0]},` : 'Hi,') : `Hi ${first},`,
 		'',
-		`Your tandem skydive at ${dz.name} is booked!`,
+		toGuardian ? `${first}’s tandem skydive at ${dz.name} is booked!` : `Your tandem skydive at ${dz.name} is booked!`,
 		'',
 		`Confirmation number: ${p.confirmationNumber}`,
 		`Date: ${p.jumpDate ? formatDay(p.jumpDate) : 'to be confirmed'}${p.bookingTime ? ` at ${p.bookingTime}` : ''}`,
@@ -102,8 +126,12 @@ export async function sendConfirmationEmail(dz: Dropzone, p: TandemPassenger, or
 			: // No tandem price in the DZ's pricelist when this was booked: don't quote R 0,00.
 				'Price: at the dropzone',
 		'',
-		`View your booking and download the confirmation PDF: ${link}`,
-		p.indemnitySignedAt ? null : `Please sign your indemnity before the jump: ${link}#indemnity`,
+		`View ${toGuardian ? 'the' : 'your'} booking and download the confirmation PDF: ${link}`,
+		p.indemnitySignedAt
+			? null
+			: toGuardian
+				? `Please sign ${first}’s indemnity (as parent or guardian) before the jump: ${link}#indemnity`
+				: `Please sign your indemnity before the jump: ${link}#indemnity`,
 		...(group.length
 			? ['', 'Your group — every jumper signs their own indemnity. Forward each one their link:', ...group.map((m) => `- ${m.name}: ${confirmationUrl(origin, dz, m)}#indemnity`)]
 			: []),
@@ -114,7 +142,7 @@ export async function sendConfirmationEmail(dz: Dropzone, p: TandemPassenger, or
 		`Blue skies,\n${dz.name}`,
 		`— sent by ${brand.name}`
 	].filter((l) => l !== null);
-	await getMailer().send({ to: p.email, subject: `Your tandem skydive at ${dz.name} — ${p.confirmationNumber}`, text: lines.join('\n') });
+	await getMailer().send({ to: recipient.to, subject: `${toGuardian ? `${first}’s` : 'Your'} tandem skydive at ${dz.name} — ${p.confirmationNumber}`, text: lines.join('\n') });
 	return true;
 }
 
