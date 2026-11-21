@@ -56,6 +56,9 @@
 		font-size: 1.5rem;
 		font-weight: 580;
 		letter-spacing: -0.02em;
+	}
+	/* "On this page" / #deletion links target the sections (and some h3s): keep them clear of the sticky header */
+	.legal :global([id]) {
 		scroll-margin-top: 6rem;
 	}
 	.legal :global(h3) {

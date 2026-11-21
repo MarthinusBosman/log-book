@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { gapBelowTopBar } from './anchors.ts';
 
 test('landing renders', async ({ page }) => {
 	await page.goto('/');
@@ -47,6 +48,12 @@ test('privacy policy + terms: linked from footer and signup, no JS', async ({ pa
 	// Not log-book.app → says this text is about the hosted service.
 	await expect(page.getByTestId('selfhost-note')).toBeVisible();
 	await expect(page.locator('script[src]')).toHaveCount(0);
+	// "On this page" and the account-deletion link (#deletion, an h3) land below the sticky header
+	await page.getByRole('navigation', { name: 'On this page' }).getByRole('link', { name: 'Cookies' }).click();
+	await expect(page).toHaveURL(/#cookies$/);
+	await expect.poll(() => gapBelowTopBar(page, 'cookies')).toBeGreaterThanOrEqual(8);
+	await page.goto('/privacy#deletion');
+	await expect.poll(() => gapBelowTopBar(page, 'deletion')).toBeGreaterThanOrEqual(8);
 	await page.goto('/terms');
 	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Terms of use');
 	await expect(page.getByRole('heading', { name: 'Skydiving safety' })).toBeVisible();

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { gapBelowTopBar } from './anchors.ts';
 
 /**
  * Manifest main flow on an empty instance: new DZ → create load → add a custom jumper →
@@ -531,6 +532,8 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await expect(page.getByRole('heading', { name: 'Add to load' })).toBeInViewport();
 	await expect.poll(() => page.evaluate(() => Math.round(document.getElementById('add')!.getBoundingClientRect().top))).toBeLessThan(200);
 	await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+	// ... with its heading below the sticky phone top bar, not hidden under it
+	await expect.poll(() => gapBelowTopBar(page, 'add')).toBeGreaterThanOrEqual(8);
 
 	// Her jumper page lists the slot; on a phone the table folds day + load under the jump
 	// instead of scrolling sideways (a scroll region keyboard users can't reach).

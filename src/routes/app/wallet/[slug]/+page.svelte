@@ -108,7 +108,7 @@
 		</div>
 
 		{#if data.dz.walletEnabled}
-			<Card title="Add funds" description="Top up your {data.dz.name} wallet." id="topup">
+			<Card title="Add funds" description="Top up your {data.dz.name} wallet." id="topup" class="scroll-mt-18 lg:scroll-mt-4">
 				<form method="POST" action="?/topup" class="space-y-4" use:enhance={submit('topup')} data-testid="topup-form">
 					<div>
 						<label for="amount" class="text-sm font-medium">Amount ({cur})</label>

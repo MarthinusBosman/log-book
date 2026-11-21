@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { gapBelowTopBar } from './anchors.ts';
 
 /** Jumper area main flow on a fresh database: own DZ → check in → logbook → gear → profile → teams → wallet. */
 async function signup(page: Page, name: string) {
@@ -549,6 +550,11 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.locator('main a[href^="/app/wallet/"]').first().click();
 	await page.waitForLoadState('networkidle');
 	const form = page.getByTestId('topup-form');
+	// "Try again" (#topup) on a phone lands the Add funds card below the sticky top bar
+	if (test.info().project.name === 'mobile') {
+		await page.goto(`${page.url().split('#')[0]}#topup`);
+		await expect.poll(() => gapBelowTopBar(page, 'topup')).toBeGreaterThanOrEqual(8);
+	}
 	// Quick amounts are whole ("R 1 000", no cents) and the one matching the amount shows as picked.
 	const presets = page.getByTestId('topup-preset');
 	await expect(presets).toHaveCount(4);

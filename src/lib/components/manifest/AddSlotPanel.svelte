@@ -141,8 +141,8 @@
 
 <!-- The board's "Add slots" links here (#add): on phones that skips past the slot list to this panel.
      On desktop the panel sits beside the list at the top, so the huge lg margin clamps the jump to 0
-     and the page header stays in view. -->
-<section class="scroll-mt-4 rounded-2xl border border-border bg-surface lg:scroll-mt-[100vh]" aria-labelledby="add-title" id="add">
+     and the page header stays in view. scroll-mt-18 = the 56 px sticky phone top bar + a gap. -->
+<section class="scroll-mt-18 rounded-2xl border border-border bg-surface lg:scroll-mt-[100vh]" aria-labelledby="add-title" id="add">
 	<header class="flex items-center justify-between border-b border-border px-4 py-3">
 		<h2 id="add-title" class="font-semibold tracking-tight">Add to load</h2>
 		<span class={cn('text-xs font-medium', free === 0 ? 'text-danger' : 'text-muted')}>{free === 0 ? 'Load is full' : `${free} slot${free === 1 ? '' : 's'} left`}</span>
