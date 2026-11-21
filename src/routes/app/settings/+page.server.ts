@@ -6,7 +6,8 @@ import { deleteFile, maxBytesFor, saveFile } from '#lib/server/domain/files.ts';
 import { readImageUpload } from '#lib/server/images.ts';
 import { getStorage } from '#lib/server/storage/index.ts';
 import { DZ_COOKIE, checkDropzoneBasics, checkOpeningHours, timezoneList } from '#lib/server/dropzones/index.ts';
-import { optNum, optStr, requirePage, runAction, str } from '#lib/server/staffadmin/context.ts';
+import { optStr, requirePage, runAction, str } from '#lib/server/staffadmin/context.ts';
+import { readLatLng } from '#lib/domain/coordinates.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 
@@ -44,10 +45,9 @@ export const actions: Actions = {
 			const basics = checkDropzoneBasics({ country: optStr(f, 'country'), timezone: str(f, 'timezone'), currency: str(f, 'currency') });
 			if (!basics.ok) return fail(400, { message: basics.message });
 			const { country, timezone, currency } = basics;
-			const lat = optNum(f, 'lat');
-			const lng = optNum(f, 'lng');
-			if (lat === 'invalid' || (lat !== null && Math.abs(lat) > 90)) return fail(400, { message: 'Latitude must be between -90 and 90.' });
-			if (lng === 'invalid' || (lng !== null && Math.abs(lng) > 180)) return fail(400, { message: 'Longitude must be between -180 and 180.' });
+			const coords = readLatLng(str(f, 'lat'), str(f, 'lng'));
+			if ('error' in coords) return fail(400, { message: coords.error });
+			const { lat, lng } = coords;
 			const email = optStr(f, 'contactEmail');
 			if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(400, { message: 'Enter a valid contact email.' });
 			const website = optStr(f, 'website');

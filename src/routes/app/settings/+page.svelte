@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NoJsOutcome from '#lib/components/staffadmin/NoJsOutcome.svelte';
 	import { enhance } from '$app/forms';
-	import { Button, Card, Input, Select, Icon } from '#lib/ui/index.ts';
+	import { Button, Card, Input, Select, Icon, toast } from '#lib/ui/index.ts';
 	import Textarea from '#lib/components/staffadmin/Textarea.svelte';
 	import { toastEnhance } from '#lib/components/staffadmin/enhance.ts';
 	import { IMAGE_PRESETS } from '#lib/client/resize-image.ts';
@@ -9,6 +9,7 @@
 	import { CURRENCIES } from '#lib/domain/currency.ts';
 	import { countryName, countryOptions } from '#lib/domain/countries.ts';
 	import { suggestTimezone } from '#lib/domain/timezone-countries.ts';
+	import { osmLink, parseCoordinates, readLatLng } from '#lib/domain/coordinates.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -41,6 +42,50 @@
 	}
 	const tzFix = $derived(suggestTimezone(country, timezone, data.timezones));
 	const zoneLabel = (z: string) => z.replace(/_/g, ' ');
+
+	// Location: a pair or map link pasted into either field fills both (the server does the
+	// same without JS); "Use my location" for owners standing on the landing area.
+	let latText = $state(initLat());
+	let lngText = $state(initLng());
+	function initLat() {
+		return data.dz.lat == null ? '' : String(data.dz.lat);
+	}
+	function initLng() {
+		return data.dz.lng == null ? '' : String(data.dz.lng);
+	}
+	const pin = $derived(readLatLng(latText, lngText));
+	const mapHref = $derived('error' in pin || pin.lat == null || pin.lng == null ? null : osmLink({ lat: pin.lat, lng: pin.lng }));
+	let hydrated = $state(false);
+	$effect(() => {
+		hydrated = true;
+	});
+	let locating = $state(false);
+	function splitPasted(value: string) {
+		const p = parseCoordinates(value);
+		if (!p) return;
+		// Set after bind:value has taken the pasted text.
+		queueMicrotask(() => {
+			latText = String(p.lat);
+			lngText = String(p.lng);
+		});
+	}
+	function useMyLocation() {
+		if (!('geolocation' in navigator)) return toast.error('Location isn’t available in this browser');
+		locating = true;
+		navigator.geolocation.getCurrentPosition(
+			(p) => {
+				locating = false;
+				latText = p.coords.latitude.toFixed(5);
+				lngText = p.coords.longitude.toFixed(5);
+				toast.success('Location filled in. Save details to keep it.');
+			},
+			() => {
+				locating = false;
+				toast.error('Couldn’t get your location');
+			},
+			{ timeout: 10_000, enableHighAccuracy: true }
+		);
+	}
 </script>
 
 <svelte:head><title>Settings · Dropzone</title></svelte:head>
@@ -66,8 +111,46 @@
 		<Card title="Location" description="Used for distance in the dropzone list and for local dates.">
 			<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 				<Input label="Address" name="address" value={data.dz.address ?? ''} class="sm:col-span-2" autocomplete="street-address" />
-				<Input label="Latitude" name="lat" inputmode="decimal" value={data.dz.lat ?? ''} placeholder="-33.0286" />
-				<Input label="Longitude" name="lng" inputmode="decimal" value={data.dz.lng ?? ''} placeholder="18.1667" />
+				<Input
+					label="Latitude"
+					name="lat"
+					inputmode="decimal"
+					bind:value={latText}
+					oninput={(e) => splitPasted(e.currentTarget.value)}
+					placeholder="-33.0286"
+					aria-describedby="coords-hint"
+				/>
+				<Input
+					label="Longitude"
+					name="lng"
+					inputmode="decimal"
+					bind:value={lngText}
+					oninput={(e) => splitPasted(e.currentTarget.value)}
+					placeholder="18.1667"
+					aria-describedby="coords-hint"
+				/>
+				<div class="flex flex-col gap-2 sm:col-span-2">
+					<p id="coords-hint" class="text-sm text-muted" data-testid="coords-hint">
+						Paste both numbers from Google Maps (right-click or long-press the landing area) or a map link into either field:
+						both fill in.
+					</p>
+					<div class="flex flex-wrap items-center gap-x-4 gap-y-2">
+						{#if hydrated}
+							<Button type="button" variant="outline" size="sm" loading={locating} onclick={useMyLocation}>
+								<Icon name="globe" class="size-4" /> Use my location
+							</Button>
+						{/if}
+						{#if mapHref}
+							<a
+								href={mapHref}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="text-sm font-medium text-primary underline underline-offset-2"
+								data-testid="coords-map">Check the pin on a map</a
+							>
+						{/if}
+					</div>
+				</div>
 				<Select label="Country" name="country" autocomplete="country" bind:value={country} options={countryOpts} />
 				<div class="flex min-w-0 flex-col gap-2">
 					<Select label="Timezone" name="timezone" bind:value={timezone} options={tzOptions} aria-describedby={tzFix ? 'tz-mismatch' : undefined} />
