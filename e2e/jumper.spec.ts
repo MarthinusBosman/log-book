@@ -322,6 +322,10 @@ test('jump form marks every bad field at once and focuses the first (with and wi
 	await expect(page.getByLabel('Aircraft')).toHaveAttribute('list', 'aircraft-suggestions');
 	await expect(page.locator('#aircraft-suggestions option')).toHaveCount(1);
 	await expect(page.locator('#aircraft-suggestions option')).toHaveAttribute('value', 'Cessna 206');
+	// ...and starts from the last jump: same place, plane and altitude
+	await expect(page.getByLabel('Location')).toHaveValue('Skydive Test Field');
+	await expect(page.getByLabel('Aircraft')).toHaveValue('Cessna 206');
+	await expect(page.getByLabel('Altitude (ft)')).toHaveValue('4000');
 
 	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
 	const plain = await noJs.newPage();
@@ -1012,4 +1016,55 @@ test('two dropzones: checking in makes that one active; with no dz cookie the ch
 	await context.clearCookies({ name: 'dz' });
 	await page.goto('/app/logbook/new');
 	await expect(dropzoneSelect).toHaveText(names[0]);
+});
+
+test('log a jump starts from the last jump at the chosen dropzone; switching dropzone swaps untouched plane + altitude', async ({ page }) => {
+	const project = test.info().project.name;
+	await signup(page, 'Rita Repeat');
+	const names = [`Repeat Home ${project} ${Date.now()}`, `Repeat Away ${project} ${Date.now()}`];
+	for (const name of names) {
+		await page.goto('/app/dropzones/new');
+		await page.getByLabel('Dropzone name').fill(name);
+		await page.getByRole('button', { name: 'Create dropzone' }).click();
+		await expect(page).toHaveURL(/\/app$/);
+	}
+	const dz = page.getByLabel('Dropzone', { exact: true });
+	const plane = page.getByLabel('Aircraft');
+	const alt = page.getByLabel('Altitude (ft)');
+	// first jump ever: nothing to copy
+	await page.goto('/app/logbook/new');
+	await page.waitForLoadState('networkidle');
+	await expect(plane).toHaveValue('');
+	await expect(alt).toHaveValue('');
+	await dz.selectOption({ label: names[0] });
+	await plane.fill('Caravan');
+	await alt.fill('13000');
+	await page.locator('label:has(input[name=jumpType][value=belly])').click();
+	await page.getByTestId('save-jump').click();
+	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]{36}(\?added=1)?$/);
+
+	// the active dropzone ("Away") has no jumps yet: plane + altitude blank, jump type carried over
+	await page.goto('/app/logbook/new');
+	await page.waitForLoadState('networkidle');
+	await expect(page.locator('select[name=dropzoneId] option:checked')).toHaveText(names[1]);
+	await expect(plane).toHaveValue('');
+	await expect(alt).toHaveValue('');
+	await expect(page.locator('input[name=jumpType][value=belly]')).toBeChecked();
+	await dz.selectOption({ label: names[0] });
+	await expect(plane).toHaveValue('Caravan');
+	await expect(alt).toHaveValue('13000');
+	// a plane the jumper typed stays when switching back; the untouched altitude follows the dropzone
+	await plane.fill('Otter');
+	await dz.selectOption({ label: names[1] });
+	await expect(plane).toHaveValue('Otter');
+	await expect(alt).toHaveValue('');
+	await dz.selectOption({ label: names[0] });
+	await expect(plane).toHaveValue('Otter');
+	await expect(alt).toHaveValue('13000');
+	await page.getByTestId('save-jump').click();
+	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]{36}(\?added=1)?$/);
+	await page.goto('/app/logbook/new');
+	await page.waitForLoadState('networkidle');
+	await dz.selectOption({ label: names[0] });
+	await expect(plane).toHaveValue('Otter');
 });

@@ -1,4 +1,4 @@
-import { eq, inArray, isNotNull, and, asc, count, desc, sql } from 'drizzle-orm';
+import { eq, inArray, isNotNull, and, asc, count, desc, max, sql } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { aircraft, dropzones, logbookJumps, type LogbookJump } from '../db/schema.ts';
 import { listFollowedDropzones } from '../domain/dropzone-admin.ts';
@@ -58,6 +58,45 @@ export async function aircraftOptions(db: Database, userId: string, dropzoneIds:
 		if (name && !out.has(name.toLowerCase())) out.set(name.toLowerCase(), name);
 	}
 	return [...out.values()].slice(0, limit);
+}
+
+/** What a new jump at one dropzone starts with: the jumper's last jump there, else the DZ's usual altitude. */
+export type DzJumpDefaults = { aircraft: string | null; altitudeFt: number | null; location?: string | null };
+
+/**
+ * Prefill for the "Log a jump" form, so consecutive jumps don't retype the same plane and altitude:
+ * - `byDz` (keyed by dropzone id; `''` = "Other location"): aircraft + altitude of the jumper's
+ *   highest-numbered jump there, falling back to the dropzone's "Exit altitude" setting; the `''`
+ *   entry also carries the last free-text location;
+ * - jump type and rig from the jumper's latest jump anywhere (rig only while it is still active).
+ */
+export async function jumpFormDefaults(db: Database, userId: string, dropzoneIds: string[], activeRigIds: string[]) {
+	const top = max(logbookJumps.jumpNumber).as('top');
+	const [perDz, dzRows, [last]] = await Promise.all([
+		// SQLite returns the bare columns from the row holding max(): one row per dropzone (NULL = other location).
+		db
+			.select({ dropzoneId: logbookJumps.dropzoneId, top, aircraft: logbookJumps.aircraft, altitudeFt: logbookJumps.altitudeFt, location: logbookJumps.location })
+			.from(logbookJumps)
+			.where(eq(logbookJumps.userId, userId))
+			.groupBy(logbookJumps.dropzoneId),
+		dropzoneIds.length ? db.select({ id: dropzones.id, settings: dropzones.settings }).from(dropzones).where(inArray(dropzones.id, dropzoneIds)) : Promise.resolve([]),
+		db.select({ jumpType: logbookJumps.jumpType, rigId: logbookJumps.rigId }).from(logbookJumps).where(eq(logbookJumps.userId, userId)).orderBy(desc(logbookJumps.jumpNumber), desc(logbookJumps.createdAt)).limit(1)
+	]);
+	const byDz: Record<string, DzJumpDefaults> = {};
+	for (const d of dzRows) {
+		const alt = d.settings?.defaultAltitudeFt;
+		if (alt) byDz[d.id] = { aircraft: null, altitudeFt: alt };
+	}
+	for (const j of perDz) {
+		const key = j.dropzoneId ?? '';
+		if (key && !dropzoneIds.includes(key)) continue;
+		const entry: DzJumpDefaults = { aircraft: j.aircraft?.trim() || null, altitudeFt: j.altitudeFt ?? byDz[key]?.altitudeFt ?? null };
+		if (!key) entry.location = j.location?.trim() || null;
+		byDz[key] = entry;
+	}
+	const jumpType = last?.jumpType && (JUMP_TYPES as readonly string[]).includes(last.jumpType) ? (last.jumpType as JumpType) : null;
+	const rigId = last?.rigId && activeRigIds.includes(last.rigId) ? last.rigId : activeRigIds.length === 1 ? activeRigIds[0] : null;
+	return { byDz, jumpType, rigId };
 }
 
 export async function rigOptions(db: Database, userId: string) {

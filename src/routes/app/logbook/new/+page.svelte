@@ -13,6 +13,6 @@
 
 <div class="mx-auto max-w-2xl">
 	<Card>
-		<JumpForm values={form?.values ?? data.values} dropzones={data.dropzones} planes={data.planes} rigs={data.rigs} action="" submitLabel="Save jump" error={form?.message} fields={form?.fields} />
+		<JumpForm values={form?.values ?? data.values} dropzones={data.dropzones} planes={data.planes} dzDefaults={data.dzDefaults} rigs={data.rigs} action="" submitLabel="Save jump" error={form?.message} fields={form?.fields} />
 	</Card>
 </div>

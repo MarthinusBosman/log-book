@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { addJump, nextJumpNumber } from '#lib/server/domain/logbook.ts';
 import { domainFail, requireUser, todayAt } from '#lib/server/jumper/forms.ts';
-import { aircraftOptions, dropzoneOptions, jumpFormEcho, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
+import { aircraftOptions, dropzoneOptions, jumpFormDefaults, jumpFormEcho, parseJumpForm, rigOptions } from '#lib/server/jumper/logbook.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url, parent }) => {
@@ -12,22 +12,30 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 		dropzoneOptions(locals, user.id).then(async (dzs) => [dzs, await aircraftOptions(locals.db, user.id, dzs.map((d) => d.id))] as const),
 		rigOptions(locals.db, user.id)
 	]);
-	const activeRigs = rigs.filter((r) => r.active);
+	const activeRigs = rigs.filter((r) => r.active).map((r) => r.id);
+	const [defaults, jumpDate] = await Promise.all([
+		jumpFormDefaults(locals.db, user.id, dropzones.map((d) => d.id), activeRigs),
+		todayAt(locals, current?.dropzone.id)
+	]);
+	const dropzoneId = current && dropzones.some((d) => d.id === current.dropzone.id) ? current.dropzone.id : (dropzones[0]?.id ?? null);
+	const atDz = defaults.byDz[dropzoneId ?? ''];
 	return {
 		dropzones,
 		planes,
 		rigs,
+		/** Per-dropzone aircraft + altitude, swapped in when the jumper picks another dropzone. */
+		dzDefaults: defaults.byDz,
 		values: {
 			jumpNumber: next,
-			jumpDate: await todayAt(locals, current?.dropzone.id),
-			dropzoneId: current && dropzones.some((d) => d.id === current.dropzone.id) ? current.dropzone.id : (dropzones[0]?.id ?? null),
-			location: null,
-			aircraft: null,
-			altitudeFt: null,
+			jumpDate,
+			dropzoneId,
+			location: dropzoneId ? null : (atDz?.location ?? null),
+			aircraft: atDz?.aircraft ?? null,
+			altitudeFt: atDz?.altitudeFt ?? null,
 			freefallSeconds: null,
-			jumpType: null,
+			jumpType: defaults.jumpType,
 			description: null,
-			rigId: activeRigs.length === 1 ? activeRigs[0].id : null
+			rigId: defaults.rigId
 		}
 	};
 };

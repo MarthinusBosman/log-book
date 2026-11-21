@@ -25,6 +25,8 @@
 		rigs: { id: string; name: string; active: boolean }[];
 		/** Aircraft names offered as suggestions (past jumps first, then the dropzones' fleets). */
 		planes?: string[];
+		/** New jumps: aircraft + altitude per dropzone id; picking another dropzone swaps them in while the fields are untouched. */
+		dzDefaults?: Record<string, { aircraft: string | null; altitudeFt: number | null }>;
 		/** Verified jumps: number, date, DZ and aircraft are locked. */
 		locked?: boolean;
 		action: string;
@@ -35,7 +37,7 @@
 		busy?: boolean;
 		onsubmit?: () => void;
 	};
-	let { values, dropzones, rigs, planes = [], locked = false, action, submitLabel, error, fields, busy = $bindable(false) }: Props = $props();
+	let { values, dropzones, rigs, planes = [], dzDefaults = {}, locked = false, action, submitLabel, error, fields, busy = $bindable(false) }: Props = $props();
 	const fe = (name: string) => fields?.[name] ?? null;
 	let formEl: HTMLFormElement | undefined = $state();
 
@@ -47,6 +49,20 @@
 				: (dropzones[0]?.id ?? ''))
 	);
 	const ffText = (s: number | string | null) => (s == null ? '' : String(s));
+
+	// svelte-ignore state_referenced_locally
+	let plane = $state(values.aircraft ?? '');
+	// svelte-ignore state_referenced_locally
+	let altitude = $state(values.altitudeFt == null ? '' : String(values.altitudeFt));
+	const str = (v: string | number | null | undefined) => (v == null ? '' : String(v));
+	/** Switch dropzone; aircraft/altitude follow it unless the jumper already changed them. */
+	function pickDz(next: string) {
+		const was = dzDefaults[dz];
+		const now = dzDefaults[next];
+		if (!locked && plane.trim() === str(was?.aircraft)) plane = str(now?.aircraft);
+		if (!locked && String(altitude ?? '').trim() === str(was?.altitudeFt)) altitude = str(now?.altitudeFt);
+		dz = next;
+	}
 </script>
 
 <form
@@ -74,7 +90,7 @@
 		<Select
 			label="Dropzone"
 			name="dropzoneId"
-			bind:value={dz}
+			bind:value={() => dz, pickDz}
 			disabled={locked}
 			error={fe('dropzoneId')}
 			options={[...dropzones.map((d) => ({ value: d.id, label: d.name })), { value: '', label: 'Other location…' }]}
@@ -86,13 +102,13 @@
 	</div>
 
 	<div class="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-		<Input label="Aircraft" name="aircraft" placeholder="C182, Caravan…" value={values.aircraft ?? ''} readonly={locked} list={!locked && planes.length ? 'aircraft-suggestions' : undefined} autocomplete="off" class="col-span-2 sm:col-span-1" />
+		<Input label="Aircraft" name="aircraft" placeholder="C182, Caravan…" bind:value={plane} readonly={locked} list={!locked && planes.length ? 'aircraft-suggestions' : undefined} autocomplete="off" class="col-span-2 sm:col-span-1" />
 		{#if !locked && planes.length}
 			<datalist id="aircraft-suggestions" data-testid="aircraft-suggestions">
 				{#each planes as p (p)}<option value={p}></option>{/each}
 			</datalist>
 		{/if}
-		<Input label="Altitude (ft)" name="altitudeFt" type="number" inputmode="numeric" min="0" max="40000" step="100" value={values.altitudeFt ?? ''} error={fe('altitudeFt')} />
+		<Input label="Altitude (ft)" name="altitudeFt" type="number" inputmode="numeric" min="0" max="40000" step="100" bind:value={altitude} error={fe('altitudeFt')} />
 		<Input label="Freefall (sec)" name="freefallSeconds" inputmode="numeric" placeholder="45 or 0:45" value={ffText(values.freefallSeconds)} error={fe('freefallSeconds')} />
 	</div>
 
