@@ -88,11 +88,11 @@
 					<input type="search" name="q" value={data.filters.q} placeholder="Search jumps…" class="h-10 w-full rounded-xl border border-border bg-surface pr-3 pl-10 text-sm outline-none hover:border-border-strong focus:border-primary focus:ring-4 focus:ring-primary/15" />
 				</label>
 				<div class="flex gap-2">
-					<select name="type" value={data.filters.type} class="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary sm:w-36 sm:flex-none" aria-label="Jump type">
+					<select name="type" value={data.filters.type} class="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15 sm:w-36 sm:flex-none" aria-label="Jump type">
 						<option value="">All types</option>
 						{#each JUMP_TYPES as t (t)}<option value={t}>{JUMP_TYPE_LABELS[t]}</option>{/each}
 					</select>
-					<select name="year" value={data.filters.year} class="h-10 w-28 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary" aria-label="Year">
+					<select name="year" value={data.filters.year} class="h-10 w-28 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" aria-label="Year">
 						<option value="">All years</option>
 						{#each data.breakdown.byYear as y (y.key)}<option value={y.key}>{y.key}</option>{/each}
 					</select>

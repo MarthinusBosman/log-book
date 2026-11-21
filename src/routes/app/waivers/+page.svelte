@@ -77,7 +77,7 @@
 				aria-label="Form"
 				value={data.audience}
 				onchange={(e) => e.currentTarget.form?.requestSubmit()}
-				class="h-11 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
+				class="h-11 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
 			>
 				<option value="">All forms</option>
 				<option value="tandem">Tandem</option>

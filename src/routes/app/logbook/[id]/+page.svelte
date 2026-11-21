@@ -123,7 +123,7 @@
 				<div class="space-y-4" data-testid="sign-link">
 					<div class="mx-auto w-full max-w-56 rounded-2xl bg-white p-3 text-black shadow-sm">{@html f.qr}</div>
 					<p class="text-center text-sm text-muted">Ask an instructor or licensed jumper to scan this and sign while logged in. Valid for {f.expiresInDays} days.</p>
-					<div class="flex items-center gap-2 rounded-xl border border-border bg-surface-2/50 p-2">
+					<div class="flex items-center gap-2 rounded-xl border border-border bg-surface-2/50 p-2 focus-within:border-primary">
 						<input readonly value={f.link} class="min-w-0 flex-1 bg-transparent px-1 font-mono text-xs text-muted outline-none" onfocus={(e) => e.currentTarget.select()} aria-label="Sign-off link" />
 						<Button size="sm" variant="secondary" onclick={() => copy(f.link!)}>{copied ? 'Copied' : 'Copy'}</Button>
 					</div>

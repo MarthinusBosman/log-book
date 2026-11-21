@@ -84,7 +84,7 @@
 				type="date"
 				name="day"
 				value={data.day}
-				class="h-8 rounded-lg bg-transparent px-2 text-sm tabular-nums outline-none [color-scheme:inherit]"
+				class="h-8 rounded-lg bg-transparent px-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring [color-scheme:inherit]"
 				onchange={(e) => goto(`?day=${(e.currentTarget as HTMLInputElement).value}`)}
 			/>
 			<noscript><button class="h-8 rounded-lg px-2 text-sm">Go</button></noscript>

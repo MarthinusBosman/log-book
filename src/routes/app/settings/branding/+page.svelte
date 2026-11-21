@@ -84,7 +84,7 @@
 							autocomplete="off"
 							placeholder="#FF6A00"
 							class={cn(
-								'h-10 w-full rounded-xl border bg-surface-2 px-3 font-mono text-sm uppercase outline-none focus:border-primary',
+								'h-10 w-full rounded-xl border bg-surface-2 px-3 font-mono text-sm uppercase outline-none focus:border-primary focus:ring-4 focus:ring-primary/15',
 								valid ? 'border-border' : 'border-danger'
 							)}
 							aria-invalid={!valid}

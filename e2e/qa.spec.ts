@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { invisibleFocusStops } from './focus.ts';
 
 /** Whole-app coherence: role-aware navigation, owner onboarding, waiver prompts, in-shell errors. */
 async function signup(page: Page, name: string) {
@@ -150,6 +151,23 @@ test('owner onboarding → jumper sees only jumper nav, is prompted for the waiv
 	await expect(page.getByRole('heading', { name: 'Off the landing area', level: 1 })).toBeVisible();
 	expect(await headingSkips(page)).toEqual([]);
 	await expect(page.getByRole('link', { name: 'Back to dashboard' })).toBeVisible();
+});
+
+test('keyboard: every Tab stop on staff and jumper pages shows a focus ring', async ({ page }) => {
+	test.setTimeout(90_000);
+	await signup(page, 'Fran Focus');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Focus QA ${test.info().project.name} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	const misses: Record<string, string[]> = {};
+	for (const path of ['/app/manifest', '/app/tandems', '/app/reports', '/app/staff', '/app/team', '/app/waivers', '/app/settings/members', '/app/profile', '/app/logbook']) {
+		await page.goto(path);
+		await page.waitForLoadState('networkidle');
+		const bad = await invisibleFocusStops(page);
+		if (bad.length) misses[path] = bad;
+	}
+	expect(misses).toEqual({});
 });
 
 test('keyboard: "Skip to content" is the first Tab stop and jumps past the navigation', async ({ page, browser }) => {

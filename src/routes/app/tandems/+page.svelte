@@ -113,7 +113,7 @@
 				value={data.day}
 				aria-label="Choose day"
 				onchange={(e) => goto(dayHref(e.currentTarget.value))}
-				class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
+				class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
 			/>
 			<noscript><Button size="sm" type="submit" variant="secondary" class="ml-1">Go</Button></noscript>
 		</form>

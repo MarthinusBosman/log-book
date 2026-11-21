@@ -31,10 +31,10 @@
 	<form method="GET" class="flex flex-wrap items-center gap-2">
 		{#each extra as [k, v] (k)}<input type="hidden" name={k} value={v} />{/each}
 		<label class="sr-only" for="dr-from">From</label>
-		<input id="dr-from" type="date" name="from" value={from} max={today} class="h-9 rounded-lg border border-border bg-surface px-2.5 text-sm outline-none focus:border-primary" />
+		<input id="dr-from" type="date" name="from" value={from} max={today} class="h-9 rounded-lg border border-border bg-surface px-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" />
 		<span class="text-sm text-subtle">to</span>
 		<label class="sr-only" for="dr-to">To</label>
-		<input id="dr-to" type="date" name="to" value={to} class="h-9 rounded-lg border border-border bg-surface px-2.5 text-sm outline-none focus:border-primary" />
+		<input id="dr-to" type="date" name="to" value={to} class="h-9 rounded-lg border border-border bg-surface px-2.5 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" />
 		<button type="submit" class="h-9 rounded-lg border border-border bg-surface-2 px-3 text-sm font-medium hover:bg-elevated">Apply</button>
 	</form>
 	<div class="flex flex-wrap gap-1">

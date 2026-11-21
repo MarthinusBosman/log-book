@@ -196,14 +196,14 @@
 			</ul>
 			<form method="POST" action="?/addRating" class="space-y-3 border-t border-border p-5" use:enhance={submit('rating', true)} data-testid="rating-form">
 				<div class="grid grid-cols-[auto_1fr] gap-2">
-					<select name="body" bind:value={ratingBody} class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary" aria-label="Association">
+					<select name="body" bind:value={ratingBody} class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" aria-label="Association">
 						{#each RATING_BODIES as b (b)}<option value={b}>{BODY_LABELS[b]}</option>{/each}
 					</select>
-					<input name="rating" list="known-ratings" required placeholder="Rating, e.g. Coach" class="h-10 min-w-0 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary" aria-label="Rating" />
+					<input name="rating" list="known-ratings" required placeholder="Rating, e.g. Coach" class="h-10 min-w-0 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" aria-label="Rating" />
 					<datalist id="known-ratings">{#each data.knownRatings[ratingBody] as k (k)}<option value={k}></option>{/each}</datalist>
 				</div>
 				<div class="flex gap-2">
-					<input name="expiresOn" type="date" class="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary" aria-label="Expiry date" />
+					<input name="expiresOn" type="date" class="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" aria-label="Expiry date" />
 					<Button type="submit" variant="secondary" loading={busy === 'rating'}><Icon name="plus" class="size-4" /> Add</Button>
 				</div>
 				<FormAlert message={err('rating')} />

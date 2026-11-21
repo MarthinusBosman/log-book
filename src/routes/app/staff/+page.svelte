@@ -65,7 +65,7 @@
 
 <div class="mt-6 flex flex-col gap-3 sm:flex-row">
 	<SearchBox bind:value={q} placeholder="Search staff" class="flex-1" />
-	<select bind:value={role} aria-label="Filter by role" class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary">
+	<select bind:value={role} aria-label="Filter by role" class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
 		<option value="">All roles</option>
 		{#each rolesPresent as r (r)}<option value={r}>{ROLE_LABELS[r]}</option>{/each}
 	</select>

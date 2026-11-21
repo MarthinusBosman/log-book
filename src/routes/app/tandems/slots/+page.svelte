@@ -201,7 +201,7 @@
 												max="99"
 												value={s.capacity}
 												aria-label="Places at {s.time}"
-												class="h-7 w-9 [appearance:textfield] rounded-md border border-transparent bg-transparent px-1 text-center text-sm tabular-nums outline-none hover:border-border focus:border-primary [&::-webkit-inner-spin-button]:appearance-none"
+												class="h-7 w-9 [appearance:textfield] rounded-md border border-transparent bg-transparent px-1 text-center text-sm tabular-nums outline-none hover:border-border focus:border-primary focus:ring-2 focus:ring-primary/30 [&::-webkit-inner-spin-button]:appearance-none"
 												onchange={(e) => e.currentTarget.form?.requestSubmit()}
 											/>
 											{#if !hydrated}

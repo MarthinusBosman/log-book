@@ -105,7 +105,7 @@
 	<select
 		bind:value={roleFilter}
 		aria-label="Filter by role"
-		class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
+		class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
 	>
 		<option value="">All roles</option>
 		{#each DROPZONE_ROLES as r (r)}<option value={r}>{ROLE_LABELS[r]}</option>{/each}

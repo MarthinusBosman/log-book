@@ -84,7 +84,7 @@
 				<label class="relative flex-1">
 					<span class="sr-only">Search jumpers</span>
 					<JIcon name="search" class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-subtle" />
-					<input type="search" name="q" value={data.q} placeholder="Search jumper’s name…" class="h-10 w-full rounded-xl border border-border bg-surface pr-3 pl-9 text-sm outline-none hover:border-border-strong focus:border-primary" />
+					<input type="search" name="q" value={data.q} placeholder="Search jumper’s name…" class="h-10 w-full rounded-xl border border-border bg-surface pr-3 pl-9 text-sm outline-none hover:border-border-strong focus:border-primary focus:ring-4 focus:ring-primary/15" />
 				</label>
 				<Button type="submit" variant="secondary">Find</Button>
 			</form>

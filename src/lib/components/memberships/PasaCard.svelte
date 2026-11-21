@@ -88,7 +88,7 @@
 			placeholder="PASA number, e.g. 4568"
 			value={value ?? ''}
 			required
-			class="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm tabular-nums outline-none focus:border-primary"
+			class="h-10 min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm tabular-nums outline-none focus:border-primary focus:ring-4 focus:ring-primary/15"
 		/>
 		<Button type="submit" loading={busy === 'lookup'}><JIcon name="search" class="size-4" /> {label}</Button>
 	</form>
