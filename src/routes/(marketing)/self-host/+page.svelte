@@ -160,7 +160,7 @@ LOG_BOOK_VERSION=0.1`;
 	</nav>
 
 	<div class="max-w-3xl min-w-0 space-y-16 text-[16px] leading-relaxed">
-		<section id="need" class="scroll-mt-24">
+		<section id="need" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">What you need</h2>
 			<ul class="mt-4 list-disc space-y-2 pl-5 text-muted marker:text-subtle">
 				<li>
@@ -176,7 +176,7 @@ LOG_BOOK_VERSION=0.1`;
 			</ul>
 		</section>
 
-		<section id="install" class="scroll-mt-24">
+		<section id="install" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Install</h2>
 			<p class="mt-4 text-muted">
 				You don’t need the source code: {brand.name} ships as a ready-made Docker image for regular PCs and for ARM
@@ -195,7 +195,7 @@ LOG_BOOK_VERSION=0.1`;
 			</p>
 		</section>
 
-		<section id="reach" class="scroll-mt-24">
+		<section id="reach" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">How people reach it</h2>
 			<p class="mt-4 text-muted">
 				Pick one front end. The installer asks; by hand, set {@render c('COMPOSE_PROFILES=<name>')} in .env or use
@@ -212,7 +212,7 @@ LOG_BOOK_VERSION=0.1`;
 			</div>
 		</section>
 
-		<section id="domain" class="scroll-mt-24">
+		<section id="domain" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Custom domain</h2>
 			<h3 class="mt-6 font-semibold">Your own domain, e.g. manifest.your-dz.co.za</h3>
 			{@render ol([
@@ -244,7 +244,7 @@ LOG_BOOK_VERSION=0.1`;
 			</ul>
 		</section>
 
-		<section id="lan" class="scroll-mt-24">
+		<section id="lan" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Dropzone WiFi only</h2>
 			<p class="mt-4 text-muted">No domain, nothing on the internet. The server sits in the office and only devices on your network can open it.</p>
 			{@render ol([
@@ -262,7 +262,7 @@ LOG_BOOK_VERSION=0.1`;
 			</p>
 		</section>
 
-		<section id="payments" class="scroll-mt-24">
+		<section id="payments" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Payments</h2>
 			<p class="mt-4 text-muted">
 				Your dropzone is the merchant. Payments go to your own PayFast or Stripe account and settle straight into your bank
@@ -289,7 +289,7 @@ LOG_BOOK_VERSION=0.1`;
 			<p class="mt-4 text-muted">When online payments ship, the server will need a public address (own domain or tunnel) so the provider can confirm payments.</p>
 		</section>
 
-		<section id="tv" class="scroll-mt-24">
+		<section id="tv" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Hangar TV</h2>
 			<p class="mt-4 text-muted">
 				Open <span class="font-medium text-fg">Display</span> in the app, or create a
@@ -301,7 +301,7 @@ LOG_BOOK_VERSION=0.1`;
 			<p class="mt-4 text-muted">On a smart TV or streaming stick, use a kiosk browser app with “start on boot”, and the IP or a router DNS name rather than .local.</p>
 		</section>
 
-		<section id="config" class="scroll-mt-24">
+		<section id="config" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Configuration</h2>
 			<p class="mt-4 text-muted">Everything goes in {@render c('.env')} next to the compose file.</p>
 			<dl class="mt-6 divide-y divide-border overflow-hidden rounded-2xl border border-border">
@@ -314,7 +314,7 @@ LOG_BOOK_VERSION=0.1`;
 			</dl>
 		</section>
 
-		<section id="backups" class="scroll-mt-24">
+		<section id="backups" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Backups</h2>
 			<p class="mt-4 text-muted">
 				Everything is in {@render c('/data')}: the database and uploaded files such as waiver PDFs and signatures. The
@@ -328,7 +328,7 @@ LOG_BOOK_VERSION=0.1`;
 			</p>
 		</section>
 
-		<section id="updates" class="scroll-mt-24">
+		<section id="updates" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Updates</h2>
 			<p class="mt-4 text-muted">
 				Take a backup, then pull the new image. Database migrations run when it starts, so keep that backup until you’re
@@ -338,7 +338,7 @@ LOG_BOOK_VERSION=0.1`;
 			{@render code(update, 'Update')}
 		</section>
 
-		<section id="link" class="scroll-mt-24">
+		<section id="link" class="scroll-mt-6">
 			<h2 class="text-2xl font-[580] tracking-[-0.02em]">Link to jumper logbooks</h2>
 			<p class="mt-4 text-muted">
 				Jumpers keep one logbook on the hosted {brand.name}. To send them the jumps they make at your dropzone:

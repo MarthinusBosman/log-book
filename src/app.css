@@ -240,7 +240,10 @@
 		scrollbar-color: var(--dz-border-strong) transparent;
 	}
 	html {
-		/* keep focused fields clear of the sticky mobile tab bar / bottom action bars */
+		/* keep focused fields clear of the sticky mobile tab bar / bottom action bars, and of the
+		   sticky top bars (app 3.5rem, /dz 3.5rem, marketing 4rem): the browser's "please tick this
+		   box" scroll, focus and #anchor jumps otherwise park the field under the header */
+		scroll-padding-top: 4.5rem;
 		scroll-padding-bottom: 6rem;
 	}
 

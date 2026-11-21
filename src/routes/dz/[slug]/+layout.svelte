@@ -34,7 +34,7 @@
 			</div>
 		</div>
 	</header>
-	<main id="main" tabindex="-1" class="flex-1 scroll-mt-14 outline-none">
+	<main id="main" tabindex="-1" class="flex-1 outline-none">
 		{@render children()}
 	</main>
 	<footer class="border-t border-border/60 py-6 text-center text-xs text-subtle">

@@ -280,7 +280,7 @@
 
 	<!-- step 4: indemnity -->
 	{#if needsSign}
-		<section id="indemnity" class="mt-8 scroll-mt-20">
+		<section id="indemnity" class="mt-8 scroll-mt-2">
 			<h2 bind:this={indemnityHeading} tabindex="-1" class="text-2xl font-semibold tracking-tight outline-none">Sign your indemnity</h2>
 			<p class="mt-1 text-sm text-muted">
 				Everyone who jumps signs before boarding. Do it now on your phone and skip the queue at the dropzone{b.minor ? ' — a parent or guardian signs too' : ''}.

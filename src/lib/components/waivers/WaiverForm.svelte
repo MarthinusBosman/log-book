@@ -126,8 +126,9 @@
 			</div>
 		{/if}
 		<p class="col-span-full text-xs text-subtle">
-			Signed by <span class="font-medium text-muted">{signerName || (preview ? 'John Doe' : 'you')}</span> on {today}. Your signature, the text
-			above and a timestamp are sealed together and kept on record; you can download the signed copy as a PDF.
+			Signed by <span class="font-medium text-muted">{signerName || (preview ? 'John Doe' : 'you')}</span>{guardian ? ' and their parent / guardian' : ''}
+			on {today}. {guardian ? 'Both signatures' : 'Your signature'}, the text above and a timestamp are sealed together and kept on record; you
+			can download the signed copy as a PDF.
 		</p>
 	</div>
 </div>

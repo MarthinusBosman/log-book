@@ -135,6 +135,15 @@ test('tandems: slots + waiver setup → public booking → indemnity → staff v
 	}
 
 	// Step 4: sign the indemnity.
+	// Submitting with a section unticked: the browser scrolls to the box and points at it; that
+	// box must land below the sticky header, not under it (html scroll-padding-top).
+	await page.getByTestId('sign-submit').click();
+	await expect(page.locator('input[name=ack_0]')).toBeFocused();
+	{
+		const header = (await page.locator('header').first().boundingBox())!;
+		const box = (await page.locator('input[name=ack_0]').boundingBox())!;
+		expect(box.y).toBeGreaterThanOrEqual(header.y + header.height);
+	}
 	await page.locator('input[name=ack_0]').check();
 	// The pad spans the form (a stray col-span once squeezed it to ~140 px on desktop).
 	const formBox = (await page.getByTestId('sign-form').boundingBox())!;

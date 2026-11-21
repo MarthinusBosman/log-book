@@ -198,7 +198,7 @@
 		<a href="/dz/{data.dz.slug}" class="mt-6 inline-block text-sm font-medium text-primary hover:underline"><span aria-hidden="true">‹</span> {data.dz.name}</a>
 	</div>
 {:else}
-<div bind:this={top} class="mx-auto max-w-5xl scroll-mt-16 px-4 pt-6 pb-28 sm:px-6 lg:pb-12">
+<div bind:this={top} class="mx-auto max-w-5xl px-4 pt-6 pb-28 sm:px-6 lg:pb-12">
 	<div class="max-w-2xl">
 		<BookingSteps current={STEPS[step]} waiver={data.waiver} />
 		<h1 bind:this={heading} tabindex="-1" data-testid="step-heading" class="mt-6 text-2xl font-semibold tracking-tight outline-none sm:text-3xl">

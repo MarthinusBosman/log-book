@@ -21,7 +21,7 @@
 <SkipLink />
 <div class="relative flex min-h-dvh flex-col overflow-x-clip">
 	<SiteHeader />
-	<main id="main" tabindex="-1" class="flex-1 scroll-mt-16 outline-none">
+	<main id="main" tabindex="-1" class="flex-1 outline-none">
 		{@render children()}
 	</main>
 	<SiteFooter />
