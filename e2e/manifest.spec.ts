@@ -629,4 +629,14 @@ test('Tandem tab adds a passenger + TI group and flags booked outside video with
 	// The passenger left the Tandem list and the form reset.
 	await expect(panel.getByRole('radio', { name: new RegExp(pax) })).toHaveCount(0);
 	await expect(hint).toHaveCount(0);
+
+	// The load sheet spaces the staff role off the jump ("Tandem · TI", not "Tandem· TI") and
+	// keeps fixed columns on paper so every load's table lines up, long names included.
+	await page.setViewportSize({ width: 1280, height: 900 });
+	await page.goto('/app/reports/loadsheet');
+	const sheet = page.getByRole('main').getByTestId('loadsheet-table').first();
+	await expect(sheet.getByRole('row', { name: /Tina Tandem/ }).getByRole('cell').nth(3)).toHaveText('Tandem · TI');
+	expect(await sheet.evaluate((t) => getComputedStyle(t).tableLayout)).toBe('fixed');
+	const jumpCol = (await sheet.getByRole('columnheader', { name: 'Jump' }).boundingBox())!;
+	expect(Math.round(jumpCol.width)).toBe(160);
 });

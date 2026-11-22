@@ -45,15 +45,16 @@
 					{#if time(l.departedAt ?? l.scheduledAt)}· {time(l.departedAt ?? l.scheduledAt)}{/if}
 				</p>
 			</div>
-			<table class="mt-1 w-full text-[13px]">
+			<!-- Fixed columns from sm up so every load's table lines up with the next one on the sheet. -->
+			<table class="mt-1 w-full text-[13px] sm:table-fixed" data-testid="loadsheet-table">
 				<thead>
 					<tr class="border-b border-zinc-300 text-left text-[11px] tracking-wide text-zinc-500 uppercase">
 						<th class="w-8 py-1">#</th>
 						<th class="py-1">Name</th>
-						<th class="py-1">Licence</th>
-						<th class="py-1">Jump</th>
-						<th class="hidden py-1 sm:table-cell print:table-cell">Extras</th>
-						<th class="py-1 text-right">kg</th>
+						<th class="py-1 sm:w-24">Licence</th>
+						<th class="py-1 sm:w-40">Jump</th>
+						<th class="hidden py-1 sm:table-cell sm:w-1/4 print:table-cell">Extras</th>
+						<th class="py-1 text-right sm:w-12">kg</th>
 						<th class="w-12 py-1 text-right">Paid</th>
 					</tr>
 				</thead>
@@ -67,7 +68,7 @@
 							</td>
 							<td class="py-1">{s.licence ?? ''}</td>
 							<td class="py-1">
-								{JUMP_TYPE_LABELS[s.jumpType as JumpType] ?? s.jumpType}{#if s.staffRole}<span class="text-zinc-500"> · {SLOT_STAFF_ROLE_LABELS[s.staffRole as SlotStaffRole] ?? s.staffRole}</span>{/if}
+								{JUMP_TYPE_LABELS[s.jumpType as JumpType] ?? s.jumpType}{#if s.staffRole}<span class="text-zinc-500">{` · ${SLOT_STAFF_ROLE_LABELS[s.staffRole as SlotStaffRole] ?? s.staffRole}`}</span>{/if}
 							</td>
 							<td class="hidden py-1 text-zinc-600 sm:table-cell print:table-cell">{(s.extras ?? []).map((e) => SLOT_EXTRA_LABELS[e as SlotExtra] ?? e).join(', ')}</td>
 							<td class="py-1 text-right tabular-nums">{s.weightKg ?? ''}</td>
