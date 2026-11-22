@@ -13,6 +13,7 @@
 		type DateOrder
 	} from '#lib/import/csv.ts';
 	import Glyph from './Glyph.svelte';
+	import { fmtDate } from '#lib/components/jumper/format.ts';
 	import { brand } from '#lib/brand.ts';
 
 	let { mode, templateHref }: { mode: 'jumper' | 'dropzone'; templateHref?: string } = $props();
@@ -157,7 +158,7 @@
 					<p class="mt-3 text-xs text-muted">
 						<span class="font-medium text-fg">{sample.jumps.length}</span> of the first {Math.min(data.length, 200)} rows read
 						{#if sample.errors.length}· <span class="text-warning">{sample.errors.length} need attention</span>{/if}
-						{#if sample.jumps[0]}· first: #{sample.jumps[0].jumpNumber ?? '–'}, {sample.jumps[0].jumpDate}{sample.jumps[0].location ? `, ${sample.jumps[0].location}` : ''}{/if}
+						{#if sample.jumps[0]}· first: #{sample.jumps[0].jumpNumber ?? '–'}, {fmtDate(sample.jumps[0].jumpDate)}{sample.jumps[0].location ? `, ${sample.jumps[0].location}` : ''}{/if}
 					</p>
 				{/if}
 			</div>

@@ -31,11 +31,16 @@ test('logbook CSV import: map columns → preview → import → history → exp
 	await expect(mapping).toBeVisible();
 	await mapping.getByRole('combobox').first().selectOption('dmy');
 	await expect(mapping).toContainText('2 of the first 3 rows read');
+	await expect(mapping).toContainText('first: #1, 9 Mar 2024, Skydive E2E');
+	// Phones show the current step's name (the others stay readable for screen readers).
+	const progress = page.getByRole('list', { name: 'Progress' });
+	await expect(progress.locator('[aria-current=step]')).toContainText('Choose source');
+	await expect(progress.locator('[aria-current=step] span').last()).toBeVisible();
 	await page.getByTestId('upload-submit').click();
 
 	await expect(page).toHaveURL(/staged=/);
 	await expect(page.getByTestId('count-jumps')).toHaveText('2');
-	await expect(page.getByTestId('import-preview')).toContainText('2024-03-09');
+	await expect(page.getByTestId('import-preview')).toContainText('9 Mar 2024');
 	await expect(page.getByTestId('import-preview')).toContainText('unreadable date');
 	await page.getByTestId('import-confirm').click();
 

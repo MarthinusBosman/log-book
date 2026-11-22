@@ -5,6 +5,7 @@
 	import { JUMP_TYPE_LABELS } from '#lib/domain/constants.ts';
 	import type { ImportPreview } from '#lib/server/import/apply.ts';
 	import Glyph from './Glyph.svelte';
+	import { fmtDate } from '#lib/components/jumper/format.ts';
 
 	let { preview }: { preview: ImportPreview & { id: string; label: string; stagedWarnings: string[] } } = $props();
 	let submitting = $state(false);
@@ -58,7 +59,7 @@
 							{#each preview.samples.jumps as j, i (i)}
 								<tr>
 									<td class="px-3 py-2 tabular-nums text-muted">{j.jumpNumber ?? '—'}</td>
-									<td class="px-3 py-2 whitespace-nowrap tabular-nums">{j.jumpDate}</td>
+									<td class="px-3 py-2 whitespace-nowrap tabular-nums">{fmtDate(j.jumpDate)}</td>
 									<td class="max-w-48 truncate px-3 py-2">{j.location ?? '—'}</td>
 									<td class="hidden px-3 py-2 sm:table-cell">{j.aircraft ?? '—'}</td>
 									<td class="px-3 py-2">{jt(j.jumpType)}</td>

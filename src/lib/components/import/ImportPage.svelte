@@ -59,7 +59,7 @@
 							? 'bg-primary text-primary-fg'
 							: 'border border-border'}">{n}</span
 				>
-				<span class="hidden font-medium sm:inline">{s}</span>
+				<span class="font-medium {n === step ? '' : 'sr-only sm:not-sr-only'}">{s}</span>
 			</li>
 			{#if n < steps.length}<li class="h-px w-6 bg-border sm:w-10" aria-hidden="true"></li>{/if}
 		{/each}
