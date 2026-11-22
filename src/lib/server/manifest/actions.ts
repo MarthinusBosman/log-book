@@ -6,7 +6,7 @@ import { fail, type RequestEvent } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { slots, type Slot } from '../db/schema.ts';
 import * as loadsSvc from '../domain/loads.ts';
-import { checkinRentalExtras, manifestGroup, manifestTeam } from '../domain/teams.ts';
+import { checkinRentalExtras, manifestGroup, manifestTeam, manifestTeamFor } from '../domain/teams.ts';
 import { markSlotsPaid } from '../domain/payments.ts';
 import { DomainError } from '../domain/errors.ts';
 import { isIsoDate } from '../domain/time.ts';
@@ -352,13 +352,16 @@ export const slotActions = {
 				currency = await currencyOf(ev, load.dropzoneId);
 				const teamId = str(form, 'teamId');
 				if (!teamId) throw new DomainError('invalid', 'Choose a team');
+				// this dropzone's team, or a jumper's own team with members checked in here (just those jump)
+				const team = await manifestTeamFor(ev.locals.db, load.dropzoneId, teamId);
+				if (team.memberIds.length === 0) throw new DomainError('invalid', 'This team has no members yet');
 				const jt = jumpType(form);
 				const ex = extras(form);
 				// members who checked in with rental gear get it on their slot, as on the other tabs
 				const extrasOf = await checkinRentalExtras(ev.locals.db, load.dropzoneId, ex, jt);
 				const created = await manifestTeam(
 					ev.locals.db,
-					{ teamId, loadId, jumpType: jt, extras: ex, extrasOf, includeStaff: bool(form, 'includeStaff') },
+					{ teamId, loadId, jumpType: jt, extras: ex, extrasOf, memberIds: team.memberIds, includeStaff: bool(form, 'includeStaff') },
 					{ by: ev.locals.user!.id, allowExpired: bool(form, 'allowExpired'), skipWallet: bool(form, 'skipWallet') }
 				);
 				return { ok: true, action: 'addTeam', added: created.length };

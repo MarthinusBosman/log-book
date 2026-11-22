@@ -2,7 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { getLoad, listLoadsForDay } from '#lib/server/domain/loads.ts';
 import { listCheckedIn } from '#lib/server/domain/checkins.ts';
 import { listAircraft, listMembers } from '#lib/server/domain/dropzone-admin.ts';
-import { listDropzoneTeams } from '#lib/server/domain/teams.ts';
+import { listManifestTeams } from '#lib/server/domain/teams.ts';
 import { listPassengers } from '#lib/server/domain/tandems.ts';
 import { isDomainError } from '#lib/server/domain/errors.ts';
 import { localDate } from '#lib/server/domain/time.ts';
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async (event) => {
 		listLoadsForDay(db, ctx.dz.id, l.day),
 		canManifest ? listCheckedIn(db, ctx.dz.id) : [],
 		canManifest ? listMembers(db, ctx.dz.id) : [],
-		canManifest ? listDropzoneTeams(db, ctx.dz.id) : [],
+		canManifest ? listManifestTeams(db, ctx.dz.id) : [],
 		canManifest ? listPassengers(db, ctx.dz.id, { tab: 'ready', date: l.day }) : [],
 		canManifest ? listAircraft(db, ctx.dz.id, { activeOnly: true }) : [],
 		canManifest ? listUsersWithRole(db, ctx.dz.id, 'pilot') : []
@@ -75,7 +75,7 @@ export const load: PageServerLoad = async (event) => {
 		staff: members
 			.filter((m) => m.status === 'active' && m.roles.some((r) => staffRoles.has(r.role)))
 			.map((m) => ({ id: m.userId, name: m.name, avatar: m.avatar, roles: m.roles.map((r) => r.role), colour: colours[m.userId] ?? null, onLoad: onLoad.has(m.userId), otherLoads: others[m.userId] ?? [] })),
-		teams: teams.map((t) => ({ id: t.id, name: t.name, discipline: t.discipline, colour: t.colour })),
+		teams: teams.map((t) => ({ id: t.id, name: t.name, discipline: t.discipline, colour: t.colour, personal: t.personal, jumping: t.memberIds.length, size: t.memberCount })),
 		passengers: passengers
 			.filter((p) => !p.manifested && (p.status === 'registered' || p.status === 'booked'))
 			.map((p) => ({

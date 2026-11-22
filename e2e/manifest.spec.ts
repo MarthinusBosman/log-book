@@ -639,6 +639,58 @@ test('Checked in tab adds gear rental for jumpers who checked in with rental gea
 	await expect(slot).toContainText('Gear rental');
 });
 
+test("Team tab lists a checked-in jumper's own team and adds only its members who are here", async ({ page }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Tess Teamjumper');
+	await page.getByLabel('Email').fill(`ownteam-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Own team E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	await page.goto('/app/team?new=1');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('create-team').getByLabel('Team name').fill('Zoo Crew');
+	await page.getByTestId('create-team').getByRole('button', { name: 'Create team' }).click();
+	await expect(page).toHaveURL(/\/app\/team\/[0-9a-f-]+$/);
+
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-ZOO');
+	await dialog.getByLabel('Slots (pax)').fill('4');
+	await dialog.getByRole('button', { name: 'Create load', exact: true }).click();
+	await page.locator('[data-testid=load-card][data-load-number="1"]').getByRole('link', { name: 'Add slots' }).click();
+	await expect(page).toHaveURL(/\/app\/manifest\/[0-9a-f-]+/);
+	const loadUrl = page.url();
+	await page.waitForLoadState('networkidle');
+	// nobody checked in: no teams, and a hint where jumpers' teams come from
+	await page.getByRole('tab', { name: /^Team/ }).click();
+	await expect(page.getByTestId('team-empty-hint')).toBeVisible();
+
+	await page.goto('/app/check-in');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toBeVisible();
+
+	await page.goto(loadUrl);
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('tab', { name: /^Team/ }).click();
+	const panel = page.getByRole('tabpanel');
+	const select = panel.getByLabel('Team', { exact: true });
+	await expect(select.locator('option', { hasText: 'Zoo Crew' })).toHaveText("Zoo Crew · jumper's team, 1 of 1 here");
+	await select.selectOption({ label: "Zoo Crew · jumper's team, 1 of 1 here" });
+	await panel.getByRole('button', { name: 'Add whole team' }).click();
+	const slot = page.locator('[data-testid=detail-slot][data-slot-name="Tess Teamjumper"]');
+	await expect(slot).toBeVisible();
+	await expect(slot).toContainText('Zoo Crew');
+});
+
 test('Tandem tab adds a passenger + TI group and flags booked outside video without a camera flyer', async ({ page }) => {
 	const project = test.info().project.name;
 	await page.goto('/signup');

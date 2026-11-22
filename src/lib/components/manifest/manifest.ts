@@ -291,6 +291,16 @@ export function rentalLabel(names: readonly string[]): string {
 	return `Add gear rental for ${who} (checked in with rental gear)`;
 }
 
+/**
+ * Manifest Team picker label: "Cape Sharks · 4 way FS" for a DZ team; a jumper's own team says so
+ * and how many of its members are checked in (only they jump): "Zoo Crew · Freefly · jumper's team, 2 of 3 here".
+ */
+export function teamOptionLabel(t: { name: string; discipline: string | null; personal?: boolean; jumping?: number; size?: number }): string {
+	const base = t.discipline ? `${t.name} · ${t.discipline}` : t.name;
+	if (!t.personal) return base;
+	return `${base} · jumper's team, ${t.jumping ?? 0} of ${t.size ?? 0} here`;
+}
+
 /** Price preview line for the per-jumper rental: "Gear rental × 2". */
 export const rentalLine = (n: number) => (n > 1 ? `Gear rental × ${n}` : 'Gear rental');
 

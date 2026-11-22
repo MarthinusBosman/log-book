@@ -181,6 +181,15 @@ export async function rentingUserIds(db: Database, dropzoneId: string): Promise<
 	return new Set(rows.map((r) => r.userId));
 }
 
+/** Everyone with an open check-in at the dropzone. */
+export async function checkedInUserIds(db: Database, dropzoneId: string): Promise<Set<string>> {
+	const rows = await db
+		.select({ userId: checkins.userId })
+		.from(checkins)
+		.where(and(eq(checkins.dropzoneId, dropzoneId), isNull(checkins.checkedOutAt)));
+	return new Set(rows.map((r) => r.userId));
+}
+
 /** Checked-in jumpers with the credential snapshot the manifest needs. */
 export async function listCheckedIn(db: Database, dropzoneId: string) {
 	return db

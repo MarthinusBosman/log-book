@@ -1,12 +1,12 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
-import { teamMembers, teams, userBuddies, users, type Slot, type Team } from '../db/schema.ts';
+import { checkins, teamMembers, teams, userBuddies, users, type Slot, type Team } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
 import type { JumpType, SlotExtra } from '../../domain/constants.ts';
 import { DomainError, assertFound } from './errors.ts';
 import { notify } from './notifications.ts';
 import { addSlots, type AddSlotOptions, type SlotInput } from './loads.ts';
-import { rentingUserIds } from './checkins.ts';
+import { checkedInUserIds, rentingUserIds } from './checkins.ts';
 import { slotExtrasFor } from '../../components/manifest/manifest.ts';
 
 export type TeamInput = {
@@ -98,6 +98,60 @@ export async function listUserTeams(db: Database, userId: string) {
 	const ids = [...new Set([...owned, ...member].map((r) => r.id))];
 	if (ids.length === 0) return [];
 	return Promise.all(ids.map((id) => getTeam(db, id)));
+}
+
+export type ManifestTeam = {
+	id: string;
+	name: string;
+	discipline: string | null;
+	colour: string | null;
+	/** A jumper's own team (from /app/team), not one the dropzone keeps. */
+	personal: boolean;
+	/** Who "Add whole team" puts on the load: every member of a DZ team; the checked-in members of a personal team. */
+	memberIds: string[];
+	memberCount: number;
+};
+
+/**
+ * Teams staff can manifest at a dropzone: the dropzone's own teams, plus jumpers' personal teams
+ * with at least one member checked in there (only the checked-in members jump).
+ */
+export async function listManifestTeams(db: Database, dropzoneId: string): Promise<ManifestTeam[]> {
+	const own = await listDropzoneTeams(db, dropzoneId);
+	const view = (t: Awaited<ReturnType<typeof getTeam>>, personal: boolean, memberIds: string[]): ManifestTeam => ({
+		id: t.id,
+		name: t.name,
+		discipline: t.discipline,
+		colour: t.colour,
+		personal,
+		memberIds,
+		memberCount: t.members.length
+	});
+	const list = own.map((t) => view(t, false, t.members.map((m) => m.id)));
+	const here = await checkedInUserIds(db, dropzoneId);
+	if (here.size === 0) return list;
+	// a join, not inArray(here): a busy day's check-ins would pass D1's 100-parameter cap
+	const rows = await db
+		.selectDistinct({ id: teams.id })
+		.from(teamMembers)
+		.innerJoin(teams, eq(teams.id, teamMembers.teamId))
+		.innerJoin(checkins, eq(checkins.userId, teamMembers.userId))
+		.where(and(eq(checkins.dropzoneId, dropzoneId), isNull(checkins.checkedOutAt), isNull(teams.dropzoneId)));
+	const personal = await Promise.all(rows.map((r) => getTeam(db, r.id)));
+	for (const t of personal.sort((a, b) => a.name.localeCompare(b.name))) {
+		list.push(view(t, true, t.members.filter((m) => here.has(m.id)).map((m) => m.id)));
+	}
+	return list;
+}
+
+/**
+ * The team staff picked on the manifest, checked against the dropzone: its own team, or a personal
+ * team with members checked in here (returns just those). Anything else is not found.
+ */
+export async function manifestTeamFor(db: Database, dropzoneId: string, teamId: string): Promise<ManifestTeam> {
+	const team = (await listManifestTeams(db, dropzoneId)).find((t) => t.id === teamId);
+	if (!team) throw new DomainError('not_found', 'Team not found');
+	return team;
 }
 
 /**

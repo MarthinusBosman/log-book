@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, rentalApplies, rentalLabel, rentalLine, totalLabel, slotExtrasFor, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, rentalApplies, rentalLabel, rentalLine, teamOptionLabel, totalLabel, slotExtrasFor, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -252,6 +252,10 @@ describe('gear rental from check-in (slotExtrasFor / rentalLabel)', () => {
 	test('names the renters', () => {
 		expect(rentalLabel(['Johan'])).toBe('Add gear rental for Johan (checked in with rental gear)');
 		expect(rentalLabel(['Johan', 'Mia', 'Lee'])).toBe('Add gear rental for Johan, Mia and Lee (checked in with rental gear)');
+	});
+	test('team picker labels: a jumper’s own team says how many of its members are here', () => {
+		expect(teamOptionLabel({ name: 'Sharks', discipline: '4 way FS' })).toBe('Sharks · 4 way FS');
+		expect(teamOptionLabel({ name: 'Zoo Crew', discipline: null, personal: true, jumping: 2, size: 3 })).toBe("Zoo Crew · jumper's team, 2 of 3 here");
 	});
 	test('price preview labels: renters make the per-jumper total uneven', () => {
 		expect(rentalLine(1)).toBe('Gear rental');

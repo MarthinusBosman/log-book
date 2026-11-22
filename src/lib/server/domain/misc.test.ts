@@ -3,7 +3,7 @@ import type { Database } from '../db/index.ts';
 import { isDomainError } from './errors.ts';
 import { checkIn, checkOut, checkOutAll, currentCheckin, listCheckedIn, rentingUserIds } from './checkins.ts';
 import { listNotifications, markRead, notify, unreadCount } from './notifications.ts';
-import { addTeamMember, checkinRentalExtras, createTeam, manifestTeam, addBuddy } from './teams.ts';
+import { addTeamMember, checkinRentalExtras, createTeam, listManifestTeams, manifestTeam, manifestTeamFor, addBuddy } from './teams.ts';
 import { addSlot, completeLoad, createLoads, getLoad } from './loads.ts';
 import {
 	addBookingSlots,
@@ -117,6 +117,37 @@ describe('teams', () => {
 		expect(of(ownRig.id).extras).toEqual([]);
 		expect(of(elsewhere.id).extras).toEqual([]);
 		expect(of(coach.id)).toMatchObject({ staffRole: 'coach', extras: [] });
+	});
+
+	test('manifest teams: DZ teams plus jumpers’ own teams with someone checked in here (only those members jump)', async () => {
+		const { dz, owner } = await makeDropzone(db);
+		const { dz: other } = await makeDropzone(db);
+		const [a, b, c, d] = [await makeUser(db), await makeUser(db), await makeUser(db), await makeUser(db)];
+		const dzTeam = await createTeam(db, { dropzoneId: dz.id }, { name: 'Sharks', memberIds: [c.id] }, { now: NOW });
+		const otherDzTeam = await createTeam(db, { dropzoneId: other.id }, { name: 'Elsewhere', memberIds: [a.id] }, { now: NOW });
+		const zoo = await createTeam(db, { userId: a.id }, { name: 'Zoo Crew', discipline: 'Freefly', memberIds: [a.id, b.id, c.id] }, { now: NOW });
+		const away = await createTeam(db, { userId: d.id }, { name: 'Away Team', memberIds: [d.id] }, { now: NOW });
+		// nobody checked in: only the dropzone's own teams
+		expect((await listManifestTeams(db, dz.id)).map((t) => t.name)).toEqual(['Sharks']);
+		await checkIn(db, { dropzoneId: dz.id, userId: a.id, now: NOW });
+		await checkIn(db, { dropzoneId: dz.id, userId: c.id, now: NOW });
+		await checkIn(db, { dropzoneId: other.id, userId: d.id, now: NOW });
+		const list = await listManifestTeams(db, dz.id);
+		expect(list.map((t) => [t.name, t.personal, t.memberIds.length, t.memberCount])).toEqual([
+			['Sharks', false, 1, 1],
+			['Zoo Crew', true, 2, 3]
+		]);
+		expect((await manifestTeamFor(db, dz.id, zoo.id)).memberIds.sort()).toEqual([a.id, c.id].sort());
+		expect((await manifestTeamFor(db, dz.id, dzTeam.id)).memberIds).toEqual([c.id]);
+		// another dropzone's team, or a jumper's team with nobody here, can't be manifested
+		for (const t of [otherDzTeam, away]) expect(isDomainError(await manifestTeamFor(db, dz.id, t.id).catch((e) => e), 'not_found')).toBe(true);
+		const [load] = await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 6 });
+		const created = await manifestTeam(db, { teamId: zoo.id, loadId: load.id, jumpType: 'belly', memberIds: (await manifestTeamFor(db, dz.id, zoo.id)).memberIds }, { by: owner.id, now: NOW });
+		expect(created.map((s) => s.userId).sort()).toEqual([a.id, c.id].sort());
+		expect(created.every((s) => s.teamName === 'Zoo Crew')).toBe(true);
+		// checking out drops them again
+		await checkOut(db, { dropzoneId: dz.id, userId: a.id, now: NOW + 1000 });
+		expect((await manifestTeamFor(db, dz.id, zoo.id)).memberIds).toEqual([c.id]);
 	});
 
 	test('buddies', async () => {
