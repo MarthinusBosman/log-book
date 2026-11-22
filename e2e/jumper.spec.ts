@@ -596,6 +596,16 @@ test('sign-off: a licensed jumper signs with a drawn signature; a second signer 
 	const forced = await b.request.post(link, { form: { confirm: '1' }, headers: { accept: 'application/json', origin: new URL(link).origin } });
 	expect(await forced.text()).toContain('already been signed by Ina Instructor');
 
+	// The unread badge sits on the bell's corner without hiding the bell
+	await page.goto('/app');
+	const bell = page.locator('[data-testid=notification-bell]:visible').first();
+	await expect(bell.getByTestId('unread-count')).toBeVisible();
+	const icon = (await bell.locator('svg').boundingBox())!;
+	const badge = (await bell.getByTestId('unread-count').boundingBox())!;
+	const overlapX = Math.max(0, Math.min(icon.x + icon.width, badge.x + badge.width) - Math.max(icon.x, badge.x));
+	const overlapY = Math.max(0, Math.min(icon.y + icon.height, badge.y + badge.height) - Math.max(icon.y, badge.y));
+	expect((overlapX * overlapY) / (icon.width * icon.height)).toBeLessThan(0.2);
+
 	// The jumper is told which jump was signed; the note opens that jump
 	await page.goto('/app/notifications');
 	// Grouped by day: a note from a minute ago sits under "Today".

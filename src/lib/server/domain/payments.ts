@@ -109,33 +109,6 @@ export async function sendPaymentReminder(db: Database, input: { dropzoneId: str
 	});
 }
 
-/** Staff tab of Jump Payments: per staff member slots worked and total earned for a day. */
-export async function staffEarnings(db: Database, dropzoneId: string, day: string) {
-	const rows = await db
-		.select({ slot: slots })
-		.from(slots)
-		.innerJoin(loads, eq(loads.id, slots.loadId))
-		.where(and(eq(slots.dropzoneId, dropzoneId), eq(loads.day, day)));
-	const dayLoads = await db.select().from(loads).where(and(eq(loads.dropzoneId, dropzoneId), eq(loads.day, day)));
-	const by = new Map<string, { userId: string | null; name: string; slots: number; totalMinor: number }>();
-	for (const { slot } of rows) {
-		if (!slot.staffRole) continue;
-		const key = slot.userId ?? slot.displayName;
-		const e = by.get(key) ?? { userId: slot.userId, name: slot.displayName, slots: 0, totalMinor: 0 };
-		e.slots++;
-		e.totalMinor += slot.staffPayMinor;
-		by.set(key, e);
-	}
-	for (const l of dayLoads) {
-		if (!l.pilotPayMinor) continue;
-		const key = l.pilotUserId ?? l.pilotName ?? 'pilot';
-		const e = by.get(key) ?? { userId: l.pilotUserId, name: l.pilotName ?? 'Pilot', slots: 0, totalMinor: 0 };
-		e.totalMinor += l.pilotPayMinor;
-		by.set(key, e);
-	}
-	return [...by.values()].sort((a, b) => b.totalMinor - a.totalMinor);
-}
-
 // ── wallet top-up requests (jumper side) ───────────────────────────────────
 
 /**
