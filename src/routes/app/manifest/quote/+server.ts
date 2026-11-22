@@ -18,5 +18,9 @@ export const GET: RequestHandler = async (event) => {
 	const baseOverrideMinor = ov ? parseMoney(ov) : null;
 	const prices = await getPriceMap(event.locals.db, ctx.dz.id);
 	const quote = computeSlotPrice({ prices, jumpType: jumpType as JumpType, extras, staffRole, baseOverrideMinor });
-	return json({ ...quote, currency: ctx.dz.currency }, { headers: { 'cache-control': 'private, max-age=30' } });
+	// What "Gear rental" adds on top of this slot (for checked-in renters the panel adds it per jumper).
+	const rentalMinor = extras.includes('gear_rental')
+		? 0
+		: computeSlotPrice({ prices, jumpType: jumpType as JumpType, extras: [...extras, 'gear_rental'], staffRole, baseOverrideMinor }).totalMinor - quote.totalMinor;
+	return json({ ...quote, rentalMinor, currency: ctx.dz.currency }, { headers: { 'cache-control': 'private, max-age=30' } });
 };

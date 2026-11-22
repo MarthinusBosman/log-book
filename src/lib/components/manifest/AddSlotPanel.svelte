@@ -172,7 +172,7 @@
 					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => ((selChecked = []), (rentalOn = true)))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<PeoplePicker idPrefix="ci" people={checkedPeople} bind:selected={selChecked} empty="Nobody is checked in at the moment." />
-						<JumpFields idPrefix="ci" bind:jumpType={jtA} bind:extras={exA} {currency} count={Math.max(1, selChecked.length)} />
+						<JumpFields idPrefix="ci" bind:jumpType={jtA} bind:extras={exA} {currency} count={Math.max(1, selChecked.length)} rentals={rentalOn && rentalApplies(jtA) && !exA.includes('gear_rental') ? renters.length : 0} />
 						{#if renters.length && rentalApplies(jtA) && !exA.includes('gear_rental')}
 							<label class={box} data-testid="checkin-rental">
 								<input type="checkbox" bind:checked={rentalOn} class={check} />

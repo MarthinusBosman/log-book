@@ -578,6 +578,14 @@ test('Checked in tab adds gear rental for jumpers who checked in with rental gea
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 
+	// priced so the Add-to-load preview has something to show
+	await page.goto('/app/pricelist');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Sport slot', { exact: true }).fill('450');
+	await page.getByLabel('Gear rental', { exact: true }).fill('250');
+	await page.getByRole('button', { name: 'Save all' }).first().click();
+	await expect(page.getByText('Price list updated')).toBeVisible();
+
 	// she checks in asking for rental gear ("Adds gear rental to your jumps today")
 	await page.goto('/app/check-in');
 	await page.waitForLoadState('networkidle');
@@ -603,6 +611,15 @@ test('Checked in tab adds gear rental for jumpers who checked in with rental gea
 	await panel.getByRole('checkbox', { name: /Rita Rental/ }).check();
 	await expect(rental).toHaveText('Add gear rental for Rita Rental (checked in with rental gear)');
 	await expect(rental.getByRole('checkbox')).toBeChecked();
+	// the price preview includes her rental (and drops it when unticked)
+	const preview = panel.getByTestId('price-preview');
+	await expect(preview.getByTestId('price-rental')).toContainText('Gear rental');
+	await expect(preview.getByTestId('price-total')).toHaveText(/700[.,]00/);
+	await rental.getByRole('checkbox').uncheck();
+	await expect(preview.getByTestId('price-rental')).toBeHidden();
+	await expect(preview.getByTestId('price-total')).toHaveText(/450[.,]00/);
+	await rental.getByRole('checkbox').check();
+	await expect(preview.getByTestId('price-total')).toHaveText(/700[.,]00/);
 	await panel.getByLabel('Jump type').selectOption('aff_1_3');
 	await expect(rental).toBeHidden();
 	await panel.getByLabel('Jump type').selectOption('belly');

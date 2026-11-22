@@ -290,3 +290,10 @@ export function rentalLabel(names: readonly string[]): string {
 	const who = names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 	return `Add gear rental for ${who} (checked in with rental gear)`;
 }
+
+/** Price preview line for the per-jumper rental: "Gear rental × 2". */
+export const rentalLine = (n: number) => (n > 1 ? `Gear rental × ${n}` : 'Gear rental');
+
+/** Preview total label: "Slot price", "Total × 3" (same price each), "Total for 3 jumpers" (renters pay more). */
+export const totalLabel = (count: number, mixed = false) =>
+	count <= 1 ? 'Slot price' : mixed ? `Total for ${count} jumpers` : `Total × ${count}`;

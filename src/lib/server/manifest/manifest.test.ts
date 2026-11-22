@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, rentalApplies, rentalLabel, slotExtrasFor, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, rentalApplies, rentalLabel, rentalLine, totalLabel, slotExtrasFor, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -252,5 +252,13 @@ describe('gear rental from check-in (slotExtrasFor / rentalLabel)', () => {
 	test('names the renters', () => {
 		expect(rentalLabel(['Johan'])).toBe('Add gear rental for Johan (checked in with rental gear)');
 		expect(rentalLabel(['Johan', 'Mia', 'Lee'])).toBe('Add gear rental for Johan, Mia and Lee (checked in with rental gear)');
+	});
+	test('price preview labels: renters make the per-jumper total uneven', () => {
+		expect(rentalLine(1)).toBe('Gear rental');
+		expect(rentalLine(2)).toBe('Gear rental × 2');
+		expect(totalLabel(1)).toBe('Slot price');
+		expect(totalLabel(1, true)).toBe('Slot price');
+		expect(totalLabel(3)).toBe('Total × 3');
+		expect(totalLabel(3, true)).toBe('Total for 3 jumpers');
 	});
 });

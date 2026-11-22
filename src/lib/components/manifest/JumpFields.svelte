@@ -12,6 +12,7 @@
 	import { Select } from '#lib/ui/index.ts';
 	import { cn } from '#lib/ui/cn.ts';
 	import MIcon from './MIcon.svelte';
+	import { rentalLine, totalLabel } from './manifest.ts';
 	import { EXTRA_ICONS } from './SlotTags.svelte';
 
 	type Props = {
@@ -21,6 +22,8 @@
 		currency: string;
 		/** Multiply the preview (several jumpers selected). */
 		count?: number;
+		/** Of those, how many slots also get gear rental (checked in with rental gear). */
+		rentals?: number;
 		/** Hide tandem from the jump-type list. */
 		noTandem?: boolean;
 		preview?: boolean;
@@ -32,6 +35,7 @@
 		staffRole = null,
 		currency,
 		count = 1,
+		rentals = 0,
 		noTandem = true,
 		preview = true,
 		idPrefix
@@ -40,9 +44,11 @@
 	const types = $derived(JUMP_TYPES.filter((t) => !(noTandem && t === 'tandem')));
 	const extraList = $derived(jumpType === 'tandem' ? TANDEM_EXTRAS : SPORT_EXTRAS);
 
-	type Quote = { lines: { code: string; label: string; amountMinor: number }[]; totalMinor: number; currency: string };
+	type Quote = { lines: { code: string; label: string; amountMinor: number }[]; totalMinor: number; rentalMinor?: number; currency: string };
 	let quote = $state<Quote | null>(null);
 	let loading = $state(false);
+	// Per-jumper gear rental (checked-in renters) on top of the shared slot price.
+	const rental = $derived(rentals > 0 && quote?.rentalMinor ? quote.rentalMinor * rentals : 0);
 
 	$effect(() => {
 		if (!preview) return;
@@ -116,9 +122,14 @@
 						<li class="text-muted">No charge</li>
 					{/each}
 				</ul>
+				{#if rental}
+					<p class="mt-1 flex justify-between gap-2 text-muted" data-testid="price-rental">
+						<span>{rentalLine(rentals)}</span><span class="tabular-nums">{formatMoney(rental, quote.currency)}</span>
+					</p>
+				{/if}
 				<div class={cn('mt-2 flex items-baseline justify-between border-t border-border pt-2 font-semibold', loading && 'opacity-60')}>
-					<span>{count > 1 ? `Total × ${count}` : 'Slot price'}</span>
-					<span class="tabular-nums">{formatMoney(quote.totalMinor * count, quote.currency)}</span>
+					<span>{totalLabel(count, rental > 0)}</span>
+					<span class="tabular-nums" data-testid="price-total">{formatMoney(quote.totalMinor * count + rental, quote.currency)}</span>
 				</div>
 			{:else}
 				<p class="text-muted">Price preview…</p>
