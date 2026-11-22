@@ -13,8 +13,12 @@
 	const f = $derived(form as { action?: string; message?: string } | null);
 	// svelte-ignore state_referenced_locally
 	let colour = $state(data.team.colour ?? '#3b82f6');
-	// svelte-ignore state_referenced_locally
-	let selected = $state<string[]>(data.team.members.map((m) => m.id));
+	// Track who was UNticked, not who is ticked: a teammate added after the page loaded starts
+	// ticked like everyone else, and a removed one drops out of the count and the load check.
+	let unticked = $state<string[]>([]);
+	const selected = $derived(data.team.members.filter((m) => !unticked.includes(m.id)).map((m) => m.id));
+	const toggle = (id: string, on: boolean) => (unticked = on ? unticked.filter((x) => x !== id) : [...unticked, id]);
+	const jumperCount = $derived(`${selected.length} ${selected.length === 1 ? 'jumper' : 'jumpers'}`);
 	let jumpType = $state('belly');
 	let loadId = $state('');
 	let busy = $state<string | null>(null);
@@ -98,7 +102,7 @@
 						<div class="flex flex-wrap gap-1.5">
 							{#each t.members as m (m.id)}
 								<label class="cursor-pointer">
-									<input type="checkbox" name="memberIds" value={m.id} bind:group={selected} class="peer sr-only" />
+									<input type="checkbox" name="memberIds" value={m.id} checked={selected.includes(m.id)} onchange={(e) => toggle(m.id, e.currentTarget.checked)} class="peer sr-only" />
 									<span class="inline-flex h-9 items-center gap-2 rounded-lg border border-border px-2.5 text-sm text-muted peer-checked:border-primary/50 peer-checked:bg-primary/10 peer-checked:text-fg">
 										<Avatar name={m.name} src={m.avatar} size="sm" class="size-5 text-[9px]" />{m.me ? 'Me' : m.name}
 									</span>
@@ -111,7 +115,7 @@
 					{/if}
 					{#if manifestMsg}<FormAlert tone={manifestMsg.tone} message={manifestMsg.text} />{/if}
 					<div class="flex flex-col gap-2 rounded-xl bg-surface-2/60 p-3 sm:flex-row sm:items-center sm:justify-between">
-						<p class="text-sm text-muted">{selected.length} × <span class="font-medium text-fg tabular-nums">{formatMoney(perJumper, data.manifest.dropzone.currency)}</span> per jumper</p>
+						<p class="text-sm text-muted" data-testid="team-price">{jumperCount} × <span class="font-medium text-fg tabular-nums">{formatMoney(perJumper, data.manifest.dropzone.currency)}</span></p>
 						<Button type="submit" loading={busy === 'manifest'} disabled={!selected.length}><Icon name="plane" class="size-4" /> Join load now</Button>
 					</div>
 				</form>

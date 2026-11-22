@@ -308,6 +308,62 @@ test('team jump works before hydration / without JS: members start ticked, switc
 	await noJs.close();
 });
 
+test('team page: a teammate added or removed after load updates who is ticked and the price', async ({ page, browser, baseURL }) => {
+	const project = test.info().project.name;
+	const buddyName = `Buddy ${project} ${Date.now()}`;
+	const other = await browser.newContext({ baseURL });
+	await signup(await other.newPage(), buddyName);
+	await other.close();
+
+	await signup(page, 'Tom Teamowner');
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Team ticks E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-TCK');
+	await dialog.getByLabel('Slots (pax)').fill('6');
+	await dialog.getByLabel('Weight limit (kg)').fill('600');
+	await dialog.getByRole('button', { name: 'Create load' }).click();
+	await expect(page.locator('[data-testid=load-card][data-load-number="1"]')).toBeVisible();
+	await page.goto('/app/check-in');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByTestId('checked-in')).toBeVisible();
+
+	await page.goto('/app/team?new=1');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('create-team').getByLabel('Team name').fill('Tick 2-way');
+	await page.getByTestId('create-team').getByRole('button', { name: 'Create team' }).click();
+	await expect(page).toHaveURL(/\/app\/team\/[0-9a-f-]+$/);
+	await page.waitForLoadState('networkidle');
+	const form = page.getByTestId('manifest-team');
+	await expect(form.getByTestId('team-price')).toHaveText(/^1 jumper × /);
+
+	// Add the buddy without reloading: they start ticked like the rest of the team (they used to
+	// stay unticked, so "Join load now" quietly left them off the load).
+	await page.getByLabel('Search jumpers').fill(buddyName);
+	await page.getByRole('button', { name: 'Find' }).click();
+	await page.getByTestId('member-results').getByRole('button', { name: 'Add to team' }).click();
+	await expect(page.getByTestId('team-members')).toContainText(buddyName);
+	await expect(form.getByRole('checkbox', { name: buddyName })).toBeChecked();
+	await expect(form.getByTestId('team-price')).toHaveText(/^2 jumpers × /);
+
+	// Unticking still works, and removing a teammate drops them from the count.
+	await form.getByText(buddyName).click();
+	await expect(form.getByTestId('team-price')).toHaveText(/^1 jumper × /);
+	await form.getByText(buddyName).click();
+	await expect(form.getByTestId('team-price')).toHaveText(/^2 jumpers × /);
+	const removeMate = page.getByTestId('remove-member');
+	await removeMate.locator('summary').click();
+	await removeMate.getByRole('button', { name: 'Remove' }).click();
+	await expect(page.getByTestId('team-members')).not.toContainText(buddyName);
+	await expect(form.getByTestId('team-price')).toHaveText(/^1 jumper × /);
+});
+
 test('jump form marks every bad field at once and focuses the first (with and without JS)', async ({ page, browser }) => {
 	await signup(page, 'Typo Prone');
 	await page.goto('/app/logbook/new');
