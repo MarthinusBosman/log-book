@@ -44,7 +44,7 @@
 
 <svelte:head><title>{t.name}</title></svelte:head>
 
-<PageHeader title={t.name} description="{t.discipline ?? 'Team'} · {t.members.length} {t.members.length === 1 ? 'member' : 'members'}" back={{ href: '/app/team', label: 'Teams' }}>
+<PageHeader title={t.name} description="{t.discipline ?? 'Team'} · {t.members.length} {t.members.length === 1 ? 'member' : 'members'}" back={data.back}>
 	{#snippet actions()}
 		<span class="size-3 rounded-full" style="background: {t.colour ?? 'var(--color-border-strong)'}"></span>
 		{#if t.dz}<Badge>Dropzone team</Badge>{:else if data.isOwner}<Badge tone="brand">Owner</Badge>{/if}
@@ -53,7 +53,8 @@
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
 	<div class="space-y-4 lg:col-span-3">
-		<!-- manifest the team -->
+		<!-- manifest the team (members only: staff managing a DZ team use the manifest's Team tab) -->
+		{#if data.onTeam}
 		<Card title="Manifest the team" description={data.manifest ? `Open loads at ${data.manifest.dropzone.name}` : undefined}>
 			{#if !data.manifest}
 				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -121,6 +122,7 @@
 				</form>
 			{/if}
 		</Card>
+		{/if}
 
 		<Card title="Members" padded={false}>
 			<ul class="divide-y divide-border" data-testid="team-members">
@@ -193,8 +195,8 @@
 					<Input label="Name" name="name" value={t.name} required />
 					<Select label="Discipline" name="discipline" value={t.discipline ?? ''} options={[{ value: '', label: 'Not set' }, ...data.disciplines.map((d) => ({ value: d, label: d })), ...(t.discipline && !data.disciplines.includes(t.discipline as never) ? [{ value: t.discipline, label: t.discipline }] : [])]} />
 					<div class="grid grid-cols-2 gap-3">
-						<Select label="Coach" name="coachUserId" value={t.coachUserId ?? ''} options={[{ value: '', label: 'None' }, ...t.members.map((m) => ({ value: m.id, label: m.name }))]} />
-						<Select label="Video" name="videoUserId" value={t.videoUserId ?? ''} options={[{ value: '', label: 'None' }, ...t.members.map((m) => ({ value: m.id, label: m.name }))]} />
+						<Select label="Coach" name="coachUserId" value={t.coachUserId ?? ''} options={[{ value: '', label: 'None' }, ...data.staffChoices.map((m) => ({ value: m.id, label: m.name }))]} />
+						<Select label="Video" name="videoUserId" value={t.videoUserId ?? ''} options={[{ value: '', label: 'None' }, ...data.staffChoices.map((m) => ({ value: m.id, label: m.name }))]} />
 					</div>
 					<fieldset class="flex items-center gap-2">
 						<legend class="mb-2 text-sm font-medium">Colour</legend>

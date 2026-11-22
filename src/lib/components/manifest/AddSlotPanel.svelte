@@ -282,7 +282,7 @@
 					<form method="POST" action={formAction(page.url, 'addTeam')} class="flex flex-col gap-3" use:enhance={done(() => {})}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<Select label="Team" name="teamId" placeholder={teams.length ? 'Choose team…' : 'No teams yet'} value="" options={teams.map((t) => ({ value: t.id, label: teamOptionLabel(t) }))} />
-						{#if !teams.length}<p class="text-xs text-subtle" data-testid="team-empty-hint">A jumper's own team (made under Team in their app) shows here once one of its members checks in.</p>{:else if teams.some((t) => t.personal)}<p class="text-xs text-subtle">For a jumper's team, only the members checked in today are added.</p>{/if}
+						{#if !teams.length}<p class="text-xs text-subtle" data-testid="team-empty-hint">A jumper's own team (made under Team in their app) shows here once one of its members checks in. Dropzone teams are set up under Dropzone teams.</p>{:else if teams.some((t) => t.personal)}<p class="text-xs text-subtle">For a jumper's team, only the members checked in today are added.</p>{/if}
 						<JumpFields idPrefix="tm" bind:jumpType={jtTeam} bind:extras={exTeam} {currency} />
 						<label class={box}><input type="checkbox" name="includeStaff" checked class={check} /><span>Include the team's coach and video</span></label>
 						{@render options(false, false)}

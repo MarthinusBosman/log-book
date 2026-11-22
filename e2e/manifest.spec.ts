@@ -691,6 +691,68 @@ test("Team tab lists a checked-in jumper's own team and adds only its members wh
 	await expect(slot).toContainText('Zoo Crew');
 });
 
+test('Dropzone teams: staff create a DZ team, add members and coach, and manifest lists it', async ({ page }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Dora Dzteams');
+	await page.getByLabel('Email').fill(`dzteams-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`DZ teams E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	await page.goto('/app/teams');
+	// only the staff page is highlighted, not the jumper's own Team page (/app/team prefix)
+	await expect(page.locator('a[href="/app/teams"][aria-current=page]').first()).toBeAttached();
+	await expect(page.locator('a[href="/app/team"][aria-current=page]')).toHaveCount(0);
+	await expect(page.getByText('No dropzone teams yet')).toBeVisible();
+	await page.getByTestId('new-dz-team').click();
+	const create = page.getByTestId('create-dz-team');
+	await create.getByLabel('Team name').fill('Coast 4-way');
+	await create.getByLabel('Discipline').selectOption('Belly / FS');
+	await create.getByRole('button', { name: 'Create team' }).click();
+	await expect(page).toHaveURL(/\/app\/team\/[0-9a-f-]+/);
+	const teamUrl = page.url().replace(/\?.*$/, '');
+	await expect(page.getByRole('link', { name: 'Dropzone teams' }).first()).toBeVisible();
+	await expect(page.getByText('Manifest the team')).toHaveCount(0);
+
+	// the manager (not a member) can add people and pick the coach
+	await page.goto(`${teamUrl}?q=Dora`);
+	await page.getByTestId('member-results').getByRole('button', { name: 'Add to team' }).first().click();
+	await expect(page.getByTestId('team-members')).toContainText('Dora Dzteams');
+	await page.getByTestId('team-settings').getByLabel('Coach').selectOption({ label: 'Dora Dzteams' });
+	await page.getByTestId('team-settings').getByRole('button', { name: 'Save' }).click();
+	await expect(page.getByText('Team updated')).toBeVisible();
+
+	await page.goto('/app/teams');
+	const card = page.getByTestId('dz-team-list').locator('li', { hasText: 'Coast 4-way' });
+	await expect(card).toContainText('Belly / FS · 1 member');
+	await expect(card).toContainText('Coach Dora Dzteams');
+
+	// manifest's Team tab offers it without anyone checked in
+	await page.goto('/app/manifest');
+	await page.waitForLoadState('networkidle');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-DZT');
+	await dialog.getByLabel('Slots (pax)').fill('4');
+	await dialog.getByRole('button', { name: 'Create load', exact: true }).click();
+	await page.locator('[data-testid=load-card][data-load-number="1"]').getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+	await page.getByRole('tab', { name: /^Team/ }).click();
+	await expect(page.getByRole('tabpanel').getByLabel('Team', { exact: true }).locator('option', { hasText: 'Coast 4-way' })).toHaveText('Coast 4-way · Belly / FS');
+
+	// delete goes back to the staff list
+	await page.goto(teamUrl);
+	await page.getByTestId('delete-team').locator('summary').click();
+	await page.getByTestId('delete-team').getByRole('button', { name: 'Delete team' }).click();
+	await expect(page).toHaveURL(/\/app\/teams$/);
+	await expect(page.getByText('No dropzone teams yet')).toBeVisible();
+});
+
 test('Tandem tab adds a passenger + TI group and flags booked outside video without a camera flyer', async ({ page }) => {
 	const project = test.info().project.name;
 	await page.goto('/signup');

@@ -8,7 +8,7 @@
 	import NoJsSuccess from '#lib/components/staffadmin/NoJsSuccess.svelte';
 	import DropzoneSwitcher from '#lib/components/DropzoneSwitcher.svelte';
 	import NotificationBell from '#lib/components/jumper/NotificationBell.svelte';
-	import { jumperNav, mobileTabs, visibleStaffNav, type NavItem } from '#lib/nav.ts';
+	import { jumperNav, mobileTabs, navActive, visibleStaffNav, type NavItem } from '#lib/nav.ts';
 	import { Avatar, Badge, Dialog, Icon, cn } from '#lib/ui/index.ts';
 	import type { LayoutProps } from './$types';
 
@@ -27,8 +27,7 @@
 	}
 
 	const href = (item: NavItem) => (item.slug ? `/app/${item.slug}` : '/app');
-	const isActive = (item: NavItem) =>
-		item.slug ? page.url.pathname.startsWith(`/app/${item.slug}`) : page.url.pathname === '/app';
+	const isActive = (item: NavItem) => navActive(item, page.url.pathname);
 
 	const staffItems = $derived(visibleStaffNav(data.caps));
 	const tabs = $derived(mobileTabs(data.caps));

@@ -19,6 +19,7 @@ export const staffNav: NavItem[] = [
 	{ slug: 'manifest', label: 'Loads / Manifest', short: 'Manifest', icon: 'manifest', description: 'Build loads, assign slots, call times and track the day.', caps: ['loads.view', 'manifest'] },
 	{ slug: 'tandems', label: 'Tandems', icon: 'tandem', description: 'Bookings, students, instructors and media.', caps: ['tandems.manage'] },
 	{ slug: 'jumpers', label: 'Jumpers', icon: 'users', description: 'Licences, currency, reserves and account balances.', caps: ['checkin.manage', 'payments.manage', 'staff.manage', 'manifest'] },
+	{ slug: 'teams', label: 'Dropzone teams', short: 'Teams', icon: 'team', description: 'Teams, coaches and video flyers for the manifest.', caps: ['teams.manage'] },
 	{ slug: 'staff', label: 'Staff', icon: 'staff', description: 'Instructors, pilots, packers and ratings.', caps: ['staff.manage', 'reports.view'] },
 	{ slug: 'aircraft', label: 'Aircraft', icon: 'plane', description: 'Fleet, capacity, maintenance and fuel.', caps: ['aircraft.manage'] },
 	{ slug: 'gear', label: 'Gear', icon: 'parachute', description: 'Rental and student rigs, reserve repacks and AAD service.', caps: ['gear.manage'] },
@@ -43,6 +44,13 @@ export const jumperNav: NavItem[] = [
 /** Staff items the user may open at the current dropzone (the dashboard is always first). */
 export function visibleStaffNav(caps: readonly Capability[]): NavItem[] {
 	return staffNav.filter((i) => !i.caps || i.caps.some((c) => caps.includes(c)));
+}
+
+/** Whether a nav item is the current page: its own path or below it (`/app/team` ≠ `/app/teams`). */
+export function navActive(item: NavItem, pathname: string): boolean {
+	if (!item.slug) return pathname === '/app';
+	const base = `/app/${item.slug}`;
+	return pathname === base || pathname.startsWith(`${base}/`);
 }
 
 const bySlug = (slug: string) => [...staffNav, ...jumperNav].find((i) => i.slug === slug)!;

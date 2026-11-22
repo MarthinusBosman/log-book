@@ -5,19 +5,20 @@ import { openLoadsToday } from '#lib/server/domain/loads.ts';
 import { getPriceMap } from '#lib/server/domain/pricing.ts';
 import { requestDropzone } from '#lib/server/request-cache.ts';
 import { domainFail, opt, requireUser, str } from '#lib/server/jumper/forms.ts';
-import { DISCIPLINES, TEAM_COLOURS, TEAM_COLOUR_OPTIONS, findJumpers, teamFor } from '#lib/server/jumper/teams.ts';
+import { DISCIPLINES, TEAM_COLOURS, TEAM_COLOUR_OPTIONS, findJumpers, teamFor, teamStaffChoices } from '#lib/server/jumper/teams.ts';
 import { TEAM_JUMP_TYPES, priceTable } from '#lib/server/jumper/manifest.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const user = requireUser(locals, url);
-	const { team, isOwner, canEdit } = await teamFor(locals.db, user.id, params.id);
+	const { team, isOwner, isMember, manages, canEdit } = await teamFor(locals.db, user.id, params.id);
 	const q = url.searchParams.get('q')?.trim() ?? '';
 	const memberIds = team.members.map((m) => m.id);
-	const [buddies, results, checkin] = await Promise.all([
+	const [buddies, results, checkin, staffChoices] = await Promise.all([
 		listBuddies(locals.db, user.id),
 		canEdit ? findJumpers(locals.db, q, memberIds) : Promise.resolve([]),
-		currentCheckin(locals.db, user.id)
+		currentCheckin(locals.db, user.id),
+		canEdit ? teamStaffChoices(locals.db, team) : Promise.resolve([])
 	]);
 	let manifest = null;
 	if (checkin) {
@@ -43,6 +44,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		},
 		isOwner,
 		canEdit,
+		onTeam: isOwner || isMember,
+		staffChoices,
+		// Staff managing a dropzone team they're not on came from /app/teams: go back there.
+		back: manages && !isMember ? { href: '/app/teams', label: 'Dropzone teams' } : { href: '/app/team', label: 'Teams' },
 		me: user.id,
 		buddies: buddies.filter((b) => !memberIds.includes(b.id)).map((b) => ({ id: b.id, name: b.name, avatar: b.avatar, licence: b.licence })),
 		q,
@@ -69,7 +74,7 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const name = str(form, 'name');
 		if (!name) return fail(400, { action: 'update', message: 'Team name is required' });
-		const ids = new Set(team.members.map((m) => m.id));
+		const ids = new Set((await teamStaffChoices(locals.db, team)).map((m) => m.id));
 		const pick = (k: string) => {
 			const v = str(form, k);
 			return v && ids.has(v) ? v : null;
@@ -101,8 +106,9 @@ export const actions: Actions = {
 		if (!team) return fail(403, { action: 'remove', message: 'Only the team owner can remove members.' });
 		const id = str(await request.formData(), 'userId');
 		await removeTeamMember(locals.db, team.id, id);
-		if (team.coachUserId === id) await updateTeam(locals.db, team.id, { coachUserId: null });
-		if (team.videoUserId === id) await updateTeam(locals.db, team.id, { videoUserId: null });
+		// A dropzone team's coach / video needn't be a member, so only personal teams drop them.
+		if (!team.dropzoneId && team.coachUserId === id) await updateTeam(locals.db, team.id, { coachUserId: null });
+		if (!team.dropzoneId && team.videoUserId === id) await updateTeam(locals.db, team.id, { videoUserId: null });
 		return { action: 'remove', success: 'Removed from team' };
 	},
 	leave: async ({ locals, params }) => {
@@ -117,6 +123,6 @@ export const actions: Actions = {
 		const team = await editable(locals, user.id, params.id);
 		if (!team) return fail(403, { action: 'delete', message: 'Only the team owner can delete the team.' });
 		await deleteTeam(locals.db, team.id);
-		redirect(303, '/app/team');
+		redirect(303, team.dropzoneId ? '/app/teams' : '/app/team');
 	}
 };
