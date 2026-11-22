@@ -1,10 +1,12 @@
-import { and, asc, eq, gte, inArray, max, ne } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, isNull, max, ne } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import {
 	aircraft,
+	checkins,
 	dropzoneFollows,
 	dropzones,
 	logbookJumps,
+	rigs,
 	tandemPassengers,
 	users,
 	loads,
@@ -101,6 +103,53 @@ export function describeJump(jumpType: string, groupSize: number, staffRole?: Sl
 	if (staffRole) return `${label} jump (${SLOT_STAFF_ROLE_LABELS[staffRole]})`;
 	if (groupSize > 1) return `${groupSize} way ${label}`;
 	return `Solo ${label}`;
+}
+
+const DZ_GEAR_JUMP_TYPES: readonly string[] = ['tandem', 'aff_1_3', 'aff_4_7', 'aff_8_10', 'static_line', 'isp'];
+
+/**
+ * Rig for each jumper's auto-logged load jump: the rig of their latest jump that had one while it is
+ * still an active personal rig, else their only active rig. None when they jump DZ gear: tandem
+ * passengers and instructors, students without a staff role, or a gear rental at today's check-in.
+ */
+export async function loadJumpRigs(db: Database, dropzoneId: string, jumpers: Pick<Slot, 'userId' | 'jumpType' | 'staffRole'>[]): Promise<Map<string, string>> {
+	const ids = [
+		...new Set(
+			jumpers
+				.filter((s) => s.userId && s.staffRole !== 'tandem_instructor' && (s.staffRole || !DZ_GEAR_JUMP_TYPES.includes(s.jumpType)))
+				.map((s) => s.userId!)
+		)
+	];
+	const out = new Map<string, string>();
+	if (!ids.length) return out;
+	const own = await db
+		.select({ id: rigs.id, userId: rigs.userId })
+		.from(rigs)
+		.where(and(inArray(rigs.userId, ids), eq(rigs.active, true)));
+	if (!own.length) return out;
+	const withRigs = [...new Set(own.map((r) => r.userId!))];
+	const [last, renting] = await Promise.all([
+		// SQLite bare column: rig_id comes from the row holding max(jump_number)
+		db
+			.select({ userId: logbookJumps.userId, rigId: logbookJumps.rigId, n: max(logbookJumps.jumpNumber) })
+			.from(logbookJumps)
+			.where(and(inArray(logbookJumps.userId, withRigs), isNotNull(logbookJumps.rigId)))
+			.groupBy(logbookJumps.userId),
+		db
+			.select({ userId: checkins.userId })
+			.from(checkins)
+			.where(and(eq(checkins.dropzoneId, dropzoneId), inArray(checkins.userId, withRigs), isNull(checkins.checkedOutAt), eq(checkins.gearRental, true)))
+	]);
+	const rented = new Set(renting.map((r) => r.userId));
+	const lastRig = new Map(last.map((l) => [l.userId, l.rigId]));
+	for (const userId of withRigs) {
+		if (rented.has(userId)) continue;
+		const mine = own.filter((r) => r.userId === userId).map((r) => r.id);
+		const prev = lastRig.get(userId);
+		const rig = prev && mine.includes(prev) ? prev : mine.length === 1 ? mine[0] : null;
+		if (rig) out.set(userId, rig);
+	}
+	return out;
 }
 
 // ── reads ──────────────────────────────────────────────────────────────────
@@ -419,6 +468,7 @@ export async function completeLoad(db: Database, loadId: string, opts: { now?: n
 	const groupSize = new Map<string, number>();
 	for (const s of load.slots) if (s.groupId) groupSize.set(s.groupId, (groupSize.get(s.groupId) ?? 0) + 1);
 	const jumps: (typeof logbookJumps.$inferInsert)[] = [];
+	const rigOf = await loadJumpRigs(db, dz.id, load.slots);
 	const seen = new Set<string>();
 	for (const s of load.slots) {
 		if (!s.userId || seen.has(s.userId)) continue;
@@ -440,6 +490,7 @@ export async function completeLoad(db: Database, loadId: string, opts: { now?: n
 			aircraft: load.aircraftName,
 			altitudeFt: dz.settings.defaultAltitudeFt ?? null,
 			jumpType: s.jumpType,
+			rigId: rigOf.get(s.userId) ?? null,
 			description: describeJump(s.jumpType, size, s.staffRole),
 			verified: true,
 			source: 'load',

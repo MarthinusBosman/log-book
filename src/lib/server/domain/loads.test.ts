@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
-import { dropzoneFollows, dropzones, ledgerEntries, logbookJumps, notifications, slots, tandemPassengers } from '../db/schema.ts';
+import { dropzoneFollows, dropzones, ledgerEntries, logbookJumps, notifications, rigs, slots, tandemPassengers } from '../db/schema.ts';
+import { createRig } from './gear.ts';
+import { addJump } from './logbook.ts';
 import { isDomainError } from './errors.ts';
 import {
 	addSlot,
@@ -327,5 +329,48 @@ describe('lifecycle', () => {
 		expect(await db.select().from(logbookJumps)).toHaveLength(4);
 		expect(isDomainError(await addSlot(db, load.id, { displayName: 'x', jumpType: 'belly' }).catch((e) => e), 'load_locked')).toBe(true);
 		expect(await db.select().from(slots).where(eq(slots.loadId, load.id))).toHaveLength(5);
+	});
+
+	test('completion: auto-logged jumps carry the jumper\'s own rig, not on DZ gear', async () => {
+		const { dz } = await makeDropzone(db);
+		const ti = await makeMember(db, dz.id, ['tandem_instructor']);
+		const [load] = await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 12, aircraftName: 'Caravan' });
+		const rig = (userId: string, container: string) => createRig(db, { userId }, { container, reserveRepackedOn: '2026-10-01' }, NOW);
+		const [one, two, many, retired, renter, student] = await Promise.all([1, 2, 3, 4, 5, 6].map(() => makeUser(db)));
+		const oneRig = await rig(one.id, 'Javelin');
+		await rig(two.id, 'Vector');
+		const twoB = await rig(two.id, 'Mirage');
+		await addJump(db, two.id, { jumpDate: '2026-11-01', rigId: twoB.id }, NOW);
+		await addJump(db, two.id, { jumpDate: '2026-11-02' }, NOW); // a newer jump without a rig
+		await rig(many.id, 'A');
+		await rig(many.id, 'B');
+		const old = await rig(retired.id, 'Old');
+		const current = await rig(retired.id, 'New');
+		await addJump(db, retired.id, { jumpDate: '2026-11-01', rigId: old.id }, NOW);
+		await db.update(rigs).set({ active: false }).where(eq(rigs.id, old.id));
+		await rig(renter.id, 'Own');
+		await checkIn(db, { dropzoneId: dz.id, userId: renter.id, gearRental: true, now: NOW });
+		await rig(student.id, 'Own');
+		await rig(ti.id, 'Sport rig');
+		await addSlots(db, load.id, [
+			{ userId: one.id, jumpType: 'belly' },
+			{ userId: two.id, jumpType: 'freefly' },
+			{ userId: many.id, jumpType: 'belly' },
+			{ userId: retired.id, jumpType: 'tracking' },
+			{ userId: renter.id, jumpType: 'belly' },
+			{ userId: student.id, jumpType: 'aff_1_3' }
+		]);
+		const pax = await createPassenger(db, dz.id, { name: 'Pax', weightKg: 70 });
+		await addTandemGroup(db, { loadId: load.id, passengerId: pax.id, instructorUserId: ti.id });
+		await completeLoad(db, load.id, { now: NOW });
+		const rigOf = async (userId: string) =>
+			(await db.select().from(logbookJumps).where(and(eq(logbookJumps.userId, userId), eq(logbookJumps.source, 'load'))))[0].rigId;
+		expect(await rigOf(one.id)).toBe(oneRig.id); // only rig
+		expect(await rigOf(two.id)).toBe(twoB.id); // rig of the latest jump that had one
+		expect(await rigOf(many.id)).toBeNull(); // can't tell which
+		expect(await rigOf(retired.id)).toBe(current.id); // last rig retired → the one active rig
+		expect(await rigOf(renter.id)).toBeNull(); // rented DZ gear today
+		expect(await rigOf(student.id)).toBeNull(); // student gear
+		expect(await rigOf(ti.id)).toBeNull(); // tandem rig
 	});
 });
