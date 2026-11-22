@@ -5,7 +5,7 @@
 	import { cn } from '#lib/ui/cn.ts';
 	import { page } from '$app/state';
 	import { act } from './forms.ts';
-	import { alsoOnLabel, formAction, pickedOverFree, tandemOverFree, tandemVideoHint } from './manifest.ts';
+	import { alsoOnLabel, formAction, pickedOverFree, rentalApplies, rentalLabel, tandemOverFree, tandemVideoHint } from './manifest.ts';
 	import JumpFields from './JumpFields.svelte';
 	import PeoplePicker, { type Person } from './PeoplePicker.svelte';
 
@@ -84,6 +84,9 @@
 	const tis = $derived(staff.filter((s) => s.roles.includes('tandem_instructor') && !s.onLoad && !flying(s.id)));
 	const videos = $derived(staff.filter((s) => s.roles.includes('videographer') && !s.onLoad && !flying(s.id)));
 	const passenger = $derived(passengers.find((p) => p.id === passengerId) ?? null);
+	// Ticked checked-in jumpers who asked for rental gear at check-in: their slots get "Gear rental".
+	const renters = $derived(checkedIn.filter((c) => c.gearRental && selChecked.includes(c.id)));
+	let rentalOn = $state(true);
 	// Warn before submitting when more people are ticked than fit (the server refuses the whole batch).
 	const overChecked = $derived(pickedOverFree(selChecked.length, free));
 	const overMembers = $derived(pickedOverFree(selMembers.length, free));
@@ -166,10 +169,19 @@
 		</div>
 		<div class="mt-4" role="tabpanel">
 				{#if tab === 'checked'}
-					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => (selChecked = []))}>
+					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => ((selChecked = []), (rentalOn = true)))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<PeoplePicker idPrefix="ci" people={checkedPeople} bind:selected={selChecked} empty="Nobody is checked in at the moment." />
 						<JumpFields idPrefix="ci" bind:jumpType={jtA} bind:extras={exA} {currency} count={Math.max(1, selChecked.length)} />
+						{#if renters.length && rentalApplies(jtA) && !exA.includes('gear_rental')}
+							<label class={box} data-testid="checkin-rental">
+								<input type="checkbox" bind:checked={rentalOn} class={check} />
+								<span>{rentalLabel(renters.map((r) => r.name))}</span>
+							</label>
+							{#if rentalOn}
+								{#each renters as r (r.id)}<input type="hidden" name="rentalUserId" value={r.id} />{/each}
+							{/if}
+						{/if}
 						{#if selChecked.length === 1}
 							<Input label="Slot weight (kg)" name="weightKg" type="number" min="0" step="1" placeholder="From check-in" />
 						{/if}

@@ -2,7 +2,7 @@
  * Client-safe manifest helpers: friendly copy for domain error codes, load-status flow,
  * call-timer phases and formatting. No server imports.
  */
-import { formatMoney, type LoadStatus } from '../../domain/constants.ts';
+import { formatMoney, type JumpType, type LoadStatus, type SlotExtra } from '../../domain/constants.ts';
 
 export function friendlyError(code: string, message: string, details?: Record<string, unknown>, currency = 'USD'): string {
 	switch (code) {
@@ -268,3 +268,25 @@ export const removeSlotConfirm = (name: string, withGroup = false) =>
 /** "on load 3" / "on loads 3, 5": other loads that day a person is already manifested on. */
 export const alsoOnLabel = (loads: readonly number[], capital = false) =>
 	`${capital ? 'On' : 'on'} ${loads.length === 1 ? `load ${loads[0]}` : `loads ${loads.join(', ')}`}`;
+
+/** Jump types whose price already covers the gear (tandem, student training): never add gear rental. */
+const GEAR_INCLUDED: readonly JumpType[] = ['tandem', 'aff_1_3', 'aff_4_7', 'aff_8_10', 'static_line', 'isp'];
+
+/** Whether a slot of this kind can carry the sport "Gear rental" extra. */
+export const rentalApplies = (jumpType: JumpType, staffRole: string | null = null) => !staffRole && !GEAR_INCLUDED.includes(jumpType);
+
+/**
+ * Extras for one jumper's slot: the extras picked for everyone, plus gear rental when the jumper
+ * checked in with rental gear (and the slot is a sport jump). Without this the DZ silently lost the
+ * rental fee on every slot manifest added from the "Checked in" list.
+ */
+export function slotExtrasFor(shared: readonly SlotExtra[], jumpType: JumpType, staffRole: string | null, rents: boolean): SlotExtra[] {
+	if (!rents || !rentalApplies(jumpType, staffRole) || shared.includes('gear_rental')) return [...shared];
+	return [...shared, 'gear_rental'];
+}
+
+/** "Add gear rental for Johan (checked in with rental gear)" / "… for Johan and Mia (…)". */
+export function rentalLabel(names: readonly string[]): string {
+	const who = names.length <= 1 ? (names[0] ?? '') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+	return `Add gear rental for ${who} (checked in with rental gear)`;
+}

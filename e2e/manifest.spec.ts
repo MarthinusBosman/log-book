@@ -565,6 +565,53 @@ test('add-to-load picker says who is already on another load that day', async ({
 	await away.close();
 });
 
+test('Checked in tab adds gear rental for jumpers who checked in with rental gear', async ({ page }) => {
+	const project = test.info().project.name;
+	await page.goto('/signup');
+	await page.getByLabel('Full name').fill('Rita Rental');
+	await page.getByLabel('Email').fill(`rental-${Date.now()}-${project}@example.com`);
+	await page.getByLabel('Password').fill('blue-skies-123');
+	await page.getByRole('button', { name: 'Create account' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+	await page.goto('/app/dropzones/new');
+	await page.getByLabel('Dropzone name').fill(`Rental E2E ${project} ${Date.now()}`);
+	await page.getByRole('button', { name: 'Create dropzone' }).click();
+	await expect(page).toHaveURL(/\/app$/);
+
+	// she checks in asking for rental gear ("Adds gear rental to your jumps today")
+	await page.goto('/app/check-in');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Exit weight (kg)').fill('80');
+	await page.getByText('I need rental gear').click();
+	await expect(page.getByLabel('I need rental gear')).toBeChecked();
+	await page.getByTestId('checkin-submit').click();
+	await expect(page.getByText('Rental', { exact: true })).toBeVisible();
+
+	await page.goto('/app/manifest');
+	await page.getByTestId('new-load').click();
+	const dialog = page.getByRole('dialog');
+	await dialog.getByLabel('Airplane name / number').fill('ZS-RNT');
+	await dialog.getByLabel('Slots (pax)').fill('4');
+	await dialog.getByRole('button', { name: 'Create load', exact: true }).click();
+	await page.locator('[data-testid=load-card][data-load-number="1"]').getByRole('link', { name: 'Add slots' }).click();
+	await page.waitForLoadState('networkidle');
+
+	// ticking her from the Checked in list offers (and pre-ticks) gear rental; not on a student jump
+	const panel = page.getByRole('tabpanel');
+	const rental = panel.getByTestId('checkin-rental');
+	await expect(rental).toBeHidden();
+	await panel.getByRole('checkbox', { name: /Rita Rental/ }).check();
+	await expect(rental).toHaveText('Add gear rental for Rita Rental (checked in with rental gear)');
+	await expect(rental.getByRole('checkbox')).toBeChecked();
+	await panel.getByLabel('Jump type').selectOption('aff_1_3');
+	await expect(rental).toBeHidden();
+	await panel.getByLabel('Jump type').selectOption('belly');
+	await page.getByTestId('add-checked').click();
+	const slot = page.locator('[data-testid=detail-slot][data-slot-name="Rita Rental"]');
+	await expect(slot).toBeVisible();
+	await expect(slot).toContainText('Gear rental');
+});
+
 test('Tandem tab adds a passenger + TI group and flags booked outside video without a camera flyer', async ({ page }) => {
 	const project = test.info().project.name;
 	await page.goto('/signup');

@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, rentalApplies, rentalLabel, slotExtrasFor, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -234,5 +234,23 @@ describe('pilotOptions (Plane, pilot & time)', () => {
 	test('the current pilot stays selectable; a typed-in pilot name labels the empty option', () => {
 		expect(pilotOptions(pilots, [{ userId: 'p1' }], { pilotUserId: 'p1', pilotName: 'Palesa' })[1]).toEqual({ value: 'p1', label: 'Palesa' });
 		expect(pilotOptions(pilots, [], { pilotUserId: null, pilotName: 'Guest pilot' })[0]).toEqual({ value: '', label: 'Guest pilot' });
+	});
+});
+
+describe('gear rental from check-in (slotExtrasFor / rentalLabel)', () => {
+	test('a renter on a sport jump gets gear rental on top of the shared extras', () => {
+		expect(slotExtrasFor(['extra_altitude'], 'belly', null, true)).toEqual(['extra_altitude', 'gear_rental']);
+		expect(slotExtrasFor(['extra_altitude'], 'belly', null, false)).toEqual(['extra_altitude']);
+		expect(slotExtrasFor(['gear_rental'], 'hop_pop', null, true)).toEqual(['gear_rental']);
+	});
+	test('never on tandem, student training jumps or staff slots (their price covers the gear)', () => {
+		for (const jt of ['tandem', 'aff_1_3', 'aff_8_10', 'static_line', 'isp'] as const) expect(slotExtrasFor([], jt, null, true)).toEqual([]);
+		expect(slotExtrasFor([], 'belly', 'coach', true)).toEqual([]);
+		expect(rentalApplies('coaching')).toBe(true);
+		expect(rentalApplies('aff_4_7')).toBe(false);
+	});
+	test('names the renters', () => {
+		expect(rentalLabel(['Johan'])).toBe('Add gear rental for Johan (checked in with rental gear)');
+		expect(rentalLabel(['Johan', 'Mia', 'Lee'])).toBe('Add gear rental for Johan, Mia and Lee (checked in with rental gear)');
 	});
 });

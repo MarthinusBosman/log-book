@@ -129,7 +129,7 @@ Also: `checkOut`, `checkOutAll(db, dzId, by)`, `listCheckedIn(db, dzId)` (with c
 `createTeam(db, {dropzoneId}|{userId}, {name, discipline?, colour?, coachUserId?, videoUserId?, memberIds?})`, `updateTeam`, `deleteTeam`,
 `addTeamMember` (notifies `team_add`), `removeTeamMember`, `getTeam` (with members), `listDropzoneTeams`, `listUserTeams`.
 `manifestTeam(db, {teamId, loadId, jumpType, extras?, memberIds?, includeStaff?})` puts the whole team on one load as a single group; the coach and video join as staff slots.
-`manifestGroup(db, {loadId, userIds, jumpType, …})` does the same for an ad-hoc group. Buddies: `addBuddy` (notifies `friend_add`), `removeBuddy`, `listBuddies`.
+`manifestGroup(db, {loadId, userIds, jumpType, extras, extrasOf?, …})` does the same for an ad-hoc group (`extrasOf(userId)` = per-jumper extras: the manifest "Checked in" tab adds gear rental for jumpers whose check-in asked for rental gear, via `slotExtrasFor`, sport jumps only). Buddies: `addBuddy` (notifies `friend_add`), `removeBuddy`, `listBuddies`.
 
 ### logbook.ts
 `nextJumpNumber(db, userId)` = max(highest logged, `declaredJumpCount`) + 1.

@@ -19,7 +19,7 @@ import {
 	type SlotStaffRole
 } from '../../domain/constants.ts';
 import type { CompleteSummary } from '../../components/manifest/types.ts';
-import { cancelConfirm, completeConfirm, deleteConfirm, removeSlotConfirm } from '../../components/manifest/manifest.ts';
+import { cancelConfirm, completeConfirm, deleteConfirm, removeSlotConfirm, slotExtrasFor } from '../../components/manifest/manifest.ts';
 import type { Load } from '../db/schema.ts';
 import { activeDropzone, bool, loadWithCap, needsConfirm, optMoney, optNum, optStr, runAction, str } from './context.ts';
 import { zonedTime } from './time.ts';
@@ -272,8 +272,11 @@ export const slotActions = {
 				};
 				const weightKg = userIds.length === 1 ? positiveWeight(optNum(form, 'weightKg')) : null;
 				const note = optStr(form, 'note');
+				// jumpers who checked in with rental gear (the picker sends them when "Add gear rental" stays ticked)
+				const renters = new Set(form.getAll('rentalUserId').map(String));
+				const extrasOf = (userId: string) => slotExtrasFor(ex, jt, role, renters.has(userId));
 				if (userIds.length > 1 && bool(form, 'asGroup')) {
-					await manifestGroup(ev.locals.db, { loadId, userIds, jumpType: jt, extras: ex, teamName: optStr(form, 'teamName') }, opts);
+					await manifestGroup(ev.locals.db, { loadId, userIds, jumpType: jt, extras: ex, extrasOf, teamName: optStr(form, 'teamName') }, opts);
 				} else {
 					await loadsSvc.addSlots(
 						ev.locals.db,
@@ -281,7 +284,7 @@ export const slotActions = {
 						userIds.map((userId) => ({
 							userId,
 							jumpType: jt,
-							extras: ex,
+							extras: extrasOf(userId),
 							staffRole: role,
 							weightKg,
 							note,

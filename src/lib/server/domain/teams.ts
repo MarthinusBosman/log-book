@@ -127,14 +127,22 @@ export async function manifestTeam(
 /** Manifest an ad-hoc jump group (multi-select in "Add jumper/s to load"). */
 export async function manifestGroup(
 	db: Database,
-	input: { loadId: string; userIds: string[]; jumpType: JumpType; extras?: SlotExtra[]; teamName?: string | null },
+	input: {
+		loadId: string;
+		userIds: string[];
+		jumpType: JumpType;
+		extras?: SlotExtra[];
+		/** Per-jumper extras (e.g. gear rental for those who checked in with rental gear); default `extras`. */
+		extrasOf?: (userId: string) => SlotExtra[];
+		teamName?: string | null;
+	},
 	opts: AddSlotOptions = {}
 ): Promise<Slot[]> {
 	const groupId = input.userIds.length > 1 ? newId() : null;
 	return addSlots(
 		db,
 		input.loadId,
-		input.userIds.map((userId) => ({ userId, jumpType: input.jumpType, extras: input.extras, groupId, teamName: input.teamName ?? null })),
+		input.userIds.map((userId) => ({ userId, jumpType: input.jumpType, extras: input.extrasOf?.(userId) ?? input.extras, groupId, teamName: input.teamName ?? null })),
 		opts
 	);
 }
