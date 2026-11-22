@@ -15,6 +15,23 @@ describe('parseCoordinates', () => {
 		expect(parseCoordinates('40.7N 74.0W')).toEqual({ lat: 40.7, lng: -74 });
 	});
 
+	test('degrees, minutes, seconds as Google Maps / Earth / GPS apps show them', () => {
+		expect(parseCoordinates(`33°57'55.4"S 22°27'24.1"E`)).toEqual({ lat: -33.965389, lng: 22.456694 });
+		expect(parseCoordinates('33°57′55.4″S, 22°27′24.1″E')).toEqual({ lat: -33.965389, lng: 22.456694 });
+		expect(parseCoordinates(`S 33° 57.923' E 22° 27.402'`)).toEqual({ lat: -33.965383, lng: 22.4567 });
+		expect(parseCoordinates(`40º 42' 46'' N 74º 0' 21'' W`)).toEqual({ lat: 40.712778, lng: -74.005833 });
+		// Longitude first is fine when the letters say so
+		expect(parseCoordinates('22.4567° E, 33.9654° S')).toEqual({ lat: -33.9654, lng: 22.4567 });
+		// Two latitudes, minutes/seconds out of range, missing hemisphere
+		expect(parseCoordinates('33.1 S, 18.1 N')).toBeNull();
+		expect(parseCoordinates(`33°61'0"S 22°27'24"E`)).toBeNull();
+		expect(parseCoordinates(`33°57'55"S 22°27'24"`)).toBeNull();
+	});
+
+	test('geo: links (Android share)', () => {
+		expect(parseCoordinates('geo:-33.9654,22.4567?z=15')).toEqual({ lat: -33.9654, lng: 22.4567 });
+	});
+
 	test('map links', () => {
 		expect(parseCoordinates('https://www.google.com/maps/@-33.0286,18.1667,15z')).toEqual({ lat: -33.0286, lng: 18.1667 });
 		// The place pin (!3d/!4d) wins over the map centre (@).
@@ -52,6 +69,11 @@ describe('readLatLng', () => {
 		expect(readLatLng('-33.0286', '18.1667')).toEqual({ lat: -33.0286, lng: 18.1667 });
 		expect(readLatLng('-33,0286', '18,1667')).toEqual({ lat: -33.0286, lng: 18.1667 });
 		expect(readLatLng('', '')).toEqual({ lat: null, lng: null });
+	});
+
+	test('one DMS value per field', () => {
+		expect(readLatLng(`33°57'55.4"S`, `22°27'24.1"E`)).toEqual({ lat: -33.965389, lng: 22.456694 });
+		expect(readLatLng(`22°27'24.1"E`, '')).toEqual({ error: 'Latitude must be between -90 and 90.' });
 	});
 
 	test('errors', () => {

@@ -51,6 +51,21 @@ test('location: paste a Google Maps pair or link into one field, use my location
 	await expect(lat).toHaveValue('-33,25');
 	await expect(lng).toHaveValue('18.75');
 
+	// Typed key by key, the pair is split once the field is left (not cut off mid-number)
+	await lng.fill('');
+	await lat.fill('');
+	await lat.pressSequentially('-33.9654, 22.4567');
+	await expect(lat).toHaveValue('-33.9654, 22.4567');
+	await expect(lng).toHaveValue('');
+	await lat.blur();
+	await expect(lat).toHaveValue('-33.9654');
+	await expect(lng).toHaveValue('22.4567');
+
+	// Degrees/minutes/seconds as the Google Maps place panel shows them
+	await lng.fill(`33°57'55.4"S 22°27'24.1"E`);
+	await expect(lat).toHaveValue('-33.965389');
+	await expect(lng).toHaveValue('22.456694');
+
 	await page.getByRole('button', { name: 'Use my location' }).click();
 	await expect(lat).toHaveValue('-33.80123');
 	await expect(lng).toHaveValue('19.88456');

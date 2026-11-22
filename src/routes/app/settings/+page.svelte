@@ -60,6 +60,15 @@
 		hydrated = true;
 	});
 	let locating = $state(false);
+	/**
+	 * A pasted pair / map link fills both fields. Key-by-key typing waits for `change`: splitting
+	 * on every keystroke cut "-33.96, 22.45" off at "-33.96, 22.4" and sent the rest into Latitude.
+	 */
+	function onCoordInput(e: Event & { currentTarget: HTMLInputElement }) {
+		const ev = e as unknown as InputEvent;
+		const typed = ev.inputType?.startsWith('delete') || (ev.inputType === 'insertText' && (ev.data ?? '').length <= 1);
+		if (!typed) splitPasted(e.currentTarget.value);
+	}
 	function splitPasted(value: string) {
 		const p = parseCoordinates(value);
 		if (!p) return;
@@ -116,7 +125,8 @@
 					name="lat"
 					inputmode="decimal"
 					bind:value={latText}
-					oninput={(e) => splitPasted(e.currentTarget.value)}
+					oninput={onCoordInput}
+					onchange={(e) => splitPasted(e.currentTarget.value)}
 					placeholder="-33.0286"
 					aria-describedby="coords-hint"
 				/>
@@ -125,7 +135,8 @@
 					name="lng"
 					inputmode="decimal"
 					bind:value={lngText}
-					oninput={(e) => splitPasted(e.currentTarget.value)}
+					oninput={onCoordInput}
+					onchange={(e) => splitPasted(e.currentTarget.value)}
 					placeholder="18.1667"
 					aria-describedby="coords-hint"
 				/>
