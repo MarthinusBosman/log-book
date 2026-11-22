@@ -155,7 +155,7 @@
 				<StatTile label="Total jumps" value={fmtNumber(data.totals.totalJumps)} hint="{data.totals.last30Days} in 30 days" href="/app/logbook">
 					{#snippet icon()}<Icon name="book" class="size-4" />{/snippet}
 				</StatTile>
-				<StatTile label="Freefall" value={fmtFreefall(data.totals.totalFreefallSeconds)} hint={loggedScope(data.totals)?.short ?? 'total time'} href="/app/logbook">
+				<StatTile label="Freefall" value={data.totals.logged ? fmtFreefall(data.totals.totalFreefallSeconds) : '—'} hint={data.totals.logged ? (loggedScope(data.totals)?.short ?? 'total time') : 'No jumps logged yet'} href="/app/logbook">
 					{#snippet icon()}<JIcon name="clock" class="size-4" />{/snippet}
 				</StatTile>
 				<StatTile
@@ -185,7 +185,8 @@
 	</div>
 
 	{#if data.alerts.length}
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3" data-testid="alerts">
+		<!-- auto-fit: a lone alert spans the row instead of a narrow third with wrapped text -->
+		<div class="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-3" data-testid="alerts">
 			{#each data.alerts as a (a.id)}
 				<a
 					href={a.href}
@@ -218,7 +219,7 @@
 					</span>
 					<span>
 						<span class="block text-sm font-medium">{a.label}</span>
-						<span class="block truncate text-xs text-muted">{a.hint}</span>
+						<span class="line-clamp-2 text-xs text-muted">{a.hint}</span>
 					</span>
 				</a>
 			{/each}

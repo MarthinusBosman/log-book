@@ -552,6 +552,12 @@ test('deleting a jump, rig or team asks first — also before hydration / withou
 
 test('sign-off: a licensed jumper signs with a drawn signature; a second signer cannot replace it', async ({ page, browser }) => {
 	await signup(page, 'Sam Student');
+	// Nothing logged yet: the Freefall tile says so instead of a bare "0s"
+	await page.goto('/app');
+	const freefall = page.getByTestId('jumper-dashboard').getByRole('link', { name: /^Freefall/ });
+	await expect(freefall).toContainText('—');
+	await expect(freefall).toContainText('No jumps logged yet');
+	await expect(freefall).not.toContainText('0s');
 	await page.goto('/app/logbook/new');
 	await page.getByLabel('Jump #').fill('120');
 	await page.getByLabel('Location').fill('Skydive Test Field');
