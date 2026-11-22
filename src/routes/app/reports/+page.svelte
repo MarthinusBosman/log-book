@@ -7,6 +7,7 @@
 	import ColumnChart from '#lib/components/staffadmin/charts/ColumnChart.svelte';
 	import BarList from '#lib/components/staffadmin/charts/BarList.svelte';
 	import { timeSeries } from '#lib/components/staffadmin/series.ts';
+	import { fmtDate } from '#lib/components/jumper/format.ts';
 	import { SLOT_EXTRA_LABELS, formatMoney, paymentMethodLabel, type SlotExtra } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
 
@@ -190,4 +191,4 @@
 		</Card>
 	{/if}
 </div>
-<p class="mt-4 text-xs text-subtle">Jump and revenue figures count completed loads only. Range {data.from} to {data.to}. {page.url.searchParams.size ? '' : 'Default: last 30 days.'}</p>
+<p class="mt-4 text-xs text-subtle">Jump and revenue figures count completed loads only. Range {fmtDate(data.from)} to {fmtDate(data.to)}. {page.url.searchParams.size ? '' : 'Default: last 30 days.'}</p>

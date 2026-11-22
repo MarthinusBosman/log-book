@@ -223,33 +223,37 @@ describe('reports', () => {
 		const [a, b] = [await makeUser(db), await makeUser(db)];
 		await addSlot(db, l1.id, { userId: a.id, jumpType: 'belly', extras: ['gear_rental', 'extra_altitude'] });
 		await addSlot(db, l1.id, { userId: b.id, jumpType: 'aff_1_3' });
+		// the instructor's slot carries the student's jump type: a sport jump, but not a second student
+		const affi = await makeMember(db, dz.id, ['aff_instructor']);
+		await addSlot(db, l1.id, { userId: affi.id, jumpType: 'aff_1_3', staffRole: 'aff_instructor' });
 		const pax = await createPassenger(db, dz.id, { name: 'P', extras: ['handcam', 'beach_landing'] });
 		const { addTandemGroup } = await import('./loads.ts');
 		await addTandemGroup(db, { loadId: l1.id, passengerId: pax.id, instructorUserId: ti.id });
 		await addSlot(db, l2.id, { userId: a.id, jumpType: 'static_line' }); // l2 not completed
+		await addSlot(db, l2.id, { userId: affi.id, jumpType: 'static_line', staffRole: 'jumpmaster' });
 		await completeLoad(db, l1.id);
 		const r = await jumpReport(db, dz.id, DAY, DAY);
 		expect(r.totals).toMatchObject({
 			loads: 1,
-			slots: 4,
+			slots: 5,
 			tandems: 1,
 			handcam: 1,
 			beachLanding: 1,
-			sporties: 2,
+			sporties: 3,
 			aff: 1,
 			staticLine: 0,
 			gearRental: 1,
 			extraAltitude: 1
 		});
-		expect(r.perAircraft).toEqual([{ aircraft: 'C182', loads: 1, slots: 4 }]);
+		expect(r.perAircraft).toEqual([{ aircraft: 'C182', loads: 1, slots: 5 }]);
 		const tiRow = r.perStaff.find((s) => s.userId === ti.id)!;
 		expect(tiRow.payMinor).toBe(P.pay_tandem! + P.pay_handcam!);
 		const expected = P.sport_slot! + P.gear_rental! + P.extra_altitude! + P.aff_1_3! + P.tandem_slot! + P.tandem_handcam! + P.tandem_beach_landing!;
 		expect(r.revenue.totalMinor).toBe(expected);
 		expect(r.revenue.pilotPayMinor).toBe(P.pay_pilot!);
-		expect(r.perDay).toEqual([{ day: DAY, loads: 1, slots: 4, revenueMinor: expected }]);
+		expect(r.perDay).toEqual([{ day: DAY, loads: 1, slots: 5, revenueMinor: expected }]);
 		const all = await jumpReport(db, dz.id, DAY, DAY, { statuses: ['completed', 'planned'] });
-		expect(all.totals.staticLine).toBe(1);
+		expect(all.totals.staticLine).toBe(1); // the student, not the jumpmaster
 		expect((await getLoad(db, l2.id)).status).toBe('planned');
 	});
 });

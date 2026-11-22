@@ -89,8 +89,10 @@ export function buildReport(from: string, to: string, loadList: Load[], slotList
 		// Sporties = slots that are not tandem and not coach
 		if (s.jumpType !== 'tandem' && !isCoach) {
 			t.sporties++;
-			if (AFF_JUMP_TYPES.includes(s.jumpType as JumpType)) t.aff++;
-			if (s.jumpType === 'static_line') t.staticLine++;
+			// AFF / static line count students: the AFF instructor or jumpmaster slot carries the
+			// student's jump type but is a staff jump, not a second student.
+			if (!s.staffRole && AFF_JUMP_TYPES.includes(s.jumpType as JumpType)) t.aff++;
+			if (!s.staffRole && s.jumpType === 'static_line') t.staticLine++;
 			if (ex.has('gear_rental')) t.gearRental++;
 		}
 		totalMinor += s.totalMinor;

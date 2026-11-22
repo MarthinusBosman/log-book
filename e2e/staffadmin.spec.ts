@@ -526,6 +526,9 @@ test('owner runs the back office', async ({ page }) => {
 	await expect(page.getByRole('heading', { name: 'Jump Report' })).toBeVisible();
 	// Print sheets skip the app shell: they still need a main landmark (skip-link target).
 	await expect(page.getByRole('main').getByRole('heading', { name: 'Jump Report' })).toBeVisible();
+	// Dates read like the rest of the app ("24 Oct – 22 Nov 2026"), not ISO.
+	await expect(page.getByText(/^Range: \d{1,2} [A-Z][a-z]{2}( \d{4})? – \d{1,2} [A-Z][a-z]{2} \d{4}$/)).toBeVisible();
+	await expect(page.getByText(/Generated on \d{1,2} [A-Z][a-z]{2} \d{4} with/)).toBeVisible();
 	await go(page, '/app/reports/loadsheet');
 	await expect(page.getByRole('main').getByLabel('Day', { exact: true })).toHaveAttribute('type', 'date');
 });
