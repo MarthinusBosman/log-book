@@ -66,8 +66,17 @@
 			alsoOn: c.otherLoads
 		}))
 	);
+	const rentingIds = $derived(new Set(checkedIn.filter((c) => c.gearRental).map((c) => c.id)));
 	const memberPeople = $derived<Person[]>(
-		members.map((m) => ({ id: m.id, name: m.name, avatar: m.avatar, sub: m.licence ?? m.roles.map((r) => ROLE_LABELS[r]).join(', '), onLoad: m.onLoad, blocked: flying(m.id), alsoOn: m.otherLoads }))
+		members.map((m) => ({
+			id: m.id,
+			name: m.name,
+			avatar: m.avatar,
+			sub: [m.licence ?? m.roles.map((r) => ROLE_LABELS[r]).join(', '), rentingIds.has(m.id) ? 'rental gear' : null].filter(Boolean).join(' · '),
+			onLoad: m.onLoad,
+			blocked: flying(m.id),
+			alsoOn: m.otherLoads
+		}))
 	);
 	const staffPeople = $derived<Person[]>(
 		staff.map((s) => ({
@@ -85,8 +94,13 @@
 	const videos = $derived(staff.filter((s) => s.roles.includes('videographer') && !s.onLoad && !flying(s.id)));
 	const passenger = $derived(passengers.find((p) => p.id === passengerId) ?? null);
 	// Ticked checked-in jumpers who asked for rental gear at check-in: their slots get "Gear rental".
-	const renters = $derived(checkedIn.filter((c) => c.gearRental && selChecked.includes(c.id)));
+	const rentersIn = (sel: string[]) => checkedIn.filter((c) => c.gearRental && sel.includes(c.id));
+	const renters = $derived(rentersIn(selChecked));
+	// The Members tab lists everyone, checked-in renters included: same rental rule there.
+	const memberRenters = $derived(rentersIn(selMembers));
 	let rentalOn = $state(true);
+	let memberRentalOn = $state(true);
+	const rentalCount = (list: Checked[], on: boolean, jt: JumpType, ex: SlotExtra[]) => (on && rentalApplies(jt) && !ex.includes('gear_rental') ? list.length : 0);
 	// Warn before submitting when more people are ticked than fit (the server refuses the whole batch).
 	const overChecked = $derived(pickedOverFree(selChecked.length, free));
 	const overMembers = $derived(pickedOverFree(selMembers.length, free));
@@ -134,6 +148,18 @@
 	</div>
 {/snippet}
 
+{#snippet rentalBox(list: Checked[], jt: JumpType, ex: SlotExtra[], on: boolean, set: (v: boolean) => void)}
+	{#if list.length && rentalApplies(jt) && !ex.includes('gear_rental')}
+		<label class={box} data-testid="checkin-rental">
+			<input type="checkbox" checked={on} onchange={(e) => set(e.currentTarget.checked)} class={check} />
+			<span>{rentalLabel(list.map((r) => r.name))}</span>
+		</label>
+		{#if on}
+			{#each list as r (r.id)}<input type="hidden" name="rentalUserId" value={r.id} />{/each}
+		{/if}
+	{/if}
+{/snippet}
+
 {#snippet overBox(message: string | null)}
 	<p role="status" data-testid="add-over" class={cn('text-sm text-warning', !message && 'hidden')}>{message ?? ''}</p>
 {/snippet}
@@ -172,16 +198,8 @@
 					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => ((selChecked = []), (rentalOn = true)))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<PeoplePicker idPrefix="ci" people={checkedPeople} bind:selected={selChecked} empty="Nobody is checked in at the moment." />
-						<JumpFields idPrefix="ci" bind:jumpType={jtA} bind:extras={exA} {currency} count={Math.max(1, selChecked.length)} rentals={rentalOn && rentalApplies(jtA) && !exA.includes('gear_rental') ? renters.length : 0} />
-						{#if renters.length && rentalApplies(jtA) && !exA.includes('gear_rental')}
-							<label class={box} data-testid="checkin-rental">
-								<input type="checkbox" bind:checked={rentalOn} class={check} />
-								<span>{rentalLabel(renters.map((r) => r.name))}</span>
-							</label>
-							{#if rentalOn}
-								{#each renters as r (r.id)}<input type="hidden" name="rentalUserId" value={r.id} />{/each}
-							{/if}
-						{/if}
+						<JumpFields idPrefix="ci" bind:jumpType={jtA} bind:extras={exA} {currency} count={Math.max(1, selChecked.length)} rentals={rentalCount(renters, rentalOn, jtA, exA)} />
+						{@render rentalBox(renters, jtA, exA, rentalOn, (v) => (rentalOn = v))}
 						{#if selChecked.length === 1}
 							<Input label="Slot weight (kg)" name="weightKg" type="number" min="0" step="1" placeholder="From check-in" />
 						{/if}
@@ -193,10 +211,11 @@
 						</Button>
 					</form>
 				{:else if tab === 'members'}
-					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => (selMembers = []))}>
+					<form method="POST" action={formAction(page.url, 'addMembers')} class="flex flex-col gap-3" use:enhance={done(() => ((selMembers = []), (memberRentalOn = true)))}>
 						<input type="hidden" name="loadId" value={loadId} />
 						<PeoplePicker idPrefix="mb" people={memberPeople} bind:selected={selMembers} />
-						<JumpFields idPrefix="mb" bind:jumpType={jtB} bind:extras={exB} {currency} count={Math.max(1, selMembers.length)} />
+						<JumpFields idPrefix="mb" bind:jumpType={jtB} bind:extras={exB} {currency} count={Math.max(1, selMembers.length)} rentals={rentalCount(memberRenters, memberRentalOn, jtB, exB)} />
+						{@render rentalBox(memberRenters, jtB, exB, memberRentalOn, (v) => (memberRentalOn = v))}
 						{#if selMembers.length === 1}
 							<Input label="Slot weight (kg)" name="weightKg" type="number" min="0" step="1" placeholder="From profile" />
 						{/if}

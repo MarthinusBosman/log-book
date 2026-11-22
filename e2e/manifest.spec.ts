@@ -604,15 +604,25 @@ test('Checked in tab adds gear rental for jumpers who checked in with rental gea
 	await page.locator('[data-testid=load-card][data-load-number="1"]').getByRole('link', { name: 'Add slots' }).click();
 	await page.waitForLoadState('networkidle');
 
-	// ticking her from the Checked in list offers (and pre-ticks) gear rental; not on a student jump
 	const panel = page.getByRole('tabpanel');
 	const rental = panel.getByTestId('checkin-rental');
+	const preview = panel.getByTestId('price-preview');
+	// the Members tab knows about her check-in rental too
+	await page.getByRole('tab', { name: 'Members' }).click();
+	await expect(rental).toBeHidden();
+	await panel.getByRole('checkbox', { name: /Rita Rental/ }).check();
+	await expect(rental).toHaveText('Add gear rental for Rita Rental (checked in with rental gear)');
+	await expect(preview.getByTestId('price-total')).toHaveText(/700[.,]00/);
+	await panel.getByRole('checkbox', { name: /^Rita Rental/ }).uncheck();
+	await expect(rental).toBeHidden();
+	await page.getByRole('tab', { name: 'Checked in' }).click();
+
+	// ticking her from the Checked in list offers (and pre-ticks) gear rental; not on a student jump
 	await expect(rental).toBeHidden();
 	await panel.getByRole('checkbox', { name: /Rita Rental/ }).check();
 	await expect(rental).toHaveText('Add gear rental for Rita Rental (checked in with rental gear)');
 	await expect(rental.getByRole('checkbox')).toBeChecked();
 	// the price preview includes her rental (and drops it when unticked)
-	const preview = panel.getByTestId('price-preview');
 	await expect(preview.getByTestId('price-rental')).toContainText('Gear rental');
 	await expect(preview.getByTestId('price-total')).toHaveText(/700[.,]00/);
 	await rental.getByRole('checkbox').uncheck();
