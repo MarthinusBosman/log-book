@@ -251,6 +251,9 @@ describe('reports', () => {
 		const expected = P.sport_slot! + P.gear_rental! + P.extra_altitude! + P.aff_1_3! + P.tandem_slot! + P.tandem_handcam! + P.tandem_beach_landing!;
 		expect(r.revenue.totalMinor).toBe(expected);
 		expect(r.revenue.pilotPayMinor).toBe(P.pay_pilot!);
+		// the (named, non-member) pilot is a staff row of their own: loads flown, no jumps
+		expect(r.perStaff.find((s) => s.name === 'Pat')).toMatchObject({ userId: null, slots: 0, loads: 1, payMinor: P.pay_pilot! });
+		expect(tiRow).toMatchObject({ slots: 1, loads: 0 });
 		expect(r.perDay).toEqual([{ day: DAY, loads: 1, slots: 5, revenueMinor: expected }]);
 		const all = await jumpReport(db, dz.id, DAY, DAY, { statuses: ['completed', 'planned'] });
 		expect(all.totals.staticLine).toBe(1); // the student, not the jumpmaster

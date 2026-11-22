@@ -175,7 +175,7 @@ Wallet top-up requests: `requestTopUp`, `listTopUpRequests`, `cancelTopUpRequest
 `completeTopUpRequest` (credits the wallet, idempotent).
 
 ### reports.ts
-`jumpReport(db, dzId, from, to, {statuses?=['completed']})` → `{totals: {loads, slots, extraAltitude, maxAltitude, beachLanding, tandems, handcam, outsideVideo, extremeRide, sporties, aff, staticLine, gearRental, coachJumps}, perDay, perAircraft, perStaff, revenue}`.
+`jumpReport(db, dzId, from, to, {statuses?=['completed']})` → `{totals: {loads, slots, extraAltitude, maxAltitude, beachLanding, tandems, handcam, outsideVideo, extremeRide, sporties, aff, staticLine, gearRental, coachJumps}, perDay, perAircraft, perStaff, revenue}`. `perStaff` rows are `{userId, name, slots, loads, payMinor}`: `slots` = staff slots worked, `loads` = paid loads flown as pilot (one row per person).
 It uses the original's counting rules: sporties are slots that aren't tandem or coach. `buildReport` is the pure core.
 
 ### notifications.ts

@@ -9,6 +9,8 @@
 	const money = (m: number) => formatMoney(m, data.currency);
 	// Same "24 Oct 2026" dates as the rest of the app; per-day rows drop the year when the range sits in one year.
 	const oneYear = $derived(data.from.slice(0, 4) === data.to.slice(0, 4));
+	// Pilots fly loads rather than jump them: their own column instead of "Jumps 0".
+	const flown = $derived(data.perStaff.some((s) => s.loads > 0));
 	const range = $derived(`${fmtDate(data.from, { year: !oneYear })} – ${fmtDate(data.to)}`);
 </script>
 
@@ -66,10 +68,10 @@
 				</table>
 				<h2 class="mt-6 text-sm font-bold tracking-wide uppercase">Staff</h2>
 				<table class="mt-2 w-full text-sm">
-					<thead><tr class="border-b border-zinc-300 text-left"><th class="py-1.5">Name</th><th class="py-1.5 text-right">Jumps</th><th class="py-1.5 text-right">Pay</th></tr></thead>
+					<thead><tr class="border-b border-zinc-300 text-left"><th class="py-1.5">Name</th><th class="py-1.5 pl-2 text-right">Jumps</th>{#if flown}<th class="py-1.5 pl-2 text-right">Flown</th>{/if}<th class="py-1.5 pl-2 text-right">Pay</th></tr></thead>
 					<tbody>
 						{#each data.perStaff as s, i (i)}
-							<tr class="border-b border-zinc-200"><td class="py-1">{s.name}</td><td class="py-1 text-right tabular-nums">{s.slots}</td><td class="py-1 text-right tabular-nums">{money(s.payMinor)}</td></tr>
+							<tr class="border-b border-zinc-200"><td class="py-1">{s.name}</td><td class="py-1 pl-2 text-right tabular-nums">{s.slots || '—'}</td>{#if flown}<td class="py-1 pl-2 text-right tabular-nums">{s.loads || '—'}</td>{/if}<td class="py-1 pl-2 text-right whitespace-nowrap tabular-nums">{money(s.payMinor)}</td></tr>
 						{/each}
 					</tbody>
 				</table>

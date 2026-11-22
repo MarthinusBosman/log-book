@@ -64,6 +64,7 @@ export function reportCsv(kind: CsvKind, d: ReportData, currency: string): strin
 			return toCsv(d.jumps.perStaff, [
 				{ label: 'Staff member', value: (r) => r.name },
 				{ label: 'Staff slots', value: (r) => r.slots },
+				{ label: 'Loads flown', value: (r) => r.loads },
 				{ label: `Pay ${c}`, value: (r) => csvMoney(r.payMinor) }
 			]);
 		case 'revenue':

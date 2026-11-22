@@ -7,6 +7,7 @@
 	import ColumnChart from '#lib/components/staffadmin/charts/ColumnChart.svelte';
 	import BarList from '#lib/components/staffadmin/charts/BarList.svelte';
 	import { timeSeries } from '#lib/components/staffadmin/series.ts';
+	import { staffWork } from '#lib/components/staffadmin/staff-work.ts';
 	import { fmtDate } from '#lib/components/jumper/format.ts';
 	import { SLOT_EXTRA_LABELS, formatMoney, paymentMethodLabel, type SlotExtra } from '#lib/domain/constants.ts';
 	import type { PageProps } from './$types';
@@ -110,7 +111,7 @@
 			label="Staff pay"
 			color="var(--color-success)"
 			format={money}
-			rows={data.jumps.perStaff.map((s) => ({ label: s.name, value: s.payMinor, sub: s.slots ? `${s.slots} jump${s.slots === 1 ? '' : 's'}` : 'pilot' }))}
+			rows={data.jumps.perStaff.map((s) => ({ label: s.name, value: s.payMinor, sub: staffWork(s) }))}
 		/>
 	</Card>
 

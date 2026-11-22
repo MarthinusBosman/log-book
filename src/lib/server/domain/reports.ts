@@ -24,7 +24,8 @@ export type JumpReport = {
 	};
 	perDay: { day: string; loads: number; slots: number; revenueMinor: number }[];
 	perAircraft: { aircraft: string; loads: number; slots: number }[];
-	perStaff: { userId: string | null; name: string; slots: number; payMinor: number }[];
+	/** Staff slots worked plus loads flown as (paid) pilot; one row per person. */
+	perStaff: { userId: string | null; name: string; slots: number; loads: number; payMinor: number }[];
 	revenue: { currency: string | null; totalMinor: number; paidMinor: number; outstandingMinor: number; staffPayMinor: number; pilotPayMinor: number };
 };
 
@@ -49,7 +50,7 @@ export function buildReport(from: string, to: string, loadList: Load[], slotList
 	const loadById = new Map(loadList.map((l) => [l.id, l]));
 	const perDay = new Map<string, { day: string; loads: number; slots: number; revenueMinor: number }>();
 	const perAircraft = new Map<string, { aircraft: string; loads: number; slots: number }>();
-	const perStaff = new Map<string, { userId: string | null; name: string; slots: number; payMinor: number }>();
+	const perStaff = new Map<string, JumpReport['perStaff'][number]>();
 	for (const l of loadList) {
 		const d = perDay.get(l.day) ?? { day: l.day, loads: 0, slots: 0, revenueMinor: 0 };
 		d.loads++;
@@ -60,7 +61,8 @@ export function buildReport(from: string, to: string, loadList: Load[], slotList
 		perAircraft.set(a, ac);
 		if (l.pilotPayMinor > 0) {
 			const key = l.pilotUserId ?? `name:${l.pilotName}`;
-			const ps = perStaff.get(key) ?? { userId: l.pilotUserId, name: l.pilotName ?? 'Pilot', slots: 0, payMinor: 0 };
+			const ps = perStaff.get(key) ?? { userId: l.pilotUserId, name: l.pilotName ?? 'Pilot', slots: 0, loads: 0, payMinor: 0 };
+			ps.loads++;
 			ps.payMinor += l.pilotPayMinor;
 			perStaff.set(key, ps);
 		}
@@ -103,7 +105,7 @@ export function buildReport(from: string, to: string, loadList: Load[], slotList
 		perAircraft.get(l.aircraftName ?? 'Unknown')!.slots++;
 		if (s.staffRole) {
 			const key = s.userId ?? `name:${s.displayName}`;
-			const ps = perStaff.get(key) ?? { userId: s.userId, name: s.displayName, slots: 0, payMinor: 0 };
+			const ps = perStaff.get(key) ?? { userId: s.userId, name: s.displayName, slots: 0, loads: 0, payMinor: 0 };
 			ps.slots++;
 			ps.payMinor += s.staffPayMinor;
 			perStaff.set(key, ps);
