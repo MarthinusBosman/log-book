@@ -645,6 +645,8 @@ test('wallet top-up amounts: a minus sign is refused and "1,000" means a thousan
 	await page.locator('main a[href^="/app/wallet/"]').first().click();
 	await page.waitForLoadState('networkidle');
 	const form = page.getByTestId('topup-form');
+	// Same wording as the wallet list when nothing is held for jumps (not "R 0,00 reserved").
+	await expect(page.getByTestId('wallet-reserved')).toHaveText('Nothing reserved');
 	// "Try again" (#topup) on a phone lands the Add funds card below the sticky top bar
 	if (test.info().project.name === 'mobile') {
 		await page.goto(`${page.url().split('#')[0]}#topup`);
@@ -1152,4 +1154,17 @@ test('log a jump starts from the last jump at the chosen dropzone; switching dro
 	await page.waitForLoadState('networkidle');
 	await dz.selectOption({ label: names[0] });
 	await expect(plane).toHaveValue('Otter');
+
+	// a jump logged under a number already in the logbook: both cards say so in the list
+	await page.goto('/app/logbook');
+	await expect(page.getByTestId('jump-card')).toHaveCount(2);
+	expect(await page.getByTestId('jump-card').filter({ hasText: 'Number repeated' }).count()).toBe(0);
+	await page.goto('/app/logbook/new');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Jump #').fill('2');
+	await page.getByTestId('save-jump').click();
+	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]{36}(\?added=1)?$/);
+	await page.goto('/app/logbook');
+	await expect(page.getByTestId('jump-card').filter({ hasText: 'Number repeated' })).toHaveCount(2);
+	await expect(page.getByTestId('jump-card').filter({ hasNotText: 'Number repeated' })).toHaveText(/^\s*Jump\s*1(?!\d)/);
 });

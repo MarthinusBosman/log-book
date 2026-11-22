@@ -139,6 +139,7 @@ DZ teams are created on the staff page `/app/teams` (`teams.manage`) and edited 
 `updateJump(db, userId, jumpId, patch)`: only the owner can edit. On verified jumps the date, DZ, aircraft and number are locked. Changing facts clears the signature.
 `deleteJump`. `signJump(db, {jumpId, signerUserId, signatureFileId?})`: the signer can't be the owner and must have a licence or a rating. The signer's name and licence are stored as a snapshot and the owner gets `jump_signed`.
 `listJumps(db, userId, {limit, offset, from, to, order})`, `logbookTotals(db, userId, today)` → `{logged, totalJumps, totalFreefallSeconds, signed, verified, lastJumpDate, last30Days, last12Months}`, `importJumps(db, userId, rows)` (idempotent on `sourceRef`).
+`jumpSequenceHints(db, userId, jump)` → duplicate number / out-of-order date neighbours (jump detail page, never blocking); `duplicateJumpNumbers(db, userId)` → numbers logged more than once (one grouped query; the logbook list badges those cards "Number repeated").
 
 ### gear.ts
 Pure helpers:

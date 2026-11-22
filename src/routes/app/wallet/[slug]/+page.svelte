@@ -99,7 +99,7 @@
 			<p class="relative text-xs font-medium tracking-wider text-primary uppercase">Available</p>
 			<p class="relative mt-1 text-4xl font-semibold tracking-tight tabular-nums {data.account && data.account.availableMinor < 0 ? 'text-danger' : ''}">{money(data.account?.availableMinor ?? 0)}</p>
 			<div class="relative mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted">
-				<span><span class="font-medium text-fg tabular-nums">{money(data.account?.pendingMinor ?? 0)}</span> reserved</span>
+				{#if data.account?.pendingMinor}<span data-testid="wallet-reserved"><span class="font-medium text-fg tabular-nums">{money(data.account.pendingMinor)}</span> reserved for jumps</span>{:else}<span data-testid="wallet-reserved">Nothing reserved</span>{/if}
 				{#if data.account?.updatedAt}<span>Updated {relativeTime(data.account.updatedAt, undefined, data.timezone)}</span>{/if}
 			</div>
 			{#if low}

@@ -1,4 +1,4 @@
-import { countJumps, listJumps, logbookBreakdown, logbookTotals } from '#lib/server/domain/logbook.ts';
+import { countJumps, duplicateJumpNumbers, listJumps, logbookBreakdown, logbookTotals } from '#lib/server/domain/logbook.ts';
 import { requireUser, todayAt } from '#lib/server/jumper/forms.ts';
 import { dzNameMap, filtersFromUrl, jumpRow } from '#lib/server/jumper/logbook.ts';
 import { JUMP_TYPE_LABELS, type JumpType } from '#lib/domain/constants.ts';
@@ -12,11 +12,12 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	const today = await todayAt(locals, current?.dropzone.id);
 	const filters = filtersFromUrl(url);
 	const page = Math.max(1, Number(url.searchParams.get('page')) || 1);
-	const [totals, breakdown, jumps, matched] = await Promise.all([
+	const [totals, breakdown, jumps, matched, duplicates] = await Promise.all([
 		logbookTotals(locals.db, user.id, today),
 		logbookBreakdown(locals.db, user.id),
 		listJumps(locals.db, user.id, { ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
-		countJumps(locals.db, user.id, filters)
+		countJumps(locals.db, user.id, filters),
+		duplicateJumpNumbers(locals.db, user.id)
 	]);
 	// totalJumps = max(highest logged, declared count), the same rule as nextJumpNumber()
 	const next = totals.totalJumps + 1;
@@ -28,7 +29,7 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			...breakdown,
 			byType: breakdown.byType.map((r) => ({ ...r, label: r.key ? (JUMP_TYPE_LABELS[r.key as JumpType] ?? r.key) : 'Not set' }))
 		},
-		jumps: jumps.map((j) => jumpRow(j, names)),
+		jumps: jumps.map((j) => ({ ...jumpRow(j, names), duplicate: duplicates.includes(j.jumpNumber) })),
 		matched,
 		filtered,
 		filters: { q: filters.q ?? '', type: filters.jumpType ?? '', place: url.searchParams.get('place') ?? '', year: filters.year ?? '' },

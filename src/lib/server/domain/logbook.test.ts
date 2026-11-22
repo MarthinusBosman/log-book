@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { logbookJumps } from '../db/schema.ts';
 import { isDomainError } from './errors.ts';
-import { addJump, assertJumpDateInRange, deleteJump, getJump, importJumps, jumpSequenceHints, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
+import { addJump, assertJumpDateInRange, deleteJump, duplicateJumpNumbers, getJump, importJumps, jumpSequenceHints, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
 import { setRatings } from './profile.ts';
 import { listNotifications } from './notifications.ts';
 import { addSlot, completeLoad, createLoads } from './loads.ts';
@@ -66,6 +66,11 @@ describe('numbering', () => {
 		const d = await addJump(db, u.id, { jumpDate: '2026-06-01', jumpNumber: 10 });
 		expect(await jumpSequenceHints(db, u.id, d)).toMatchObject({ duplicate: { id: a.id }, earlierNumberLaterDate: null });
 		expect((await jumpSequenceHints(db, u.id, a)).duplicate).toMatchObject({ id: d.id });
+		// the logbook list flags every repeated number (other users' jumps never count)
+		expect(await duplicateJumpNumbers(db, u.id)).toEqual([10]);
+		await addJump(db, u.id, { jumpDate: '2026-06-11', jumpNumber: 13 });
+		expect(await duplicateJumpNumbers(db, u.id)).toEqual([13, 10]);
+		expect(await duplicateJumpNumbers(db, other.id)).toEqual([]);
 	});
 
 	test('form dates: not in the future (one day of time-zone slack)', () => {

@@ -243,6 +243,22 @@ export async function jumpSequenceHints(
 	};
 }
 
+/**
+ * Jump numbers the user has logged more than once (one grouped query), so the logbook list can
+ * flag them. Capped: a messy import with hundreds of repeats doesn't need every one flagged at once.
+ */
+export async function duplicateJumpNumbers(db: Database, userId: string, limit = 200): Promise<number[]> {
+	const rows = await db
+		.select({ n: logbookJumps.jumpNumber })
+		.from(logbookJumps)
+		.where(eq(logbookJumps.userId, userId))
+		.groupBy(logbookJumps.jumpNumber)
+		.having(sql`count(*) > 1`)
+		.orderBy(desc(logbookJumps.jumpNumber))
+		.limit(limit);
+	return rows.map((r) => r.n);
+}
+
 export type JumpFilters = {
 	from?: string;
 	to?: string;
