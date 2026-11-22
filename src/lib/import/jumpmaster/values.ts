@@ -121,9 +121,16 @@ export function cents(v: unknown): number {
 export function altitudeFt(v: unknown): number | null {
 	if (v == null || v === '') return null;
 	if (typeof v === 'number') return v > 0 ? Math.round(v) : null;
-	const s = String(v).toLowerCase();
-	const n = toNum(s.replace(/k\b/, '000'));
+	// A dot followed by exactly three digits is a thousands separator ("13.500", "4.000 m"):
+	// no exit altitude is 13.5 ft.
+	const s = String(v)
+		.toLowerCase()
+		.replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1');
+	// "13k", "13.5k" → × 1000 (not "13.5" + "000")
+	const k = s.match(/^\s*(\d+(?:\.\d+)?)\s*k\b/);
+	const n = k ? Number(k[1]) * 1000 : toNum(s);
 	if (n == null || n <= 0) return null;
+	if (/\d\s*km\b/.test(s)) return Math.round(n * 1000 * 3.28084);
 	return /\d\s*m(etres|eters|\b)/.test(s) && !/ft|feet/.test(s) ? Math.round(n * 3.28084) : Math.round(n);
 }
 

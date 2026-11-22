@@ -143,10 +143,22 @@ function valid(y: number, m: number, d: number): string | null {
 	return t.getUTCDate() === d ? s : null;
 }
 
+/** Excel serial day numbers (1900 date system) between 1950 and 2100 — a date cell saved as a number. */
+const EXCEL_EPOCH = Date.UTC(1899, 11, 30);
+
 /** Parse common logbook date formats → YYYY-MM-DD (null when unparseable). */
 export function parseDate(raw: string, order: DateOrder = 'auto'): string | null {
-	const s = raw.trim();
+	const s = raw
+		.trim()
+		// a leading weekday ("Tue, 5 Mar 2024", "Tuesday 5 March 2024")
+		.replace(/^(mon|tue|wed|thu|fri|sat|sun)[a-z]*\.?,?\s+/i, '')
+		// a trailing time, as spreadsheets save date-time cells ("05/03/2024 10:30", "… 9:05:00 AM")
+		.replace(/[ T]+\d{1,2}:\d{2}(:\d{2}(\.\d+)?)?\s*([ap]\.?m\.?)?\s*(z|[+-]\d{2}:?\d{2})?$/i, '');
 	if (!s) return null;
+	if (/^\d{5}(\.\d+)?$/.test(s)) {
+		const n = Math.floor(Number(s));
+		return n >= 18264 && n <= 73050 ? new Date(EXCEL_EPOCH + n * 86_400_000).toISOString().slice(0, 10) : null;
+	}
 	let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T ].*)?$/);
 	if (m) return valid(+m[1], +m[2], +m[3]);
 	m = s.match(/^(\d{1,2})[-/. ]([a-z]{3})[a-z]*\.?[-/. ,]+(\d{2,4})$/i);
@@ -164,16 +176,18 @@ export function parseDate(raw: string, order: DateOrder = 'auto'): string | null
 	return null;
 }
 
-/** "45", "45s", "1:05" (m:ss), "1m 5s" → seconds. */
+/** "45", "45s", "45,5", "1:05" (m:ss), "1m 5s", "1m05", "~50" → seconds; null for ranges ("50-60") and other text. */
 export function parseFreefall(raw: string): number | null {
-	const s = raw.trim().toLowerCase();
+	const s = raw
+		.trim()
+		.toLowerCase()
+		.replace(/^(~|±|\+\/-|approx\.?|ca\.?|about|circa)\s*/, '');
 	if (!s) return null;
 	let m = s.match(/^(\d+):(\d{1,2})$/);
 	if (m) return +m[1] * 60 + +m[2];
-	m = s.match(/^(?:(\d+)\s*m(?:in)?)?\s*(?:(\d+)\s*s(?:ec)?s?)?$/);
-	if (m && (m[1] || m[2])) return (+(m[1] ?? 0)) * 60 + +(m[2] ?? 0);
-	const n = Number(s.replace(/[^\d.]/g, ''));
-	return Number.isFinite(n) && s.replace(/[^\d.]/g, '') ? Math.round(n) : null;
+	m = s.match(/^(?:(\d+)\s*m(?:in(?:ute)?s?)?\.?)?\s*(?:(\d+(?:[.,]\d+)?)\s*(?:s(?:ec(?:ond)?s?)?\.?)?)?$/);
+	if (m && (m[1] || m[2])) return (+(m[1] ?? 0)) * 60 + Math.round(Number((m[2] ?? '0').replace(',', '.')));
+	return null;
 }
 
 export function parseJumpType(raw: string): JumpType | null {
@@ -196,11 +210,17 @@ function fnv(s: string): string {
 
 export type CsvConversion = { jumps: BJump[]; errors: { row: number; message: string }[] };
 
+/** Reverse of csvCell's formula guard: "'-2 way" → "-2 way". */
+function unguard(s: string): string {
+	return /^'[=+\-@\t\r]/.test(s) ? s.slice(1) : s;
+}
+
 /** Convert data rows (header excluded) with a mapping into bundle jumps. */
 export function rowsToJumps(rows: string[][], mapping: CsvMapping, order: DateOrder = 'auto'): CsvConversion {
 	const jumps: BJump[] = [];
 	const errors: CsvConversion['errors'] = [];
-	const get = (r: string[], f: CsvField) => (mapping[f] >= 0 ? (r[mapping[f]] ?? '').trim() : '');
+	// Trimmed, with csvCell's formula guard undone so our own exports re-import unchanged.
+	const get = (r: string[], f: CsvField) => (mapping[f] >= 0 ? unguard((r[mapping[f]] ?? '').trim()) : '');
 	const seen = new Set<string>();
 	rows.forEach((r, i) => {
 		const rowNo = i + 1;

@@ -110,8 +110,12 @@ Comma, semicolon and tab files work; the header is detected and columns auto-map
 (English synonyms such as *No., DZ, Plane, Exit alt, FF, Discipline, Notes*). In the browser the
 upload card shows a mapping grid (field → column), a *first row is a header* toggle and a date
 order (auto, `YYYY-MM-DD`, `DD/MM/YYYY`, `MM/DD/YYYY`) with a live count of readable rows; without
-JS the server applies the auto-mapping. Bad rows are reported as warnings, not fatal. CSV exports
-neutralise spreadsheet formula injection.
+JS the server applies the auto-mapping. Bad rows are reported as warnings, not fatal. Dates also
+read with a trailing time (spreadsheet date-time cells), a leading weekday, or as an Excel serial
+number; altitude takes `13,500` / `13.500` / `13.5k` / `4000 m` / `4 km`; freefall `45`, `45,5`,
+`1:05`, `1m05`, `~50`. Anything ambiguous (`50-60`) is left empty rather than guessed. CSV exports
+neutralise spreadsheet formula injection (a leading `'` before `- + = @`); the importer removes
+that `'` again so an export re-imports unchanged.
 
 Optional *Signed by* / *Signer licence* columns (also *Signer*, *Sign-off by*, *Signer's licence no.*)
 are kept on the jump as a **previous sign-off**: shown on the jump page and the printout as

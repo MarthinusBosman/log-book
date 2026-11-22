@@ -38,6 +38,11 @@ describe('value normalisers', () => {
 	test('altitude, colour, time, weekday, currency', () => {
 		expect(altitudeFt('13,500ft')).toBe(13500);
 		expect(altitudeFt('4000m')).toBe(13123);
+		expect(altitudeFt('13.500')).toBe(13500);
+		expect(altitudeFt('4.000 m')).toBe(13123);
+		expect(altitudeFt('13.5k')).toBe(13500);
+		expect(altitudeFt('3.5 km')).toBe(11483);
+		expect(altitudeFt('12-13k')).toBeNull();
 		expect(altitudeFt('')).toBeNull();
 		expect(colour('0xFF2196F3')).toBe('#2196F3');
 		expect(colour('#ff4caf50')).toBe('#4CAF50');
@@ -243,14 +248,16 @@ describe('CSV logbook', () => {
 		};
 		const csv = logbookCsv([
 			{ ...base, jumpNumber: 41, jumpDate: '2026-03-01', location: null, dropzoneName: 'Skydive Demo DZ', aircraft: 'C208', altitudeFt: 12000, freefallSeconds: 55, jumpType: 'hop_pop' as const, description: 'Hop, pop', signerName: 'Ina Instructor', signerLicence: 'D-1', signedAt: new Date('2026-03-02T10:00:00Z') },
-			{ ...base, jumpNumber: 42, jumpDate: '2026-03-02', location: 'Mossel Bay', dropzoneName: null, aircraft: null, altitudeFt: null, freefallSeconds: null, jumpType: 'belly' as const, description: null, signerName: null, signerLicence: null, signedAt: null }
+			{ ...base, jumpNumber: 42, jumpDate: '2026-03-02', location: 'Mossel Bay', dropzoneName: null, aircraft: null, altitudeFt: null, freefallSeconds: null, jumpType: 'belly' as const, description: '-2 way, tracking', signerName: null, signerLicence: null, signedAt: null }
 		]);
 		const { bundle, errors, mapping } = csvToBundle(csv);
+		// the export guards cells starting with - + = @ against formulas; the import undoes it
+		expect(csv).toContain(`"'-2 way, tracking"`);
 		expect(errors).toEqual([]);
 		expect(Object.entries(mapping).filter(([, i]) => i < 0)).toEqual([]);
 		expect(bundle.jumper!.jumps).toMatchObject([
 			{ jumpNumber: 41, jumpDate: '2026-03-01', location: 'Skydive Demo DZ', aircraft: 'C208', altitudeFt: 12000, freefallSeconds: 55, jumpType: 'hop_pop' as const, description: 'Hop, pop', signerName: 'Ina Instructor', signerLicence: 'D-1' },
-			{ jumpNumber: 42, location: 'Mossel Bay', jumpType: 'belly', signerName: null, signerLicence: null }
+			{ jumpNumber: 42, location: 'Mossel Bay', jumpType: 'belly', description: '-2 way, tracking', signerName: null, signerLicence: null }
 		]);
 	});
 	test('dates and freefall', () => {
@@ -265,6 +272,22 @@ describe('CSV logbook', () => {
 		expect(parseFreefall('45s')).toBe(45);
 		expect(parseFreefall('1m 5s')).toBe(65);
 		expect(parseFreefall('')).toBeNull();
+		// spreadsheet date-time cells, weekdays, Excel serial numbers
+		expect(parseDate('09/03/2024 10:30')).toBe('2024-03-09');
+		expect(parseDate('9 Mar 2024 9:05:00 AM')).toBe('2024-03-09');
+		expect(parseDate('2024-03-09T10:30:00+02:00')).toBe('2024-03-09');
+		expect(parseDate('Sat, 9 Mar 2024')).toBe('2024-03-09');
+		expect(parseDate('Saturday 9 March 2024')).toBe('2024-03-09');
+		expect(parseDate('45360')).toBe('2024-03-09');
+		expect(parseDate('12345')).toBeNull();
+		// never a silently wrong number
+		expect(parseFreefall('1m05')).toBe(65);
+		expect(parseFreefall('1 min')).toBe(60);
+		expect(parseFreefall('45,5')).toBe(46);
+		expect(parseFreefall('~50')).toBe(50);
+		expect(parseFreefall('60 secs')).toBe(60);
+		expect(parseFreefall('50-60')).toBeNull();
+		expect(parseFreefall('long')).toBeNull();
 	});
 	test('template converts to a bundle', () => {
 		const { bundle, errors } = csvToBundle(CSV_TEMPLATE);
