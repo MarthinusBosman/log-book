@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from '../db/index.ts';
 import { isDomainError } from './errors.ts';
-import { checkIn, checkOut, checkOutAll, currentCheckin, listCheckedIn } from './checkins.ts';
+import { checkIn, checkOut, checkOutAll, currentCheckin, listCheckedIn, rentingUserIds } from './checkins.ts';
 import { listNotifications, markRead, notify, unreadCount } from './notifications.ts';
-import { addTeamMember, createTeam, manifestTeam, addBuddy } from './teams.ts';
+import { addTeamMember, checkinRentalExtras, createTeam, manifestTeam, addBuddy } from './teams.ts';
 import { addSlot, completeLoad, createLoads, getLoad } from './loads.ts';
 import {
 	addBookingSlots,
@@ -94,6 +94,29 @@ describe('teams', () => {
 		expect(isDomainError(await manifestTeam(db, { teamId: team.id, loadId: load2.id, jumpType: 'belly' }).catch((e) => e), 'load_full')).toBe(true);
 		const res = await completeLoad(db, load.id);
 		expect(res.logbookEntries).toBe(4);
+	});
+
+	test('team manifest: members who checked in with rental gear get gear rental, the coach and others do not', async () => {
+		const { dz, owner } = await makeDropzone(db);
+		const coach = await makeMember(db, dz.id, ['coach']);
+		const [renter, ownRig, elsewhere] = [await makeUser(db), await makeUser(db), await makeUser(db)];
+		const { dz: other } = await makeDropzone(db);
+		const team = await createTeam(db, { dropzoneId: dz.id }, { name: 'Rental Sharks', coachUserId: coach.id, memberIds: [renter.id, ownRig.id, elsewhere.id] }, { by: owner.id, now: NOW });
+		await checkIn(db, { dropzoneId: dz.id, userId: renter.id, gearRental: true, now: NOW });
+		await checkIn(db, { dropzoneId: dz.id, userId: ownRig.id, now: NOW });
+		await checkIn(db, { dropzoneId: other.id, userId: elsewhere.id, gearRental: true, now: NOW });
+		await checkIn(db, { dropzoneId: dz.id, userId: coach.id, gearRental: true, now: NOW });
+		const renters = await rentingUserIds(db, dz.id);
+		expect([...renters].sort()).toEqual([renter.id, coach.id].sort());
+		const extrasOf = await checkinRentalExtras(db, dz.id, [], 'belly');
+		const [load] = await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 6 });
+		const created = await manifestTeam(db, { teamId: team.id, loadId: load.id, jumpType: 'belly', extras: [], extrasOf }, { by: owner.id, now: NOW });
+		const of = (id: string) => created.find((s) => s.userId === id)!;
+		expect(of(renter.id).extras).toEqual(['gear_rental']);
+		expect(of(renter.id).totalMinor).toBe(P.sport_slot! + P.gear_rental!);
+		expect(of(ownRig.id).extras).toEqual([]);
+		expect(of(elsewhere.id).extras).toEqual([]);
+		expect(of(coach.id)).toMatchObject({ staffRole: 'coach', extras: [] });
 	});
 
 	test('buddies', async () => {

@@ -6,6 +6,8 @@ import type { JumpType, SlotExtra } from '../../domain/constants.ts';
 import { DomainError, assertFound } from './errors.ts';
 import { notify } from './notifications.ts';
 import { addSlots, type AddSlotOptions, type SlotInput } from './loads.ts';
+import { rentingUserIds } from './checkins.ts';
+import { slotExtrasFor } from '../../components/manifest/manifest.ts';
 
 export type TeamInput = {
 	name: string;
@@ -104,7 +106,16 @@ export async function listUserTeams(db: Database, userId: string) {
  */
 export async function manifestTeam(
 	db: Database,
-	input: { teamId: string; loadId: string; jumpType: JumpType; extras?: SlotExtra[]; memberIds?: string[]; includeStaff?: boolean },
+	input: {
+		teamId: string;
+		loadId: string;
+		jumpType: JumpType;
+		extras?: SlotExtra[];
+		/** Per-member extras (e.g. gear rental for those who checked in with rental gear); default `extras`. Not used for the coach/video slots. */
+		extrasOf?: (userId: string) => SlotExtra[];
+		memberIds?: string[];
+		includeStaff?: boolean;
+	},
 	opts: AddSlotOptions = {}
 ): Promise<Slot[]> {
 	const team = await getTeam(db, input.teamId);
@@ -112,7 +123,7 @@ export async function manifestTeam(
 	if (ids.length === 0) throw new DomainError('invalid', 'Not enough jumpers');
 	const groupId = newId();
 	const common = { groupId, teamId: team.id, teamName: team.name, colour: team.colour };
-	const list: SlotInput[] = ids.map((userId) => ({ ...common, userId, jumpType: input.jumpType, extras: input.extras }));
+	const list: SlotInput[] = ids.map((userId) => ({ ...common, userId, jumpType: input.jumpType, extras: input.extrasOf?.(userId) ?? input.extras }));
 	if (input.includeStaff !== false) {
 		if (team.coachUserId && !ids.includes(team.coachUserId)) {
 			list.push({ ...common, userId: team.coachUserId, jumpType: input.jumpType, extras: [], staffRole: 'coach' });
@@ -122,6 +133,15 @@ export async function manifestTeam(
 		}
 	}
 	return addSlots(db, input.loadId, list, opts);
+}
+
+/**
+ * `extrasOf` for a team/group manifest: everyone gets `extras`, plus gear rental for those with an
+ * open check-in at the dropzone who asked for rental gear (sport jumps only; staff slots never).
+ */
+export async function checkinRentalExtras(db: Database, dropzoneId: string, extras: SlotExtra[], jumpType: JumpType): Promise<(userId: string) => SlotExtra[]> {
+	const renters = await rentingUserIds(db, dropzoneId);
+	return (userId) => slotExtrasFor(extras, jumpType, null, renters.has(userId));
 }
 
 /** Manifest an ad-hoc jump group (multi-select in "Add jumper/s to load"). */

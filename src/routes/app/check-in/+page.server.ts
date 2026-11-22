@@ -214,9 +214,13 @@ export const actions: Actions = {
 			if (await indemnity.needsSportIndemnity(locals.db, load.dropzoneId, user.id)) {
 				return fail(400, { action: 'team', loadId, code: 'indemnity_required', message: 'Please sign the dropzone’s indemnity first.' });
 			}
+			const jumpType = asJumpType(str(form, 'jumpType'), TEAM_JUMP_TYPES);
+			const extras = asExtras(form);
+			// team mates who checked in with rental gear get it on their own slot ("Adds gear rental to your jumps today")
+			const extrasOf = await teams.checkinRentalExtras(locals.db, load.dropzoneId, extras, jumpType);
 			await teams.manifestTeam(
 				locals.db,
-				{ teamId, loadId, jumpType: asJumpType(str(form, 'jumpType'), TEAM_JUMP_TYPES), extras: asExtras(form), memberIds, includeStaff: bool(form, 'includeStaff') },
+				{ teamId, loadId, jumpType, extras, extrasOf, memberIds, includeStaff: bool(form, 'includeStaff') },
 				{ by: user.id, selfManifest: true }
 			);
 			return { action: 'team', loadId, success: 'Team joined load successfully' };

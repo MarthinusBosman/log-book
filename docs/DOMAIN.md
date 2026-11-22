@@ -128,7 +128,7 @@ Also: `checkOut`, `checkOutAll(db, dzId, by)`, `listCheckedIn(db, dzId)` (with c
 ### teams.ts
 `createTeam(db, {dropzoneId}|{userId}, {name, discipline?, colour?, coachUserId?, videoUserId?, memberIds?})`, `updateTeam`, `deleteTeam`,
 `addTeamMember` (notifies `team_add`), `removeTeamMember`, `getTeam` (with members), `listDropzoneTeams`, `listUserTeams`.
-`manifestTeam(db, {teamId, loadId, jumpType, extras?, memberIds?, includeStaff?})` puts the whole team on one load as a single group; the coach and video join as staff slots.
+`manifestTeam(db, {teamId, loadId, jumpType, extras?, extrasOf?, memberIds?, includeStaff?})` puts the whole team on one load as a single group; the coach and video join as staff slots. Both callers (manifest Team tab, jumper team join on /app/check-in) pass `extrasOf` from `checkinRentalExtras(db, dzId, extras, jumpType)`: members with an open "I need rental gear" check-in (`checkins.rentingUserIds`) get Gear rental on sport jumps.
 `manifestGroup(db, {loadId, userIds, jumpType, extras, extrasOf?, …})` does the same for an ad-hoc group (`extrasOf(userId)` = per-jumper extras: the manifest "Checked in" and "Members" tabs add gear rental for jumpers whose check-in asked for rental gear, via `slotExtrasFor`, sport jumps only). Buddies: `addBuddy` (notifies `friend_add`), `removeBuddy`, `listBuddies`.
 
 ### logbook.ts

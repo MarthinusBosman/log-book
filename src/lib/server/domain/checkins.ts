@@ -172,6 +172,15 @@ export async function checkOutAll(db: Database, dropzoneId: string, by: string, 
 	return res.length;
 }
 
+/** Users with an open check-in at the dropzone who asked for rental gear ("I need rental gear"). */
+export async function rentingUserIds(db: Database, dropzoneId: string): Promise<Set<string>> {
+	const rows = await db
+		.select({ userId: checkins.userId })
+		.from(checkins)
+		.where(and(eq(checkins.dropzoneId, dropzoneId), isNull(checkins.checkedOutAt), eq(checkins.gearRental, true)));
+	return new Set(rows.map((r) => r.userId));
+}
+
 /** Checked-in jumpers with the credential snapshot the manifest needs. */
 export async function listCheckedIn(db: Database, dropzoneId: string) {
 	return db
