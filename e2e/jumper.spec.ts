@@ -122,6 +122,18 @@ test('jumper: check in, log + edit a jump, export, gear, profile, team, wallet',
 	expect(body).toContain('Jump #,Date');
 	expect(body).toContain('First freefly jump');
 
+	// Print sheet: a filtered print says which jumps it holds, and its stats cover just those
+	await page.goto('/app/logbook/print');
+	await expect(page.getByTestId('print-filter')).toHaveCount(0);
+	await expect(page.getByTestId('print-stats')).toContainText('Total jumps');
+	await page.goto('/app/logbook/print?type=freefly&q=nothing-matches');
+	await expect(page.getByTestId('print-filter')).toHaveText('Only Freeflying jumps · matching “nothing-matches”');
+	await expect(page.getByTestId('print-stats')).toContainText(/Printed\s*0/);
+	await expect(page.getByTestId('print-stats')).toContainText(/Total jumps\s*1/);
+	await page.goto('/app/logbook/print?type=freefly');
+	await expect(page.getByTestId('print-stats')).toContainText(/Printed\s*1/);
+	await expect(page.getByTestId('print-table').locator('tbody tr')).toHaveCount(1);
+
 	// Gear: add a rig, wing loading computed live
 	await page.goto('/app/my-gear/new');
 	// Section headings (h3) sit under a card heading (h2), not straight under the page h1.

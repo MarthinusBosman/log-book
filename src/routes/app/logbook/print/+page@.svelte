@@ -8,6 +8,11 @@
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
+	const scope = $derived(loggedScope(data.totals));
+	const shown = $derived({
+		freefall: data.jumps.reduce((s, j) => s + (j.freefallSeconds ?? 0), 0),
+		signed: data.jumps.filter((j) => j.signedAt).length
+	});
 	onMount(() => {
 		if (new URLSearchParams(location.search).has('auto')) setTimeout(() => print(), 300);
 	});
@@ -28,11 +33,21 @@
 			<p class="text-sm text-muted print:text-neutral-700">
 				{[data.owner.licence ? `Licence ${data.owner.licence}` : null, data.owner.association].filter(Boolean).join(' · ') || ' '}
 			</p>
+			{#if data.filterSummary}
+				<p class="mt-1 text-sm font-medium" data-testid="print-filter">Only {data.filterSummary}</p>
+			{/if}
 		</div>
-		<dl class="flex gap-6 text-right text-sm">
+		<dl class="flex gap-6 text-right text-sm" data-testid="print-stats">
 			<div><dt class="text-muted print:text-neutral-600">Total jumps</dt><dd class="text-lg font-semibold tabular-nums">{fmtNumber(data.totals.totalJumps)}</dd></div>
-			<div><dt class="text-muted print:text-neutral-600">Freefall{#if loggedScope(data.totals)} ({loggedScope(data.totals)?.short}){/if}</dt><dd class="text-lg font-semibold tabular-nums">{fmtFreefall(data.totals.totalFreefallSeconds)}</dd></div>
-			<div><dt class="text-muted print:text-neutral-600">Signed</dt><dd class="text-lg font-semibold tabular-nums">{data.totals.signed}</dd></div>
+			{#if data.filterSummary}
+				<!-- A filtered print: freefall + signed cover the printed jumps, not the whole logbook. -->
+				<div><dt class="text-muted print:text-neutral-600">Printed</dt><dd class="text-lg font-semibold tabular-nums">{fmtNumber(data.jumps.length)}</dd></div>
+				<div><dt class="text-muted print:text-neutral-600">Freefall</dt><dd class="text-lg font-semibold tabular-nums">{fmtFreefall(shown.freefall)}</dd></div>
+				<div><dt class="text-muted print:text-neutral-600">Signed</dt><dd class="text-lg font-semibold tabular-nums">{shown.signed}</dd></div>
+			{:else}
+				<div><dt class="text-muted print:text-neutral-600">{scope ? `Freefall (${scope.short})` : 'Freefall'}</dt><dd class="text-lg font-semibold tabular-nums">{fmtFreefall(data.totals.totalFreefallSeconds)}</dd></div>
+				<div><dt class="text-muted print:text-neutral-600">Signed</dt><dd class="text-lg font-semibold tabular-nums">{data.totals.signed}</dd></div>
+			{/if}
 		</dl>
 	</header>
 

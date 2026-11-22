@@ -7,7 +7,7 @@ import { listUserRigs } from '../domain/gear.ts';
 import { DomainError } from '../domain/errors.ts';
 import { assertJumpDateInRange, type JumpInput, type JumpFilters } from '../domain/logbook.ts';
 import { isIsoDate } from '../domain/time.ts';
-import { JUMP_TYPES, type JumpType } from '../../domain/constants.ts';
+import { JUMP_TYPES, JUMP_TYPE_LABELS, type JumpType } from '../../domain/constants.ts';
 import { int, opt, seconds, str } from './forms.ts';
 
 /** Dropzones a jumper can pick for a jump: memberships, follows and any DZ already in their logbook. */
@@ -197,6 +197,21 @@ export function filtersFromUrl(url: URL): JumpFilters & { year?: string } {
 		f.to = `${year}-12-31`;
 	}
 	return f;
+}
+
+/**
+ * The logbook filters in plain words ("Angle jumps · in 2026 · at Skydive Demo DZ · matching “sunset”"),
+ * printed on filtered prints so a partial logbook isn't mistaken for the whole one. Null when unfiltered.
+ */
+export function filterSummary(f: JumpFilters & { year?: string }, dzName?: string | null): string | null {
+	const parts: string[] = [];
+	if (f.jumpType) parts.push(`${JUMP_TYPE_LABELS[f.jumpType as JumpType] ?? f.jumpType} jumps`);
+	if (f.year) parts.push(`in ${f.year}`);
+	else if (f.from || f.to) parts.push([f.from ? `from ${f.from}` : '', f.to ? `to ${f.to}` : ''].filter(Boolean).join(' '));
+	if (f.dropzoneId) parts.push(`at ${dzName ?? 'a dropzone'}`);
+	else if (f.location) parts.push(`at ${f.location}`);
+	if (f.q) parts.push(`matching “${f.q}”`);
+	return parts.length ? parts.join(' · ') : null;
 }
 
 export type JumpRow = ReturnType<typeof jumpRow>;
