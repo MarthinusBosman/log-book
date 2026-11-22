@@ -109,13 +109,14 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Uint8A
 	for (const block of input.blocks) {
 		const fields = block.fields.filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '');
 		if (!fields.length) continue;
-		ensure(40);
-		sectionTitle(block.title);
 		const colW = (W - 16) / 2;
+		const rowHeight = (i: number) => 12 + Math.max(...fields.slice(i, i + 2).map(([, v]) => wrap(String(v), 10, colW).length)) * 13 + 6;
+		ensure(26 + rowHeight(0)); // never a block title alone at the bottom of a page
+		sectionTitle(block.title);
 		for (let i = 0; i < fields.length; i += 2) {
 			const pair = fields.slice(i, i + 2);
 			const lines = pair.map(([, v]) => wrap(String(v), 10, colW));
-			const h = 12 + Math.max(...lines.map((l) => l.length)) * 13 + 6;
+			const h = rowHeight(i);
 			ensure(h);
 			pair.forEach(([label], k) => {
 				const x = M + k * (colW + 16);
@@ -135,11 +136,23 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Uint8A
 
 	// signed indemnity text
 	if (input.form?.length) {
-		ensure(40);
+		// Keep each section (title, text, Accepted mark / signature) on one page when it fits
+		// on one, so a page break never leaves a lone "Accepted" at the top of the next page.
+		// Longer sections still flow line by line.
+		const room = A4[1] - 2 * M - 24;
+		const sectionHeight = (s: (typeof input.form)[number], i: number) => {
+			let h = wrap(`${i + 1}. ${s.title}`, 11, W, bold).length * 15;
+			for (const para of s.content.split(/\n+/)) h += wrap(para, 9.5, W).length * 12.5 + 3;
+			if (s.type === 'acknowledgement' || s.type === 'initials') h += 16;
+			else if (s.type === 'signature') h += 70 + 34;
+			return h;
+		};
+		const keep = (h: number) => ensure(h <= room ? h : 36);
+		keep(26 + sectionHeight(input.form[0], 0));
 		sectionTitle('Indemnity & waiver agreement');
 		for (const [i, s] of input.form.entries()) {
 			const a = input.answers?.[i] ?? null;
-			ensure(36);
+			keep(sectionHeight(s, i));
 			for (const l of wrap(`${i + 1}. ${s.title}`, 11, W, bold)) {
 				text(l, M, 11, bold);
 				y -= 15;
@@ -172,7 +185,7 @@ export async function renderDocumentPdf(input: DocumentPdfInput): Promise<Uint8A
 
 	// signatures
 	if (input.signatures?.length) {
-		ensure(110);
+		ensure(26 + 70 + 34); // the title plus the first signature box
 		sectionTitle('Signatures');
 		for (const sig of input.signatures) await drawSignature(sig);
 		if (input.integrity) {

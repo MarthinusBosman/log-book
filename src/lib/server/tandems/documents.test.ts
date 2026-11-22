@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { PDFDocument } from 'pdf-lib';
+import { PDFArray, PDFDocument, PDFRawStream, decodePDFRawStream } from 'pdf-lib';
 import type { Database } from '../db/index.ts';
 import { MemoryStorage } from '../storage/memory.ts';
 import { DAY, NOW, freshDb, makeDropzone, makeMember } from '../domain/testing.ts';
@@ -51,7 +51,45 @@ describe('pdf renderer', () => {
 		expect(doc.getPageCount()).toBeGreaterThan(1);
 		expect(doc.getTitle()).toContain('Tandem');
 	});
+
+	test('keeps each waiver section with its Accepted mark on one page', async () => {
+		// Many sizes so page breaks land at different points inside sections.
+		let pagesSeen = 0;
+		for (let reps = 1; reps <= 14; reps++) {
+			const bytes = await renderDocumentPdf({
+				title: 'Skydive Indemnity – Tandem Skydive',
+				dropzoneName: 'Demo DZ',
+				blocks: [{ title: 'Passenger', fields: [['Name', 'Tess Teen'], ['Weight', '55 kg']] }],
+				form: Array.from({ length: 9 }, (_, i) => ({ title: `Part ${i}`, content: 'Lorem ipsum dolor sit amet. '.repeat(reps * 3), type: 'acknowledgement' as const })),
+				answers: Array.from({ length: 9 }, () => ({ accepted: true })),
+				signatures: [{ label: 'Passenger signature', name: 'Tess', png: null }],
+				footer: 'generated'
+			});
+			const pages = await pageTexts(bytes);
+			pagesSeen = Math.max(pagesSeen, pages.length);
+			for (const [p, text] of pages.entries()) {
+				const titles = text.match(/\d+\. Part \d/g)?.length ?? 0;
+				const marks = text.match(/Accepted/g)?.length ?? 0;
+				expect(`reps ${reps} page ${p + 1}: ${marks} marks`).toBe(`reps ${reps} page ${p + 1}: ${titles} marks`);
+			}
+			// The Signatures title never sits alone at the foot of a page.
+			const sigPage = pages.findIndex((t) => t.includes('SIGNATURES'));
+			expect(pages[sigPage]).toContain('PASSENGER SIGNATURE');
+		}
+		expect(pagesSeen).toBeGreaterThan(2);
+	});
 });
+
+/** The text drawn on each page (pdf-lib writes standard-font text as hex strings). */
+async function pageTexts(bytes: Uint8Array): Promise<string[]> {
+	const doc = await PDFDocument.load(bytes);
+	return doc.getPages().map((page) => {
+		const contents = page.node.Contents();
+		const streams = contents instanceof PDFArray ? contents.asArray().map((r) => doc.context.lookup(r)) : [contents];
+		const raw = streams.map((s) => new TextDecoder('latin1').decode(decodePDFRawStream(s as PDFRawStream).decode())).join('\n');
+		return [...raw.matchAll(/<([0-9A-Fa-f]*)>\s*Tj/g)].map((m) => Buffer.from(m[1], 'hex').toString('latin1')).join('\n');
+	});
+}
 
 describe('waiver signing workflows', () => {
 	test('sport waiver: stores the signature (no PDF), seals the record hash, validates answers', async () => {
