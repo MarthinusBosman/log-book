@@ -3,8 +3,9 @@ import type { Database } from '../db/index.ts';
 import { DAY, NOW, freshDb, makeDropzone, makeMember, makeUser } from '../domain/testing.ts';
 import { addSlots, addTandemGroup, boardLoad, cancelLoad, createLoads, departLoad, listLoadsForDay } from '../domain/loads.ts';
 import { createPassenger } from '../domain/tandems.ts';
+import { createRig } from '../domain/gear.ts';
 import { flagMembershipWarnings, slotPeople } from '../memberships/service.ts';
-import { avatarsOf, boardLoads, otherLoadsByUser, staffToday } from './board.ts';
+import { RESERVE_OVERDUE, avatarsOf, boardLoads, otherLoadsByUser, staffToday } from './board.ts';
 import { alsoOnLabel } from '../../components/manifest/manifest.ts';
 
 describe('manifest board view-models', () => {
@@ -30,6 +31,29 @@ describe('manifest board view-models', () => {
 		const byUser = Object.fromEntries(vm.slots.filter((s) => s.userId).map((s) => [s.userId, s]));
 		expect(byUser[lapsed.id]).toMatchObject({ avatar: '/files/a.webp', membershipWarning: 'PASA expired' });
 		expect(byUser[fine.id]).toMatchObject({ avatar: null, membershipWarning: null });
+	});
+
+	test('boardLoads flags "Reserve overdue" on own-gear slots only (not rentals or TIs); gearWarnings: false skips it', async () => {
+		const db = freshDb();
+		const { dz } = await makeDropzone(db);
+		const ti = await makeMember(db, dz.id, ['tandem_instructor']);
+		const [own, renter, current] = await Promise.all([makeUser(db), makeUser(db), makeUser(db)]);
+		for (const u of [own, renter, ti]) await createRig(db, { userId: u.id }, { container: 'Javelin', reserveRepackedOn: '2026-05-01' }, NOW);
+		await createRig(db, { userId: current.id }, { container: 'Vector', reserveRepackedOn: '2026-10-01' }, NOW);
+		const [load] = await createLoads(db, { dropzoneId: dz.id, day: DAY, capacity: 10, aircraftName: 'Caravan' });
+		await addSlots(db, load.id, [
+			{ userId: own.id, jumpType: 'belly' },
+			{ userId: renter.id, jumpType: 'belly', extras: ['gear_rental'] },
+			{ userId: current.id, jumpType: 'belly' }
+		]);
+		const pax = await createPassenger(db, dz.id, { name: 'Pax', weightKg: 70 });
+		await addTandemGroup(db, { loadId: load.id, passengerId: pax.id, instructorUserId: ti.id });
+
+		const [vm] = await boardLoads(db, dz, DAY);
+		const warn = Object.fromEntries(vm.slots.map((s) => [s.userId ?? s.displayName, s.gearWarning]));
+		expect(warn).toEqual({ [own.id]: RESERVE_OVERDUE, [renter.id]: null, [current.id]: null, [ti.id]: null, Pax: null });
+		const [quiet] = await boardLoads(db, dz, DAY, { gearWarnings: false });
+		expect(quiet.slots.every((s) => s.gearWarning === null)).toBe(true);
 	});
 
 	test('flagMembershipWarnings uses the passed people (no query) and judges each load on its own day', async () => {

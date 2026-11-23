@@ -45,7 +45,7 @@
 			{:else}
 				<span class="truncate font-medium text-fg">{slot.displayName}</span>
 			{/if}
-			<SlotTags staffRole={slot.staffRole} isLoadMaster={slot.isLoadMaster} tandemPassenger={!!slot.tandemPassengerId} extras={slot.extras} colour={slot.tiColour} warning={slot.membershipWarning} />
+			<SlotTags staffRole={slot.staffRole} isLoadMaster={slot.isLoadMaster} tandemPassenger={!!slot.tandemPassengerId} extras={slot.extras} colour={slot.tiColour} warning={slot.membershipWarning} gearWarning={slot.gearWarning} />
 		</span>
 		<span class="block truncate text-xs text-muted">
 			{JUMP_TYPE_LABELS[slot.jumpType] ?? slot.jumpType}{#if slot.teamName}<span class="text-subtle">{' · '}{slot.teamName}</span>{/if}{#if slot.weightKg}<span class="text-subtle">{' · '}{Math.round(slot.weightKg)} kg</span>{/if}

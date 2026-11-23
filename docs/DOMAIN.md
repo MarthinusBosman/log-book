@@ -151,6 +151,7 @@ DB functions:
 - `createRig(db, {userId}|{dropzoneId}, RigInput)`: the reserve repack date is required. Also `updateRig`, `deleteRig`, `getRig`, `listUserRigs`, `listDropzoneRigs`.
 - `recordService(db, {rigId, kind, performedOn, performedBy*, nextDueOn?})` moves `reserveRepackedOn` and the AAD due date. `listServiceHistory`.
 - `dropzoneGearStatus(db, dzId, today)`, `notifyRiggersOfDueRepacks(db, dzId, today)`, `nextUserRepack(db, userId, today)` (the Home stat).
+- `reserveOverdueUsers(db, dz, userIds, day)`: jumpers whose every active personal rig is past its repack date on `day` (one rigs read per 90 users). Manifest board/load detail show a "Reserve overdue" slot chip via `flagGearWarnings` (manifest/board.ts) unless the slot rents gear or is a tandem instructor; display + StaffToday pass `gearWarnings: false`.
 
 ### tandems.ts
 `createPassenger(db, dzId, PassengerInput)` prices the passenger from the DZ price list. Under 12 is blocked; under 18 needs guardian fields. `updatePassenger` reprices when extras change. `getPassenger`, `findByConfirmation`,

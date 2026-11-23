@@ -13,6 +13,7 @@ import {
 	recordService,
 	repackIntervalDays,
 	repackStatus,
+	reserveOverdueUsers,
 	updateRig,
 	wingLoading,
 	getRig
@@ -124,5 +125,26 @@ describe('gear (db)', () => {
 		const n = await db.select().from(notifications).where(eq(notifications.userId, rigger.id));
 		expect(n[0]).toMatchObject({ type: 'repack_due' });
 		expect(n[0].payload).toMatchObject({ rig: 'Tandem 1' });
+	});
+
+	test('reserveOverdueUsers: only jumpers whose every active personal rig is past its repack date', async () => {
+		const NOW = Date.parse('2026-11-14T08:00:00Z');
+		const rig = (userId: string, input: Parameters<typeof createRig>[2]) => createRig(db, { userId }, { container: 'Javelin', ...input }, NOW);
+		const [lapsed, mixed, override, retired, none, dzShorter] = await Promise.all(Array.from({ length: 6 }, () => makeUser(db)));
+		await rig(lapsed.id, { reserveRepackedOn: '2026-05-01' }); // due 2026-10-28
+		await rig(mixed.id, { reserveRepackedOn: '2026-05-01' });
+		await rig(mixed.id, { reserveRepackedOn: '2026-10-01' }); // a current second rig
+		await rig(override.id, { reserveRepackedOn: '2026-05-01', repackIntervalDays: 365 });
+		await rig(retired.id, { reserveRepackedOn: '2026-05-01', active: false });
+		await rig(dzShorter.id, { reserveRepackedOn: '2026-07-01' }); // ok at 180 days, overdue at 120
+		const ids = [lapsed, mixed, override, retired, none, dzShorter].map((u) => u.id);
+
+		const za = await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, [...ids, null], TODAY);
+		expect([...za]).toEqual([lapsed.id]);
+		// judged on the given day: the load day, not today
+		expect([...(await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, ids, '2026-10-28'))]).toEqual([]);
+		const short = await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: 120 }, ids, TODAY);
+		expect(new Set(short)).toEqual(new Set([lapsed.id, dzShorter.id]));
+		expect((await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, [], TODAY)).size).toBe(0);
 	});
 });

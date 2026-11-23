@@ -31,6 +31,8 @@ export type SlotVM = {
 	held: boolean;
 	/** e.g. "PASA expired" when the jumper's association membership ended before the load day. */
 	membershipWarning?: string | null;
+	/** "Reserve overdue" when every personal rig of the jumper is past its repack date (own gear only). */
+	gearWarning?: string | null;
 };
 
 export type LoadStatsVM = {

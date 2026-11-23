@@ -106,7 +106,7 @@
 							<div class="min-w-0 flex-1">
 								<div class="flex min-w-0 flex-wrap items-center gap-1.5">
 									<span class="truncate text-sm font-medium sm:text-base" data-testid="slot-name">{s.displayName}</span>
-									<SlotTags staffRole={s.staffRole} isLoadMaster={s.isLoadMaster} tandemPassenger={!!s.tandemPassengerId} extras={s.extras} colour={s.tiColour} warning={s.membershipWarning} />
+									<SlotTags staffRole={s.staffRole} isLoadMaster={s.isLoadMaster} tandemPassenger={!!s.tandemPassengerId} extras={s.extras} colour={s.tiColour} warning={s.membershipWarning} gearWarning={s.gearWarning} />
 								</div>
 								<p class="truncate text-xs text-muted">
 									{JUMP_TYPE_LABELS[s.jumpType]}{' · '}{Math.round(s.weightKg)} kg{#if s.licence}{' · '}{s.licence}{/if}{#if s.teamName}{' · '}{s.teamName}{/if}

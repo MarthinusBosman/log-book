@@ -7,7 +7,8 @@ import { listPassengers } from '#lib/server/domain/tandems.ts';
 import { isDomainError } from '#lib/server/domain/errors.ts';
 import { localDate } from '#lib/server/domain/time.ts';
 import { listUsersWithRole } from '#lib/server/domain/permissions.ts';
-import { avatarsOf, otherLoadsByUser, tiColours, toLoadVM } from '#lib/server/manifest/board.ts';
+import { reserveOverdueUsers } from '#lib/server/domain/gear.ts';
+import { avatarsOf, flagGearWarnings, otherLoadsByUser, tiColours, toLoadVM } from '#lib/server/manifest/board.ts';
 import { requireDropzone } from '#lib/server/manifest/context.ts';
 import { flagMembershipWarnings, slotPeople } from '#lib/server/memberships/service.ts';
 import { loadActions, slotActions } from '#lib/server/manifest/actions.ts';
@@ -28,8 +29,13 @@ export const load: PageServerLoad = async (event) => {
 	if (l.dropzoneId !== ctx.dz.id) error(404, 'Load not found');
 	const now = Date.now();
 	const canManifest = ctx.caps.includes('manifest');
-	const [colours, people] = await Promise.all([tiColours(db, ctx.dz.id), slotPeople(db, l.slots.map((s) => s.userId))]);
-	const [load] = await flagMembershipWarnings(db, [toLoadVM(l, colours, avatarsOf(people))], people);
+	const slotUsers = l.slots.map((s) => s.userId);
+	const [colours, people, overdue] = await Promise.all([
+		tiColours(db, ctx.dz.id),
+		slotPeople(db, slotUsers),
+		reserveOverdueUsers(db, ctx.dz, slotUsers, l.day)
+	]);
+	const [load] = flagGearWarnings(await flagMembershipWarnings(db, [toLoadVM(l, colours, avatarsOf(people))], people), overdue);
 	const editable = EDITABLE_LOAD_STATUSES.includes(l.status);
 
 	const [dayLoads, checked, members, teams, passengers, aircraft, pilots] = await Promise.all([

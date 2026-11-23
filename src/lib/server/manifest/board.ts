@@ -6,6 +6,7 @@ import { listLoadsForDay, type LoadWithSlots } from '../domain/loads.ts';
 import { listUsersWithRole } from '../domain/permissions.ts';
 import { listCheckedIn } from '../domain/checkins.ts';
 import { localDate } from '../domain/time.ts';
+import { reserveOverdueUsers } from '../domain/gear.ts';
 import { flagMembershipWarnings, slotPeople, type SlotPerson } from '../memberships/service.ts';
 import { EDITABLE_LOAD_STATUSES, type JumpType } from '../../domain/constants.ts';
 import type { DisplayLoadVM, LoadVM, SlotVM, StaffTodayVM } from '../../components/manifest/types.ts';
@@ -71,13 +72,31 @@ export function toLoadVM(l: LoadWithSlots, colours: Record<string, string> = {},
 	};
 }
 
-export async function boardLoads(db: Database, dz: Dropzone, day: string, opts: { includeCancelled?: boolean } = {}): Promise<LoadVM[]> {
+export async function boardLoads(db: Database, dz: Dropzone, day: string, opts: { includeCancelled?: boolean; gearWarnings?: boolean } = {}): Promise<LoadVM[]> {
 	const [list, colours] = await Promise.all([
 		listLoadsForDay(db, dz.id, day, { includeCancelled: opts.includeCancelled ?? true }),
 		tiColours(db, dz.id)
 	]);
-	const people = await slotPeople(db, list.flatMap((l) => l.slots.map((s) => s.userId)));
-	return flagMembershipWarnings(db, list.map((l) => toLoadVM(l, colours, avatarsOf(people))), people);
+	const userIds = list.flatMap((l) => l.slots.map((s) => s.userId));
+	const [people, overdue] = await Promise.all([slotPeople(db, userIds), opts.gearWarnings === false ? new Set<string>() : reserveOverdueUsers(db, dz, userIds, day)]);
+	const loads = await flagMembershipWarnings(db, list.map((l) => toLoadVM(l, colours, avatarsOf(people))), people);
+	return flagGearWarnings(loads, overdue);
+}
+
+/** Label of the slot chip for a jumper whose own reserve is out of date. */
+export const RESERVE_OVERDUE = 'Reserve overdue';
+
+/**
+ * Stamp `gearWarning` on slots of jumpers in `overdue` (from `reserveOverdueUsers`) who jump their
+ * own gear: not when the slot rents DZ gear, and not for tandem instructors (DZ tandem rigs, which
+ * the gear register grounds when due). Mutates and returns `loads`.
+ */
+export function flagGearWarnings<L extends { slots: Pick<SlotVM, 'userId' | 'extras' | 'staffRole' | 'gearWarning'>[] }>(loads: L[], overdue: Set<string>): L[] {
+	for (const l of loads)
+		for (const s of l.slots)
+			s.gearWarning =
+				s.userId && overdue.has(s.userId) && !s.extras.includes('gear_rental') && s.staffRole !== 'tandem_instructor' ? RESERVE_OVERDUE : null;
+	return loads;
 }
 
 /** id → avatar URL (users without a photo left out), from `slotPeople`. */
@@ -107,7 +126,7 @@ export function otherLoadsByUser(dayLoads: LoadWithSlots[], exceptLoadId: string
 
 /** Hangar display: loads that haven't finished yet (planned → departed), no money. */
 export async function displayLoads(db: Database, dz: Dropzone, day: string): Promise<DisplayLoadVM[]> {
-	const all = await boardLoads(db, dz, day, { includeCancelled: false });
+	const all = await boardLoads(db, dz, day, { includeCancelled: false, gearWarnings: false });
 	return all
 		.filter((l) => [...ACTIVE_STATUSES, 'departed'].includes(l.status))
 		.map((l) => ({
@@ -149,7 +168,7 @@ export async function displayLoads(db: Database, dz: Dropzone, day: string): Pro
 export async function staffToday(db: Database, dz: Dropzone, now = Date.now()): Promise<StaffTodayVM> {
 	const day = localDate(now, dz.timezone);
 	const [list, checked, tandemRows] = await Promise.all([
-		boardLoads(db, dz, day, { includeCancelled: false }),
+		boardLoads(db, dz, day, { includeCancelled: false, gearWarnings: false }),
 		listCheckedIn(db, dz.id),
 		db
 			.select({ status: tandemPassengers.status })

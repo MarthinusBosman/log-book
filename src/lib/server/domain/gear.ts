@@ -1,6 +1,6 @@
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
-import { dropzones, gearServiceEvents, rigs, users, type Rig } from '../db/schema.ts';
+import { dropzones, gearServiceEvents, rigs, users, type Dropzone, type Rig } from '../db/schema.ts';
 import { newId } from '../auth/token.ts';
 import { DEFAULT_REPACK_DAYS, type DueStatus, type GearServiceKind, type RigKind } from '../../domain/constants.ts';
 import { DomainError, assertFound } from './errors.ts';
@@ -243,6 +243,35 @@ export async function dropzoneGearStatus(db: Database, dropzoneId: string, today
 			aad: aadStatus(rig, { today, warnDays: dz.warnDays })
 		}))
 		.sort((a, b) => (a.repack.daysLeft ?? 1e9) - (b.repack.daysLeft ?? 1e9));
+}
+
+/**
+ * Users (of `userIds`) whose reserve is out of date on `day`: they have at least one active
+ * personal rig with a repack date and EVERY such rig is past its repack due date (a jumper with
+ * one current rig may be jumping that one). Interval: rig override → dropzone → country default.
+ * One rigs read per 90 users (D1's 100-param cap).
+ */
+export async function reserveOverdueUsers(
+	db: Database,
+	dz: Pick<Dropzone, 'country' | 'repackIntervalDays'>,
+	userIds: Iterable<string | null | undefined>,
+	day: string
+): Promise<Set<string>> {
+	const ids = [...new Set([...userIds].filter((u): u is string => !!u))];
+	const intervalDays = repackIntervalDays({ dropzoneDays: dz.repackIntervalDays, country: dz.country });
+	const current = new Map<string, boolean>(); // user → has a rig that is not overdue
+	for (let i = 0; i < ids.length; i += 90) {
+		const rows = await db
+			.select({ userId: rigs.userId, reserveRepackedOn: rigs.reserveRepackedOn, repackIntervalDays: rigs.repackIntervalDays })
+			.from(rigs)
+			.where(and(inArray(rigs.userId, ids.slice(i, i + 90)), eq(rigs.kind, 'personal'), eq(rigs.active, true)));
+		for (const r of rows) {
+			if (!r.userId || !r.reserveRepackedOn) continue;
+			const ok = repackStatus(r, { today: day, intervalDays }).status !== 'overdue';
+			current.set(r.userId, (current.get(r.userId) ?? false) || ok);
+		}
+	}
+	return new Set([...current].filter(([, ok]) => !ok).map(([id]) => id));
 }
 
 /** "Notify riggers": repack_due notification to every rigger for each DZ rig due soon/overdue. */

@@ -27,10 +27,12 @@
 		colour?: string | null;
 		/** Membership warning chip, e.g. "PASA expired". */
 		warning?: string | null;
+		/** Gear warning chip, e.g. "Reserve overdue". */
+		gearWarning?: string | null;
 		size?: 'sm' | 'lg';
 		class?: string;
 	};
-	let { staffRole, isLoadMaster = false, tandemPassenger = false, extras = [], colour = null, warning = null, size = 'sm', class: className }: Props = $props();
+	let { staffRole, isLoadMaster = false, tandemPassenger = false, extras = [], colour = null, warning = null, gearWarning = null, size = 'sm', class: className }: Props = $props();
 
 	const roleTone: Record<SlotStaffRole, string> = {
 		tandem_instructor: 'bg-violet-500/15 text-violet-600 dark:text-violet-300 border-violet-500/30',
@@ -60,6 +62,11 @@
 	{/if}
 	{#if warning}
 		<span class={cn(chip, 'border-danger/30 bg-danger/10 text-danger')} title="This jumper's membership has expired, or is not connected." data-testid="slot-membership-warning">{warning}</span>
+	{/if}
+	{#if gearWarning}
+		<span class={cn(chip, 'border-danger/30 bg-danger/10 text-danger')} title="Every rig this jumper has on file is past its reserve repack date. Check their gear before boarding." data-testid="slot-gear-warning"
+			>{gearWarning}</span
+		>
 	{/if}
 	{#if isLoadMaster}
 		<span class={cn(chip, 'border-fg/20 bg-fg/10 text-fg')} title="Load master">LM</span>
