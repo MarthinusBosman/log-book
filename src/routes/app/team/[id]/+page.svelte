@@ -72,10 +72,12 @@
 					use:enhance={() => {
 						busy = 'manifest';
 						manifestMsg = null;
-						return async ({ result }) => {
+						return async ({ result, update }) => {
 							busy = null;
 							const d = (result as { data?: { success?: string; message?: string } }).data;
 							if (result.type === 'success') {
+								// the action lives on /app/check-in: refresh this page's loads/free slots without going there
+								await update({ navigate: false });
 								manifestMsg = { tone: 'success', text: d?.success ?? 'Team joined load successfully' };
 								toast.success(manifestMsg.text);
 							} else manifestMsg = { tone: 'error', text: d?.message ?? 'Couldn’t manifest the team' };

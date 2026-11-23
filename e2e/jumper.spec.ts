@@ -1132,6 +1132,18 @@ test('two dropzones: checking in makes that one active; with no dz cookie the ch
 	await context.clearCookies({ name: 'dz' });
 	await page.goto('/app/logbook/new');
 	await expect(dropzoneSelect).toHaveText(names[0]);
+
+	// Check out from the dropzone page stays on that page (the action lives on /app/check-in)
+	await page.goto('/app/dropzones');
+	await page.getByTestId('dz-search').fill(names[0]);
+	await page.getByTestId('dz-search').press('Enter');
+	await page.getByTestId('dz-list').getByRole('link', { name: names[0] }).click();
+	await page.waitForLoadState('networkidle');
+	const dzUrl = page.url();
+	await page.getByTestId('dz-checkout').getByRole('button', { name: 'Check out' }).click();
+	await expect(page.locator('[aria-live]').getByText('Successfully checked out')).toBeVisible();
+	await expect(page.getByTestId('dz-checkin')).toBeVisible();
+	expect(page.url()).toBe(dzUrl);
 });
 
 test('log a jump starts from the last jump at the chosen dropzone; switching dropzone swaps untouched plane + altitude', async ({ page }) => {

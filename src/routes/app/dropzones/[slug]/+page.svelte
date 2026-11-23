@@ -64,7 +64,7 @@
 			<div class="relative mt-5 grid gap-2 sm:flex sm:flex-wrap">
 				{#if data.checkedInHere}
 					<Button href="/app/check-in" size="md"><Icon name="plane" class="size-4" /> Join a load{data.openLoads ? ` · ${data.openLoads} open` : ''}</Button>
-					<form method="POST" action="/app/check-in?/checkout" use:enhance={() => async ({ update }) => { await update(); toast.success('Successfully checked out'); }}>
+					<form method="POST" action="/app/check-in?/checkout" use:enhance={() => async ({ update, result }) => { await update({ navigate: false }); if (result.type === 'success') toast.success('Successfully checked out'); }} data-testid="dz-checkout">
 						<Button type="submit" size="md" variant="secondary" class="w-full"><JIcon name="logOut" class="size-4" /> Check out</Button>
 					</form>
 				{:else}
