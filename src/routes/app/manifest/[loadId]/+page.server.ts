@@ -30,17 +30,18 @@ export const load: PageServerLoad = async (event) => {
 	const now = Date.now();
 	const canManifest = ctx.caps.includes('manifest');
 	const slotUsers = l.slots.map((s) => s.userId);
+	const checked = canManifest ? await listCheckedIn(db, ctx.dz.id) : [];
+	// one rigs read covers both the slots and the Add-to-load "Checked in" picker
 	const [colours, people, overdue] = await Promise.all([
 		tiColours(db, ctx.dz.id),
 		slotPeople(db, slotUsers),
-		reserveOverdueUsers(db, ctx.dz, slotUsers, l.day)
+		reserveOverdueUsers(db, ctx.dz, [...slotUsers, ...checked.filter((c) => !c.checkin.gearRental).map((c) => c.user.id)], l.day)
 	]);
 	const [load] = flagGearWarnings(await flagMembershipWarnings(db, [toLoadVM(l, colours, avatarsOf(people))], people), overdue);
 	const editable = EDITABLE_LOAD_STATUSES.includes(l.status);
 
-	const [dayLoads, checked, members, teams, passengers, aircraft, pilots] = await Promise.all([
+	const [dayLoads, members, teams, passengers, aircraft, pilots] = await Promise.all([
 		listLoadsForDay(db, ctx.dz.id, l.day),
-		canManifest ? listCheckedIn(db, ctx.dz.id) : [],
 		canManifest ? listMembers(db, ctx.dz.id) : [],
 		canManifest ? listManifestTeams(db, ctx.dz.id) : [],
 		canManifest ? listPassengers(db, ctx.dz.id, { tab: 'ready', date: l.day }) : [],
@@ -72,6 +73,7 @@ export const load: PageServerLoad = async (event) => {
 			expiry: c.user.associationExpiry,
 			expired: !!c.user.associationExpiry && c.user.associationExpiry < l.day,
 			gearRental: c.checkin.gearRental,
+			reserveOverdue: !c.checkin.gearRental && overdue.has(c.user.id),
 			onLoad: onLoad.has(c.user.id),
 			otherLoads: others[c.user.id] ?? []
 		})),

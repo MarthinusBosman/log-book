@@ -9,7 +9,7 @@
 	import JumpFields from './JumpFields.svelte';
 	import PeoplePicker, { type Person } from './PeoplePicker.svelte';
 
-	type Checked = { id: string; name: string; avatar?: string | null; licence: string | null; weightKg: number | null; expired: boolean; onLoad: boolean; otherLoads?: number[]; gearRental: boolean };
+	type Checked = { id: string; name: string; avatar?: string | null; licence: string | null; weightKg: number | null; expired: boolean; onLoad: boolean; otherLoads?: number[]; gearRental: boolean; reserveOverdue?: boolean };
 	type Member = { id: string; name: string; avatar?: string | null; licence: string | null; roles: DropzoneRole[]; onLoad: boolean; otherLoads?: number[] };
 	type Staff = { id: string; name: string; avatar?: string | null; roles: DropzoneRole[]; colour: string | null; onLoad: boolean; otherLoads?: number[] };
 	type Passenger = { id: string; name: string; weightKg: number | null; extras: SlotExtra[]; totalMinor: number; depositMinor: number; bookingTime: string | null };
@@ -61,6 +61,7 @@
 			sub: [c.licence ?? 'Student', c.gearRental ? 'rental gear' : null].filter(Boolean).join(' · '),
 			weightKg: c.weightKg,
 			warn: c.expired ? 'Expired' : null,
+			gearWarn: c.reserveOverdue ? 'Reserve overdue' : null,
 			onLoad: c.onLoad,
 			blocked: flying(c.id),
 			alsoOn: c.otherLoads

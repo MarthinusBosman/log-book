@@ -6,6 +6,8 @@
 		sub?: string | null;
 		weightKg?: number | null;
 		warn?: string | null;
+		/** Gear problem with the person's own rig (e.g. "Reserve overdue"); informational, still pickable. */
+		gearWarn?: string | null;
 		onLoad?: boolean;
 		/** Why this person can't be picked here (e.g. "Flying this load"); disables the row. */
 		blocked?: string | null;
@@ -81,6 +83,7 @@
 							{#if p.colour}<span class="size-2 rounded-full" style="background:{p.colour}"></span>{/if}{p.name}
 						</span>
 						{#if p.sub || off}<span class="block truncate text-xs text-muted">{p.onLoad ? 'Already on this load' : (p.blocked ?? p.sub)}</span>{/if}
+						{#if p.gearWarn}<span class="mt-0.5 inline-block rounded-md bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold whitespace-nowrap text-danger uppercase" data-testid="picker-gear-warning">{p.gearWarn}</span>{/if}
 					</span>
 					{#if p.warn}<span class="shrink-0 rounded-md bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger uppercase">{p.warn}</span>{/if}
 					{#if !off && p.alsoOn?.length}
