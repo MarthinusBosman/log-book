@@ -420,6 +420,29 @@ async function addLicence(page: Page, licence: string) {
 	await expect(page.getByText('Credentials updated successfully')).toBeVisible();
 }
 
+test('profile: saving on the Credentials tab stays on that tab (with and without JS)', async ({ page, browser }) => {
+	await signup(page, 'Tab Keeper');
+	const tab = (p: Page) => p.getByRole('navigation', { name: 'Profile sections' }).locator('[aria-current=page]');
+	await addLicence(page, 'B-7');
+	// Kit 3 used to follow the action URL (no ?tab=) → bounced to Info after every save
+	await expect(page).toHaveURL(/\/app\/profile\?tab=credentials$/);
+	await expect(tab(page)).toHaveText('Credentials');
+	await page.getByTestId('rating-form').getByLabel('Rating').fill('Coach');
+	await page.getByTestId('rating-form').getByRole('button', { name: 'Add' }).click();
+	await expect(page.getByTestId('ratings')).toContainText('Coach');
+	await expect(page).toHaveURL(/\?tab=credentials$/);
+	await expect(tab(page)).toHaveText('Credentials');
+
+	const noJs = await browser.newContext({ javaScriptEnabled: false, baseURL: new URL(page.url()).origin, storageState: await page.context().storageState() });
+	const plain = await noJs.newPage();
+	await plain.goto('/app/profile?tab=credentials');
+	await plain.getByTestId('rating-form').getByLabel('Rating').fill('Packer');
+	await plain.getByTestId('rating-form').getByRole('button', { name: 'Add' }).click();
+	await expect(tab(plain)).toHaveText('Credentials');
+	await expect(plain.getByTestId('ratings')).toContainText('Packer');
+	await noJs.close();
+});
+
 test('logbook hints: out-of-order dates and duplicate numbers are pointed out, not blocked', async ({ page }) => {
 	await signup(page, 'Paper Logbook');
 	async function add(no: string, date: string) {

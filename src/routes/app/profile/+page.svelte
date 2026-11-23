@@ -42,8 +42,9 @@
 
 	const submit = (name: string, reset = false) => () => {
 		busy = name;
-		return async ({ result, update }: { result: { type: string; data?: unknown }; update: (o?: { reset?: boolean }) => Promise<void> }) => {
-			await update({ reset });
+		return async ({ result, update }: { result: { type: string; data?: unknown }; update: (o?: { reset?: boolean; navigate?: boolean }) => Promise<void> }) => {
+			// Stay on this tab and scroll position: Kit 3 would otherwise navigate to the action's URL.
+			await update({ reset, navigate: false });
 			busy = null;
 			const msg = (result.data as { success?: string } | undefined)?.success;
 			if (result.type === 'success' && msg) toast.success(msg);
@@ -77,8 +78,8 @@
 		</div>
 		<ImageUpload
 			class="mt-3"
-			action="?/avatar"
-			removeAction="?/removeAvatar"
+			action={`?/avatar&tab=${data.tab}`}
+			removeAction={`?/removeAvatar&tab=${data.tab}`}
 			field="avatar"
 			hasImage={!!p.avatar}
 			noun="photo"
@@ -100,7 +101,7 @@
 {#if data.tab === 'info'}
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
 		<Card class="lg:col-span-2" title="Personal details">
-			<form method="POST" action="?/info" class="space-y-4" use:enhance={submit('info')} data-testid="info-form">
+			<form method="POST" action="?/info&tab=info" class="space-y-4" use:enhance={submit('info')} data-testid="info-form">
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Input label="Full name" name="name" value={p.name} required autocomplete="name" />
 					<Input label="Email" value={p.email} readonly disabled hint="Change it under Security" />
@@ -149,7 +150,7 @@
 {:else if data.tab === 'credentials'}
 	<div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
 		<Card class="lg:col-span-3" title="Membership & licence">
-			<form method="POST" action="?/credentials" class="space-y-4" use:enhance={submit('credentials')} data-testid="credentials-form">
+			<form method="POST" action="?/credentials&tab=credentials" class="space-y-4" use:enhance={submit('credentials')} data-testid="credentials-form">
 				<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 					<Select label="Skydive association" name="association" value={p.association ?? ''} disabled={pasaLocked} options={[{ value: '', label: 'Not set' }, ...ASSOCIATIONS.map((a) => ({ value: a, label: ASSOCIATION_LABELS[a] }))]} />
 					<Input label="Association number" name="associationNumber" value={p.associationNumber ?? ''} readonly={pasaLocked} hint={pasaLocked ? lockHint : undefined} />
@@ -184,7 +185,7 @@
 						</span>
 						{#if st}<Badge tone={st.tone}>{st.label}</Badge>{:else}<Badge>No expiry</Badge>{/if}
 						{#if !r.verified}
-							<form method="POST" action="?/removeRating" use:enhance={submit('rating')}>
+							<form method="POST" action="?/removeRating&tab=credentials" use:enhance={submit('rating')}>
 								<input type="hidden" name="id" value={r.id} />
 								<button type="submit" class="grid size-8 place-items-center rounded-lg text-muted hover:bg-surface-2 hover:text-danger" aria-label="Remove {r.rating}"><JIcon name="x" class="size-4" /></button>
 							</form>
@@ -194,7 +195,7 @@
 					<li class="px-5 py-4 text-sm text-muted">No ratings added.</li>
 				{/each}
 			</ul>
-			<form method="POST" action="?/addRating" class="space-y-3 border-t border-border p-5" use:enhance={submit('rating', true)} data-testid="rating-form">
+			<form method="POST" action="?/addRating&tab=credentials" class="space-y-3 border-t border-border p-5" use:enhance={submit('rating', true)} data-testid="rating-form">
 				<div class="grid grid-cols-[auto_1fr] gap-2">
 					<select name="body" bind:value={ratingBody} class="h-10 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" aria-label="Association">
 						{#each RATING_BODIES as b (b)}<option value={b}>{BODY_LABELS[b]}</option>{/each}
