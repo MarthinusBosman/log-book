@@ -143,7 +143,7 @@ DZ teams are created on the staff page `/app/teams` (`teams.manage`) and edited 
 
 ### gear.ts
 Pure helpers:
-- `repackStatus(rig, {today, intervalDays?, warnDays?})` and `aadStatus(rig, {today})` → `{dueOn, daysLeft, status: ok|due_soon|overdue|unknown}`. due_soon means within `warnDays` (default 30).
+- `repackStatus(rig, {today, intervalDays?, warnDays?})` and `aadStatus(rig, {today})` → `{dueOn, daysLeft, status: ok|due_soon|overdue|unknown}`. due_soon means within `warnDays` (default 30). `aadStatus` also returns `cause: service|end_of_life|null` (the earlier date; end of life wins a tie) and `aadAlertTitle(aad)` turns it into the plain label used by the jumper's dashboard alert and the DZ rig register's grounded reason ("AAD past end of life", "AAD service overdue", "… soon").
 - `repackIntervalDays({rig, dropzoneDays, country})`: rig override, then DZ, then country (`COUNTRY_REPACK_DAYS`), then 180.
 - `wingLoading(kg, sqft)` returns lb/sqft.
 

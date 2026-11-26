@@ -165,6 +165,16 @@ describe('gear', () => {
 		expect(by(used.id).aad.status).toBe('due_soon');
 	});
 
+	test('register names the AAD cause when it grounds a rig', async () => {
+		const { dz } = await makeDropzone(db);
+		const eol = await createRig(db, { dropzoneId: dz.id }, { name: 'E1', reserveRepackedOn: addDays(DAY, -10), aadExpiresOn: addDays(DAY, -1), aadServiceDueOn: addDays(DAY, 300) });
+		const svc = await createRig(db, { dropzoneId: dz.id }, { name: 'S1', reserveRepackedOn: addDays(DAY, -10), aadServiceDueOn: addDays(DAY, -1) });
+		const reg = await gearRegister(db, dz.id, DAY);
+		const by = (id: string) => reg.find((r) => r.rig.id === id)!;
+		expect(by(eol.id)).toMatchObject({ availability: 'grounded', groundedReason: 'AAD past end of life' });
+		expect(by(svc.id)).toMatchObject({ availability: 'grounded', groundedReason: 'AAD service overdue' });
+	});
+
 	test('rigger view lists members personal rigs, most urgent first', async () => {
 		const { dz } = await makeDropzone(db);
 		const j1 = await makeMember(db, dz.id, ['jumper']);

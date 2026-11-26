@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from '../db/index.ts';
 import type { Dropzone } from '../db/schema.ts';
 import { checkIn } from '../domain/checkins.ts';
+import { createRig } from '../domain/gear.ts';
 import { addSection, needsSportIndemnity, setIndemnityActive, signIndemnity, WAIVER_VALID_DAYS } from '../domain/indemnity.ts';
 import { DAY_MS } from '../domain/time.ts';
 import { boardLoad, cancelLoad, createLoads, dropzonesWithLoadsOnDay, hasLoadsOnDay, openLoadsToday } from '../domain/loads.ts';
@@ -132,5 +133,18 @@ describe('loads on today’s board beat the opening days', () => {
 		expect(openToday(hours, NOW, after.loadsToday)).toEqual({ label: 'Loads running today', tone: 'success' });
 		// without a selected dropzone there's nothing to say
 		expect((await loadJumperDashboard(db, u.id, null, NOW)).loadsToday).toBe(false);
+	});
+});
+
+describe('gear alerts', () => {
+	test('an AAD alert names end of life when that date comes first, else the service', async () => {
+		const { dz } = await makeDropzone(db);
+		const u = await makeUser(db);
+		const day = (n: number) => new Date(NOW + n * DAY_MS).toISOString().slice(0, 10);
+		const eol = await createRig(db, { userId: u.id }, { name: 'Old', reserveRepackedOn: day(-10), aad: 'Cypres 2', aadServiceDueOn: day(400), aadExpiresOn: day(-3) }, NOW);
+		const svc = await createRig(db, { userId: u.id }, { name: 'New', reserveRepackedOn: day(-10), aadServiceDueOn: day(10), aadExpiresOn: day(2000) }, NOW);
+		const { alerts } = await loadJumperDashboard(db, u.id, dz.id, NOW);
+		expect(alerts.find((a) => a.id === `aad-${eol.id}`)).toMatchObject({ tone: 'danger', title: 'AAD past end of life', body: `Old (Cypres 2): end of life was ${day(-3)}` });
+		expect(alerts.find((a) => a.id === `aad-${svc.id}`)).toMatchObject({ tone: 'warning', title: 'AAD service due soon', body: `New: due ${day(10)}` });
 	});
 });

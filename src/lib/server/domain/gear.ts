@@ -44,10 +44,24 @@ export function repackStatus(
 	return dueStatus(addDays(rig.reserveRepackedOn, interval), opts.today, opts.warnDays);
 }
 
+/** Which AAD date drives its status: the next service or the unit's end of life. */
+export type AadCause = 'service' | 'end_of_life';
+export type AadDueInfo = DueInfo & { cause: AadCause | null };
+
 /** Pure: AAD service status (service due or end-of-life, whichever is first). */
-export function aadStatus(rig: Pick<Rig, 'aadServiceDueOn' | 'aadExpiresOn'>, opts: { today: string; warnDays?: number }): DueInfo {
-	const dates = [rig.aadServiceDueOn, rig.aadExpiresOn].filter((d): d is string => !!d && isIsoDate(d)).sort();
-	return dueStatus(dates[0], opts.today, opts.warnDays);
+export function aadStatus(rig: Pick<Rig, 'aadServiceDueOn' | 'aadExpiresOn'>, opts: { today: string; warnDays?: number }): AadDueInfo {
+	const service = rig.aadServiceDueOn && isIsoDate(rig.aadServiceDueOn) ? rig.aadServiceDueOn : null;
+	const eol = rig.aadExpiresOn && isIsoDate(rig.aadExpiresOn) ? rig.aadExpiresOn : null;
+	// End of life wins a tie: a unit at end of life can't be serviced back into date.
+	const cause: AadCause | null = eol && (!service || eol <= service) ? 'end_of_life' : service ? 'service' : null;
+	return { ...dueStatus(cause === 'end_of_life' ? eol : service, opts.today, opts.warnDays), cause };
+}
+
+/** Pure: short plain label for an AAD that is overdue or due soon (null when in date / unknown). */
+export function aadAlertTitle(aad: AadDueInfo): string | null {
+	if (aad.status !== 'overdue' && aad.status !== 'due_soon') return null;
+	if (aad.cause === 'end_of_life') return aad.status === 'overdue' ? 'AAD past end of life' : 'AAD end of life soon';
+	return aad.status === 'overdue' ? 'AAD service overdue' : 'AAD service due soon';
 }
 
 /** Pure: wing loading (lb/sqft) from exit weight (kg) and canopy size. */

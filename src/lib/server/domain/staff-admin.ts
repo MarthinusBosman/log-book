@@ -36,7 +36,7 @@ import {
 	type PriceCode
 } from '../../domain/constants.ts';
 import { DomainError, assertFound } from './errors.ts';
-import { aadStatus, dueStatus, repackIntervalDays, repackStatus, DEFAULT_WARN_DAYS, type DueInfo } from './gear.ts';
+import { aadAlertTitle, aadStatus, dueStatus, repackIntervalDays, repackStatus, DEFAULT_WARN_DAYS, type DueInfo } from './gear.ts';
 import { grantRole } from './permissions.ts';
 import { membershipStatus, type MembershipState } from './profile.ts';
 import { addDays, isIsoDate, localDate } from './time.ts';
@@ -465,7 +465,7 @@ export async function gearRegister(db: Database, dropzoneId: string, today: stri
 		let groundedReason: string | null = null;
 		if (!rig.active) groundedReason = 'Grounded by staff';
 		else if (repack.status === 'overdue') groundedReason = 'Reserve repack overdue';
-		else if (aad.status === 'overdue') groundedReason = 'AAD service overdue';
+		else if (aad.status === 'overdue') groundedReason = aadAlertTitle(aad);
 		const availability: RigAvailability = groundedReason ? 'grounded' : inUse.has(rig.id) ? 'in_use' : 'available';
 		return { rig, repack, aad, availability, inUseBy: inUse.get(rig.id) ?? null, groundedReason };
 	});

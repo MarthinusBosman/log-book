@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { dropzones, users, type Dropzone } from '../db/schema.ts';
 import { currentCheckin } from '../domain/checkins.ts';
-import { aadStatus, repackIntervalDays, repackStatus, listUserRigs } from '../domain/gear.ts';
+import { aadAlertTitle, aadStatus, repackIntervalDays, repackStatus, listUserRigs } from '../domain/gear.ts';
 import { hasLoadsOnDay, openLoadsToday, upcomingSlotsForUser } from '../domain/loads.ts';
 import { logbookTotals } from '../domain/logbook.ts';
 import { listRatings, membershipStatus } from '../domain/profile.ts';
@@ -75,12 +75,16 @@ export async function loadJumperDashboard(
 			});
 		}
 		const aad = aadStatus(rig, { today, warnDays });
-		if (aad.status === 'overdue' || aad.status === 'due_soon') {
+		const aadTitle = aadAlertTitle(aad);
+		if (aadTitle) {
+			const eol = aad.cause === 'end_of_life';
 			alerts.push({
 				id: `aad-${rig.id}`,
 				tone: aad.status === 'overdue' ? 'danger' : 'warning',
-				title: aad.status === 'overdue' ? 'AAD service overdue' : 'AAD service due soon',
-				body: `${name}${rig.aad ? ` (${rig.aad})` : ''}: ${aad.status === 'overdue' ? `was due ${aad.dueOn}` : `due ${aad.dueOn}`}`,
+				title: aadTitle,
+				body: `${name}${rig.aad ? ` (${rig.aad})` : ''}: ${
+					aad.status === 'overdue' ? (eol ? `end of life was ${aad.dueOn}` : `was due ${aad.dueOn}`) : eol ? `end of life ${aad.dueOn}` : `due ${aad.dueOn}`
+				}`,
 				href: `/app/my-gear/${rig.id}`
 			});
 		}

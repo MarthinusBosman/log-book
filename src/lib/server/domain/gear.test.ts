@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { notifications } from '../db/schema.ts';
 import {
+	aadAlertTitle,
 	aadStatus,
 	createRig,
 	dropzoneGearStatus,
@@ -61,6 +62,21 @@ describe('repack due (pure)', () => {
 	test('AAD: earliest of service due / end of life', () => {
 		expect(aadStatus({ aadServiceDueOn: '2027-06-01', aadExpiresOn: '2026-12-01' }, { today: TODAY })).toMatchObject({ dueOn: '2026-12-01', status: 'due_soon' });
 		expect(aadStatus({ aadServiceDueOn: null, aadExpiresOn: null }, { today: TODAY }).status).toBe('unknown');
+	});
+
+	test('AAD: the cause names which date drives it, and the alert title follows', () => {
+		const eol = aadStatus({ aadServiceDueOn: '2027-06-01', aadExpiresOn: '2026-01-01' }, { today: TODAY });
+		expect(eol).toMatchObject({ dueOn: '2026-01-01', status: 'overdue', cause: 'end_of_life' });
+		expect(aadAlertTitle(eol)).toBe('AAD past end of life');
+		expect(aadAlertTitle(aadStatus({ aadServiceDueOn: null, aadExpiresOn: '2026-12-01' }, { today: TODAY }))).toBe('AAD end of life soon');
+		const svc = aadStatus({ aadServiceDueOn: '2026-01-01', aadExpiresOn: '2030-01-01' }, { today: TODAY });
+		expect(svc).toMatchObject({ cause: 'service', status: 'overdue' });
+		expect(aadAlertTitle(svc)).toBe('AAD service overdue');
+		expect(aadAlertTitle(aadStatus({ aadServiceDueOn: '2026-12-01', aadExpiresOn: null }, { today: TODAY }))).toBe('AAD service due soon');
+		// Same day: end of life wins (a service can't fix it)
+		expect(aadStatus({ aadServiceDueOn: '2026-01-01', aadExpiresOn: '2026-01-01' }, { today: TODAY }).cause).toBe('end_of_life');
+		expect(aadAlertTitle(aadStatus({ aadServiceDueOn: '2030-01-01', aadExpiresOn: null }, { today: TODAY }))).toBeNull();
+		expect(aadStatus({ aadServiceDueOn: null, aadExpiresOn: null }, { today: TODAY }).cause).toBeNull();
 	});
 
 	test('wing loading lb/sqft', () => {
