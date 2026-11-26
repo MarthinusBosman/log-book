@@ -6,7 +6,7 @@ import { listLoadsForDay, type LoadWithSlots } from '../domain/loads.ts';
 import { listUsersWithRole } from '../domain/permissions.ts';
 import { listCheckedIn } from '../domain/checkins.ts';
 import { localDate } from '../domain/time.ts';
-import { reserveOverdueUsers } from '../domain/gear.ts';
+import { gearOverdueUsers } from '../domain/gear.ts';
 import { flagMembershipWarnings, slotPeople, type SlotPerson } from '../memberships/service.ts';
 import { EDITABLE_LOAD_STATUSES, type JumpType } from '../../domain/constants.ts';
 import type { DisplayLoadVM, LoadVM, SlotVM, StaffTodayVM } from '../../components/manifest/types.ts';
@@ -78,24 +78,21 @@ export async function boardLoads(db: Database, dz: Dropzone, day: string, opts: 
 		tiColours(db, dz.id)
 	]);
 	const userIds = list.flatMap((l) => l.slots.map((s) => s.userId));
-	const [people, overdue] = await Promise.all([slotPeople(db, userIds), opts.gearWarnings === false ? new Set<string>() : reserveOverdueUsers(db, dz, userIds, day)]);
+	const [people, overdue] = await Promise.all([slotPeople(db, userIds), opts.gearWarnings === false ? new Map<string, string>() : gearOverdueUsers(db, dz, userIds, day)]);
 	const loads = await flagMembershipWarnings(db, list.map((l) => toLoadVM(l, colours, avatarsOf(people))), people);
 	return flagGearWarnings(loads, overdue);
 }
 
-/** Label of the slot chip for a jumper whose own reserve is out of date. */
-export const RESERVE_OVERDUE = 'Reserve overdue';
-
 /**
- * Stamp `gearWarning` on slots of jumpers in `overdue` (from `reserveOverdueUsers`) who jump their
- * own gear: not when the slot rents DZ gear, and not for tandem instructors (DZ tandem rigs, which
- * the gear register grounds when due). Mutates and returns `loads`.
+ * Stamp `gearWarning` on slots of jumpers in `overdue` (user → label, from `gearOverdueUsers`) who
+ * jump their own gear: not when the slot rents DZ gear, and not for tandem instructors (DZ tandem
+ * rigs, which the gear register grounds when due). Mutates and returns `loads`.
  */
-export function flagGearWarnings<L extends { slots: Pick<SlotVM, 'userId' | 'extras' | 'staffRole' | 'gearWarning'>[] }>(loads: L[], overdue: Set<string>): L[] {
+export function flagGearWarnings<L extends { slots: Pick<SlotVM, 'userId' | 'extras' | 'staffRole' | 'gearWarning'>[] }>(loads: L[], overdue: Map<string, string>): L[] {
 	for (const l of loads)
 		for (const s of l.slots)
 			s.gearWarning =
-				s.userId && overdue.has(s.userId) && !s.extras.includes('gear_rental') && s.staffRole !== 'tandem_instructor' ? RESERVE_OVERDUE : null;
+				(s.userId && !s.extras.includes('gear_rental') && s.staffRole !== 'tandem_instructor' ? overdue.get(s.userId) : null) ?? null;
 	return loads;
 }
 

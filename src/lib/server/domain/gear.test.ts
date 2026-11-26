@@ -13,7 +13,10 @@ import {
 	recordService,
 	repackIntervalDays,
 	repackStatus,
-	reserveOverdueUsers,
+	gearOverdueUsers,
+	RESERVE_OVERDUE,
+	AAD_OVERDUE,
+	RESERVE_AAD_OVERDUE,
 	updateRig,
 	wingLoading,
 	getRig
@@ -127,7 +130,7 @@ describe('gear (db)', () => {
 		expect(n[0].payload).toMatchObject({ rig: 'Tandem 1' });
 	});
 
-	test('reserveOverdueUsers: only jumpers whose every active personal rig is past its repack date', async () => {
+	test('gearOverdueUsers: only jumpers whose every active personal rig is past its repack date', async () => {
 		const NOW = Date.parse('2026-11-14T08:00:00Z');
 		const rig = (userId: string, input: Parameters<typeof createRig>[2]) => createRig(db, { userId }, { container: 'Javelin', ...input }, NOW);
 		const [lapsed, mixed, override, retired, none, dzShorter] = await Promise.all(Array.from({ length: 6 }, () => makeUser(db)));
@@ -139,12 +142,37 @@ describe('gear (db)', () => {
 		await rig(dzShorter.id, { reserveRepackedOn: '2026-07-01' }); // ok at 180 days, overdue at 120
 		const ids = [lapsed, mixed, override, retired, none, dzShorter].map((u) => u.id);
 
-		const za = await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, [...ids, null], TODAY);
-		expect([...za]).toEqual([lapsed.id]);
+		const za = await gearOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, [...ids, null], TODAY);
+		expect([...za]).toEqual([[lapsed.id, RESERVE_OVERDUE]]);
 		// judged on the given day: the load day, not today
-		expect([...(await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, ids, '2026-10-28'))]).toEqual([]);
-		const short = await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: 120 }, ids, TODAY);
-		expect(new Set(short)).toEqual(new Set([lapsed.id, dzShorter.id]));
-		expect((await reserveOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, [], TODAY)).size).toBe(0);
+		expect([...(await gearOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, ids, '2026-10-28'))]).toEqual([]);
+		const short = await gearOverdueUsers(db, { country: 'ZA', repackIntervalDays: 120 }, ids, TODAY);
+		expect(new Set(short.keys())).toEqual(new Set([lapsed.id, dzShorter.id]));
+		expect((await gearOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, [], TODAY)).size).toBe(0);
+	});
+
+	test('gearOverdueUsers: AAD past its service date or end of life counts too; label names the least-bad rig', async () => {
+		const NOW = Date.parse('2026-11-14T08:00:00Z');
+		const rig = (userId: string, input: Parameters<typeof createRig>[2]) => createRig(db, { userId }, { container: 'Javelin', ...input }, NOW);
+		const [service, eol, both, split, fine, dueToday] = await Promise.all(Array.from({ length: 6 }, () => makeUser(db)));
+		const inDate = '2026-10-01';
+		await rig(service.id, { reserveRepackedOn: inDate, aadServiceDueOn: '2026-11-01' });
+		await rig(eol.id, { reserveRepackedOn: inDate, aadServiceDueOn: '2027-06-01', aadExpiresOn: '2026-11-10' });
+		await rig(both.id, { reserveRepackedOn: '2026-05-01', aadServiceDueOn: '2026-11-01' });
+		// two rigs, each with one problem: no airworthy rig, label from the least-bad one
+		await rig(split.id, { reserveRepackedOn: '2026-05-01', aadServiceDueOn: '2026-11-01' });
+		await rig(split.id, { reserveRepackedOn: inDate, aadServiceDueOn: '2026-11-01' });
+		await rig(fine.id, { reserveRepackedOn: '2026-05-01', aadServiceDueOn: '2026-11-01' });
+		await rig(fine.id, { reserveRepackedOn: inDate, aadServiceDueOn: '2027-03-01' }); // an airworthy second rig
+		await rig(dueToday.id, { reserveRepackedOn: inDate, aadServiceDueOn: TODAY }); // due today = still in date
+		const ids = [service, eol, both, split, fine, dueToday].map((u) => u.id);
+
+		const got = Object.fromEntries(await gearOverdueUsers(db, { country: 'ZA', repackIntervalDays: null }, ids, TODAY));
+		expect(got).toEqual({
+			[service.id]: AAD_OVERDUE,
+			[eol.id]: AAD_OVERDUE,
+			[both.id]: RESERVE_AAD_OVERDUE,
+			[split.id]: AAD_OVERDUE
+		});
 	});
 });

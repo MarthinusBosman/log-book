@@ -7,7 +7,7 @@ import { listPassengers } from '#lib/server/domain/tandems.ts';
 import { isDomainError } from '#lib/server/domain/errors.ts';
 import { localDate } from '#lib/server/domain/time.ts';
 import { listUsersWithRole } from '#lib/server/domain/permissions.ts';
-import { reserveOverdueUsers } from '#lib/server/domain/gear.ts';
+import { gearOverdueUsers } from '#lib/server/domain/gear.ts';
 import { avatarsOf, flagGearWarnings, otherLoadsByUser, tiColours, toLoadVM } from '#lib/server/manifest/board.ts';
 import { requireDropzone } from '#lib/server/manifest/context.ts';
 import { flagMembershipWarnings, slotPeople } from '#lib/server/memberships/service.ts';
@@ -35,7 +35,7 @@ export const load: PageServerLoad = async (event) => {
 	const [colours, people, overdue] = await Promise.all([
 		tiColours(db, ctx.dz.id),
 		slotPeople(db, slotUsers),
-		reserveOverdueUsers(db, ctx.dz, [...slotUsers, ...checked.filter((c) => !c.checkin.gearRental).map((c) => c.user.id)], l.day)
+		gearOverdueUsers(db, ctx.dz, [...slotUsers, ...checked.filter((c) => !c.checkin.gearRental).map((c) => c.user.id)], l.day)
 	]);
 	const [load] = flagGearWarnings(await flagMembershipWarnings(db, [toLoadVM(l, colours, avatarsOf(people))], people), overdue);
 	const editable = EDITABLE_LOAD_STATUSES.includes(l.status);
@@ -73,7 +73,7 @@ export const load: PageServerLoad = async (event) => {
 			expiry: c.user.associationExpiry,
 			expired: !!c.user.associationExpiry && c.user.associationExpiry < l.day,
 			gearRental: c.checkin.gearRental,
-			reserveOverdue: !c.checkin.gearRental && overdue.has(c.user.id),
+			gearWarning: (!c.checkin.gearRental && overdue.get(c.user.id)) || null,
 			onLoad: onLoad.has(c.user.id),
 			otherLoads: others[c.user.id] ?? []
 		})),

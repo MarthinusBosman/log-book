@@ -64,7 +64,7 @@
 		<span class={cn(chip, 'border-danger/30 bg-danger/10 text-danger')} title="This jumper's membership has expired, or is not connected." data-testid="slot-membership-warning">{warning}</span>
 	{/if}
 	{#if gearWarning}
-		<span class={cn(chip, 'border-danger/30 bg-danger/10 text-danger')} title="Every rig this jumper has on file is past its reserve repack date. Check their gear before boarding." data-testid="slot-gear-warning"
+		<span class={cn(chip, 'border-danger/30 bg-danger/10 text-danger')} title="No rig this jumper has on file is in date (reserve repack, AAD service or AAD end of life). Check their gear before boarding." data-testid="slot-gear-warning"
 			>{gearWarning}</span
 		>
 	{/if}

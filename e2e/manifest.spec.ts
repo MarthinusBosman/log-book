@@ -639,7 +639,7 @@ test('Checked in tab adds gear rental for jumpers who checked in with rental gea
 	await expect(slot).toContainText('Gear rental');
 });
 
-test("Checked in tab flags a jumper whose own reserve is overdue, before and after adding", async ({ page }) => {
+test("Checked in tab flags a jumper whose own reserve and AAD are overdue, before and after adding", async ({ page }) => {
 	const project = test.info().project.name;
 	await page.goto('/signup');
 	await page.getByLabel('Full name').fill('Owen Overdue');
@@ -652,12 +652,13 @@ test("Checked in tab flags a jumper whose own reserve is overdue, before and aft
 	await page.getByRole('button', { name: 'Create dropzone' }).click();
 	await expect(page).toHaveURL(/\/app$/);
 
-	// his only rig was last repacked well over any repack interval ago
+	// his only rig was last repacked well over any repack interval ago, and its AAD missed its service
 	await page.goto('/app/my-gear/new');
 	await page.getByLabel('Container make & model *').fill('Javelin Odyssey');
 	await page.getByLabel('Main canopy *').fill('Sabre3');
 	await page.getByLabel('Reserve canopy *').fill('PD 160');
 	await page.getByLabel('Last repack date *').fill('2025-01-01');
+	await page.getByLabel('Next service due').fill('2025-06-01');
 	await page.getByTestId('save-rig').click();
 	await expect(page).toHaveURL(/\/app\/my-gear\/[0-9a-f-]+$/);
 
@@ -679,7 +680,7 @@ test("Checked in tab flags a jumper whose own reserve is overdue, before and aft
 
 	const panel = page.getByRole('tabpanel');
 	const row = panel.locator('label', { has: page.getByRole('checkbox', { name: /Owen Overdue/ }) });
-	await expect(row.getByTestId('picker-gear-warning')).toHaveText('Reserve overdue');
+	await expect(row.getByTestId('picker-gear-warning')).toHaveText('Reserve + AAD overdue');
 	// the chip sits under the name, so the name keeps its room on a phone
 	const nameBox = await row.getByText('Owen Overdue', { exact: true }).boundingBox();
 	expect(nameBox?.width ?? 0).toBeGreaterThan(40);
@@ -687,7 +688,7 @@ test("Checked in tab flags a jumper whose own reserve is overdue, before and aft
 	await page.getByTestId('add-checked').click();
 	const slot = page.locator('[data-testid=detail-slot][data-slot-name="Owen Overdue"]');
 	await expect(slot).toBeVisible();
-	await expect(slot.getByTestId('slot-gear-warning')).toHaveText('Reserve overdue');
+	await expect(slot.getByTestId('slot-gear-warning')).toHaveText('Reserve + AAD overdue');
 });
 
 test("Team tab lists a checked-in jumper's own team and adds only its members who are here", async ({ page }) => {

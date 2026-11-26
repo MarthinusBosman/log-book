@@ -245,33 +245,57 @@ export async function dropzoneGearStatus(db: Database, dropzoneId: string, today
 		.sort((a, b) => (a.repack.daysLeft ?? 1e9) - (b.repack.daysLeft ?? 1e9));
 }
 
+/** Gear chip labels (manifest board, load detail, Add-to-load picker). */
+export const RESERVE_OVERDUE = 'Reserve overdue';
+export const AAD_OVERDUE = 'AAD overdue';
+export const RESERVE_AAD_OVERDUE = 'Reserve + AAD overdue';
+
 /**
- * Users (of `userIds`) whose reserve is out of date on `day`: they have at least one active
- * personal rig with a repack date and EVERY such rig is past its repack due date (a jumper with
- * one current rig may be jumping that one). Interval: rig override → dropzone → country default.
- * One rigs read per 90 users (D1's 100-param cap).
+ * Users (of `userIds`) whose own gear is out of date on `day`, with the chip label: they have at
+ * least one active personal rig with a reserve repack date or AAD dates, and EVERY such rig is
+ * either past its repack due date or past its AAD service / end-of-life date (a jumper with one
+ * airworthy rig may be jumping that one). The label names the problems of their least-bad rig
+ * ("Reserve overdue", "AAD overdue" or "Reserve + AAD overdue"). Repack interval: rig override →
+ * dropzone → country default. One rigs read per 90 users (D1's 100-param cap).
  */
-export async function reserveOverdueUsers(
+export async function gearOverdueUsers(
 	db: Database,
 	dz: Pick<Dropzone, 'country' | 'repackIntervalDays'>,
 	userIds: Iterable<string | null | undefined>,
 	day: string
-): Promise<Set<string>> {
+): Promise<Map<string, string>> {
 	const ids = [...new Set([...userIds].filter((u): u is string => !!u))];
 	const intervalDays = repackIntervalDays({ dropzoneDays: dz.repackIntervalDays, country: dz.country });
-	const current = new Map<string, boolean>(); // user → has a rig that is not overdue
+	const best = new Map<string, { reserve: boolean; aad: boolean }>(); // user → least-bad rig
+	const score = (p: { reserve: boolean; aad: boolean }) => (p.reserve ? 2 : 0) + (p.aad ? 1 : 0);
 	for (let i = 0; i < ids.length; i += 90) {
 		const rows = await db
-			.select({ userId: rigs.userId, reserveRepackedOn: rigs.reserveRepackedOn, repackIntervalDays: rigs.repackIntervalDays })
+			.select({
+				userId: rigs.userId,
+				reserveRepackedOn: rigs.reserveRepackedOn,
+				repackIntervalDays: rigs.repackIntervalDays,
+				aadServiceDueOn: rigs.aadServiceDueOn,
+				aadExpiresOn: rigs.aadExpiresOn
+			})
 			.from(rigs)
 			.where(and(inArray(rigs.userId, ids.slice(i, i + 90)), eq(rigs.kind, 'personal'), eq(rigs.active, true)));
 		for (const r of rows) {
-			if (!r.userId || !r.reserveRepackedOn) continue;
-			const ok = repackStatus(r, { today: day, intervalDays }).status !== 'overdue';
-			current.set(r.userId, (current.get(r.userId) ?? false) || ok);
+			if (!r.userId) continue;
+			const reserve = repackStatus(r, { today: day, intervalDays });
+			const aad = aadStatus(r, { today: day });
+			if (reserve.status === 'unknown' && aad.status === 'unknown') continue;
+			const p = { reserve: reserve.status === 'overdue', aad: aad.status === 'overdue' };
+			const prev = best.get(r.userId);
+			if (!prev || score(p) < score(prev)) best.set(r.userId, p);
 		}
 	}
-	return new Set([...current].filter(([, ok]) => !ok).map(([id]) => id));
+	const out = new Map<string, string>();
+	for (const [id, p] of best) {
+		if (p.reserve && p.aad) out.set(id, RESERVE_AAD_OVERDUE);
+		else if (p.reserve) out.set(id, RESERVE_OVERDUE);
+		else if (p.aad) out.set(id, AAD_OVERDUE);
+	}
+	return out;
 }
 
 /** "Notify riggers": repack_due notification to every rigger for each DZ rig due soon/overdue. */
