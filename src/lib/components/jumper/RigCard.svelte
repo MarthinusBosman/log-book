@@ -2,9 +2,10 @@
 	import { Badge, Icon, cn } from '#lib/ui/index.ts';
 	import type { RigView } from '#lib/server/jumper/gear.ts';
 	import JIcon from './JIcon.svelte';
-	import { DUE_TONES, dueLabel, fmtDate } from './format.ts';
+	import { DUE_TONES, aadDueText, dueLabel, fmtDate } from './format.ts';
 
 	let { rig, level = 3 }: { rig: RigView; level?: 2 | 3 } = $props();
+	const aadText = $derived(aadDueText(rig.aadDue));
 	const bar = { ok: 'bg-success', due_soon: 'bg-warning', overdue: 'bg-danger', unknown: 'bg-border-strong' } as const;
 </script>
 
@@ -22,11 +23,11 @@
 		</div>
 	</div>
 	<div class="grid grid-cols-2 border-t border-border">
-		{#each [{ label: 'Reserve repack', info: rig.repack, sub: rig.reserveRepackedOn ? `Packed ${fmtDate(rig.reserveRepackedOn)}` : 'Not set' }, { label: rig.aad ?? 'AAD', info: rig.aadDue, sub: rig.aadDue.dueOn ? `Due ${fmtDate(rig.aadDue.dueOn)}` : 'No dates set' }] as cell, i (i)}
+		{#each [{ label: 'Reserve repack', info: rig.repack, badge: dueLabel(rig.repack, { ok: 'OK' }), sub: rig.reserveRepackedOn ? `Packed ${fmtDate(rig.reserveRepackedOn)}` : 'Not set' }, { label: rig.aad ?? 'AAD', info: rig.aadDue, ...aadText }] as cell, i (i)}
 			<div class={cn('relative px-4 py-3 sm:px-5', i === 0 && 'border-r border-border')}>
 				<span class={cn('absolute inset-y-3 left-0 w-0.5 rounded-full', bar[cell.info.status])}></span>
 				<p class="truncate text-xs text-muted">{cell.label}</p>
-				<p class="mt-0.5"><Badge tone={DUE_TONES[cell.info.status]}>{dueLabel(cell.info, { ok: 'OK' })}</Badge></p>
+				<p class="mt-0.5"><Badge tone={DUE_TONES[cell.info.status]}>{cell.badge}</Badge></p>
 				<p class="mt-1 truncate text-xs text-subtle">{cell.sub}</p>
 			</div>
 		{/each}

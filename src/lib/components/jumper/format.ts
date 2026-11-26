@@ -139,6 +139,22 @@ export function dueLabel(info: { status: DueStatus; daysLeft: number | null }, w
 }
 
 /**
+ * Badge + date line for an AAD. Its status follows whichever date comes first, the next service or
+ * the unit's end of life; when end of life drives it, say so (a service can't fix that).
+ */
+export function aadDueText(aad: { status: DueStatus; daysLeft: number | null; dueOn: string | null; cause?: 'service' | 'end_of_life' | null }): {
+	badge: string;
+	sub: string;
+} {
+	if (!aad.dueOn) return { badge: dueLabel(aad, { ok: 'OK' }), sub: 'No dates set' };
+	if (aad.cause === 'end_of_life') {
+		const badge = aad.status === 'overdue' ? 'Past end of life' : dueLabel(aad, { ok: 'OK', soon: 'Ends' });
+		return { badge, sub: `End of life ${fmtDate(aad.dueOn)}` };
+	}
+	return { badge: dueLabel(aad, { ok: 'OK' }), sub: `Service due ${fmtDate(aad.dueOn)}` };
+}
+
+/**
  * Countdown text for a future instant: '12m 04s', '45s' or '1h 05m'; null when past. Units on
  * purpose: a bare '11:29' next to a load's scheduled time ('Cessna Caravan · 11:00') reads as a
  * clock time.

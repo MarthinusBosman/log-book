@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { countdown, exportQuery, fmtFreefall, groupByDay, joinableCount, loggedScope, relativeTime, walletShortfall } from './format.ts';
+import { aadDueText, countdown, exportQuery, fmtFreefall, groupByDay, joinableCount, loggedScope, relativeTime, walletShortfall } from './format.ts';
 
 test('relativeTime prints older instants on the given timezone calendar', () => {
 	const now = Date.parse('2026-11-18T10:00:00Z');
@@ -105,4 +105,13 @@ describe('joinableCount', () => {
 		expect(joinableCount(loads, ss)).toBe(2);
 		expect(joinableCount([], ss)).toBe(0);
 	});
+});
+
+test('aadDueText names end of life when that date drives the AAD status', () => {
+	expect(aadDueText({ status: 'overdue', daysLeft: -3, dueOn: '2026-11-11', cause: 'end_of_life' })).toEqual({ badge: 'Past end of life', sub: 'End of life 11 Nov 2026' });
+	expect(aadDueText({ status: 'due_soon', daysLeft: 12, dueOn: '2026-11-26', cause: 'end_of_life' }).badge).toBe('Ends in 12 days');
+	expect(aadDueText({ status: 'due_soon', daysLeft: 0, dueOn: '2026-11-14', cause: 'end_of_life' }).badge).toBe('Ends today');
+	expect(aadDueText({ status: 'overdue', daysLeft: -3, dueOn: '2026-11-11', cause: 'service' })).toEqual({ badge: 'Overdue by 3 days', sub: 'Service due 11 Nov 2026' });
+	expect(aadDueText({ status: 'ok', daysLeft: 200, dueOn: '2027-06-02', cause: 'service' }).badge).toBe('OK · 200 days');
+	expect(aadDueText({ status: 'unknown', daysLeft: null, dueOn: null, cause: null })).toEqual({ badge: 'Not set', sub: 'No dates set' });
 });

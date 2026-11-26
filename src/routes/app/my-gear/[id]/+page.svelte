@@ -6,7 +6,7 @@
 	import RigForm from '#lib/components/jumper/RigForm.svelte';
 	import FormAlert from '#lib/components/jumper/FormAlert.svelte';
 	import JIcon from '#lib/components/jumper/JIcon.svelte';
-	import { DUE_TONES, dueLabel, fmtDate } from '#lib/components/jumper/format.ts';
+	import { DUE_TONES, aadDueText, dueLabel, fmtDate } from '#lib/components/jumper/format.ts';
 	import type { RigFormEcho } from '#lib/server/jumper/gear.ts';
 	import type { PageProps } from './$types';
 
@@ -38,7 +38,7 @@
 	{#snippet actions()}
 		{#if !rig.active}<Badge>Retired</Badge>{/if}
 		<Badge tone={DUE_TONES[rig.repack.status]}>Reserve · {dueLabel(rig.repack, { ok: 'OK' })}</Badge>
-		{#if rig.aadDue.status !== 'unknown'}<Badge tone={DUE_TONES[rig.aadDue.status]}>AAD · {dueLabel(rig.aadDue, { ok: 'OK' })}</Badge>{/if}
+		{#if rig.aadDue.status !== 'unknown'}<Badge tone={DUE_TONES[rig.aadDue.status]}>AAD · {aadDueText(rig.aadDue).badge}</Badge>{/if}
 	{/snippet}
 </PageHeader>
 
