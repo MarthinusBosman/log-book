@@ -205,7 +205,7 @@
 								<p class="mt-0.5 pl-1 text-[11px] whitespace-nowrap text-subtle tabular-nums">Packed {r.rig.reserveRepackedOn ?? '—'}</p>
 							</td>
 							<td class="px-3 py-3" data-label="AAD">
-								<DueBadge status={r.aad.status} dueOn={r.aad.dueOn} daysLeft={r.aad.daysLeft} empty="No date" />
+								<DueBadge status={r.aad.status} dueOn={r.aad.dueOn} daysLeft={r.aad.daysLeft} cause={r.aad.cause} empty="No date" />
 								{#if r.rig.aad}<p class="mt-0.5 pl-1 text-xs text-subtle">{r.rig.aad}{r.rig.aadSerial ? ` · ${r.rig.aadSerial}` : ''}</p>{/if}
 							</td>
 							<td class="stack-full px-3 py-3" data-label="Status">
@@ -282,7 +282,7 @@
 						</td>
 						<td class="stack-full px-3 py-3" data-label="Rig">{m.rigName}<p class="text-xs text-muted">{m.container ?? ''}</p></td>
 						<td class="px-3 py-3" data-label="Repack due"><DueBadge status={m.repack.status} dueOn={m.repack.dueOn} daysLeft={m.repack.daysLeft} /></td>
-						<td class="px-3 py-3" data-label="AAD"><DueBadge status={m.aad_.status} dueOn={m.aad_.dueOn} daysLeft={m.aad_.daysLeft} empty="No date" /></td>
+						<td class="px-3 py-3" data-label="AAD"><DueBadge status={m.aad_.status} dueOn={m.aad_.dueOn} daysLeft={m.aad_.daysLeft} cause={m.aad_.cause} empty="No date" /></td>
 						<td class="stack-full py-3 pr-4 pl-3 text-xs" data-label="Contact">
 							<a href="mailto:{m.owner.email}" class="text-primary hover:underline">{m.owner.email}</a>
 							{#if m.owner.phone}<p class="text-muted">{m.owner.phone}</p>{/if}

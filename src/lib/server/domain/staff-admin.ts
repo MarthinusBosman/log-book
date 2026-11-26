@@ -36,7 +36,7 @@ import {
 	type PriceCode
 } from '../../domain/constants.ts';
 import { DomainError, assertFound } from './errors.ts';
-import { aadAlertTitle, aadStatus, dueStatus, repackIntervalDays, repackStatus, DEFAULT_WARN_DAYS, type DueInfo } from './gear.ts';
+import { aadAlertTitle, aadStatus, dueStatus, repackIntervalDays, repackStatus, DEFAULT_WARN_DAYS, type AadDueInfo, type DueInfo } from './gear.ts';
 import { grantRole } from './permissions.ts';
 import { membershipStatus, type MembershipState } from './profile.ts';
 import { addDays, isIsoDate, localDate } from './time.ts';
@@ -442,7 +442,7 @@ export async function jumperDetail(db: Database, dropzoneId: string, userId: str
 
 export type RigAvailability = 'available' | 'in_use' | 'grounded';
 
-export type GearRow = { rig: Rig; repack: DueInfo; aad: DueInfo; availability: RigAvailability; inUseBy: string | null; groundedReason: string | null };
+export type GearRow = { rig: Rig; repack: DueInfo; aad: AadDueInfo; availability: RigAvailability; inUseBy: string | null; groundedReason: string | null };
 
 /**
  * DZ rig register with due status and availability: grounded when deactivated or reserve/AAD
