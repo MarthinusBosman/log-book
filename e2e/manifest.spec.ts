@@ -362,6 +362,14 @@ test('slot editor: marking paid with unsaved price edits saves them first and ch
 	await expect(editor.getByTestId('slot-pay-note')).toHaveCount(0);
 	const preview = editor.getByTestId('price-preview');
 	await expect(preview.getByTestId('price-total')).toHaveText(/450[.,]00/);
+	// working as staff jumps free: the preview says so and the price counts as edited
+	await editor.getByLabel('Working as').selectOption({ label: 'Video' });
+	await expect(preview).toContainText('No charge');
+	await expect(preview.getByTestId('price-total')).toHaveText(/(^|\D)0[.,]00$/);
+	await expect(editor.getByRole('button', { name: 'Save & mark paid' })).toBeVisible();
+	await editor.getByLabel('Working as').selectOption({ label: 'Jumper' });
+	await expect(preview.getByTestId('price-total')).toHaveText(/450[.,]00/);
+	await expect(editor.getByRole('button', { name: 'Mark paid', exact: true })).toBeVisible();
 	// a new base price: Mark paid alone would charge R 450 and drop the edit
 	await editor.getByLabel(/Custom base price/).fill('500');
 	// the preview follows the custom base (it used to keep showing the price-list R 450)
@@ -381,6 +389,12 @@ test('slot editor: marking paid with unsaved price edits saves them first and ch
 	await page.getByRole('link', { name: 'Edit Pat Payer' }).click();
 	await expect(editor).toContainText('Paid via Card');
 	await expect(editor.getByRole('button', { name: /Mark paid/ })).toHaveCount(0);
+	// a staff role set after payment keeps the paid price (it used to drop the total to 0)
+	await editor.getByLabel('Working as').selectOption({ label: 'Video' });
+	await editor.getByRole('button', { name: 'Save slot' }).click();
+	await expect(page.getByText('Slot updated')).toBeVisible();
+	await expect(row).toContainText('500');
+	await expect(row).toContainText(/Paid · Card/);
 });
 
 test('public display needs a valid token', async ({ page }) => {

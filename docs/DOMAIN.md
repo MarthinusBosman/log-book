@@ -119,7 +119,7 @@ Optional trailing args (`now`, `opts`) are left out below.
   - `opts = {by?, now?, allowExpired?, selfManifest?, skipWallet?}`.
 - `joinLoad(db, {loadId, userId, jumpType, extras?})` (self-manifest; the load must be open), `leaveLoad(db, loadId, userId)`.
 - `addTandemGroup(db, {loadId, passengerId, instructorUserId, videographerUserId?})` creates 2–3 slots that share a `groupId`.
-- `updateSlot(db, slotId, patch)` reprices and re-holds; it rolls back on `insufficient_funds`. `removeSlot(db, slotId, {withGroup?})`, `moveSlot(db, slotId, toLoadId, {withGroup?})`.
+- `updateSlot(db, slotId, patch)` reprices and re-holds; it rolls back on `insufficient_funds`. A paid slot is never repriced (its total and breakdown stay what was paid, even if the price list or its staff role changes later). `removeSlot(db, slotId, {withGroup?})`, `moveSlot(db, slotId, toLoadId, {withGroup?})`.
 
 ### checkins.ts
 `checkIn(db, {dropzoneId, userId, by?, weightKg?, gearRental?})` is idempotent. A self check-in closes any open check-in at another DZ. When staff check someone in, the check-in is marked `verified` and the jumper is notified.

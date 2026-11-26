@@ -27,6 +27,7 @@
 	let colour = $state(initial()?.colour ?? '');
 	const savedBase = (s: SlotVM | null) => (s?.baseOverrideMinor != null ? s.baseOverrideMinor / 100 : '');
 	let baseOverride = $state<string | number | null>(savedBase(initial()));
+	let staffRole = $state(initial()?.staffRole ?? '');
 	let provider = $state('cash');
 	let busy = $state(false);
 	const uid = $props.id();
@@ -36,7 +37,7 @@
 	const sameExtras = (a: readonly string[], b: readonly string[]) => [...a].sort().join() === [...b].sort().join();
 	/** Price fields edited but not saved: "Mark paid" alone would charge the old price and drop them. */
 	const priceDirty = $derived(
-		!!slot && editable && !slot.paid && (jumpType !== slot.jumpType || !sameExtras(extras, slot.extras) || minor(baseOverride) !== (slot.baseOverrideMinor ?? null))
+		!!slot && editable && !slot.paid && (jumpType !== slot.jumpType || !sameExtras(extras, slot.extras) || minor(baseOverride) !== (slot.baseOverrideMinor ?? null) || staffRole !== (slot.staffRole ?? ''))
 	);
 
 	// Re-initialise only when a different slot is opened: the page hands in a fresh object
@@ -51,6 +52,7 @@
 				extras = [...s.extras];
 				colour = s.colour ?? '';
 				baseOverride = savedBase(s);
+				staffRole = s.staffRole ?? '';
 				provider = 'cash';
 			}
 		});
@@ -107,7 +109,7 @@
 					{#if s.paid}
 						<p class="rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">This slot is paid — jump type, extras and price are locked.</p>
 					{:else}
-						<JumpFields idPrefix="ed" bind:jumpType bind:extras staffRole={s.staffRole} noTandem={s.jumpType !== 'tandem'} {baseOverride} depositMinor={s.depositMinor} {currency} />
+						<JumpFields idPrefix="ed" bind:jumpType bind:extras staffRole={staffRole || null} noTandem={s.jumpType !== 'tandem'} {baseOverride} depositMinor={s.depositMinor} {currency} />
 						<Input label="Custom base price ({currency})" name="baseOverride" type="number" min="0" step="0.01" bind:value={baseOverride} hint="Leave empty for the price list. Replaces the base only." />
 					{/if}
 					<div class="grid grid-cols-2 gap-3">
@@ -115,7 +117,7 @@
 						<Select
 							label="Working as"
 							name="staffRole"
-							value={s.staffRole ?? ''}
+							bind:value={staffRole}
 							options={[{ value: '', label: 'Jumper' }, ...Object.entries(SLOT_STAFF_ROLE_LABELS).map(([v, l]) => ({ value: v, label: l }))]}
 						/>
 					</div>

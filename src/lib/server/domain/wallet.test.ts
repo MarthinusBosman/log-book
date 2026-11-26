@@ -183,6 +183,25 @@ describe('capture & payments', () => {
 		await completeLoad(db, load.id);
 		expect((await getAccount(db, jumper.id, dz.id))!.availableMinor).toBe(100000);
 	});
+
+	test('editing a paid slot keeps the price that was paid', async () => {
+		const { setPrices } = await import('./pricing.ts');
+		const { dz, owner, load, jumper } = await setup({ walletEnabled: false });
+		const slot = await addSlot(db, load.id, { userId: jumper.id, jumpType: 'belly' });
+		await markSlotsPaid(db, { dropzoneId: dz.id, slotIds: [slot.id], provider: 'cash', by: owner.id });
+		const paid = (await db.select().from(slots).where(eq(slots.id, slot.id)))[0];
+		// the price list changes later; a note or the staff role changes on the paid slot
+		await setPrices(db, dz.id, { ...P, sport_slot: P.sport_slot! + 5000 });
+		await updateSlot(db, slot.id, { note: 'Late for the call' }, { by: owner.id });
+		await updateSlot(db, slot.id, { staffRole: 'videographer' }, { by: owner.id });
+		const after = (await db.select().from(slots).where(eq(slots.id, slot.id)))[0];
+		expect([after.totalMinor, after.priceBreakdown, after.paid]).toEqual([paid.totalMinor, paid.priceBreakdown, true]);
+		expect([after.note, after.staffRole]).toEqual(['Late for the call', 'videographer']);
+		// an unpaid slot still follows the new price list
+		const open = await addSlot(db, load.id, { userId: (await makeUser(db)).id, jumpType: 'belly' });
+		await updateSlot(db, open.id, { note: 'x' }, { by: owner.id });
+		expect((await db.select().from(slots).where(eq(slots.id, open.id)))[0].totalMinor).toBe(P.sport_slot! + 5000);
+	});
 });
 
 describe('jumper wallet history', () => {

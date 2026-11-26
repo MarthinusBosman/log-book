@@ -814,7 +814,11 @@ export async function updateSlot(
 		baseOverrideMinor: patch.baseOverrideMinor !== undefined ? patch.baseOverrideMinor : slot.baseOverrideMinor,
 		depositMinor: patch.depositMinor ?? slot.depositMinor
 	};
-	const price = computeSlotPrice({ prices, ...merged });
+	// A paid slot keeps the price that was paid: a later price-list change, or a staff role set
+	// afterwards, must not rewrite its total (reports and refunds read it).
+	const price = slot.paid
+		? { lines: slot.priceBreakdown, depositMinor: slot.depositMinor, totalMinor: slot.totalMinor }
+		: computeSlotPrice({ prices, ...merged });
 	const groupExtras =
 		merged.staffRole === 'tandem_instructor' && slot.groupId
 			? (load.slots.find((s) => s.groupId === slot.groupId && s.tandemPassengerId && !s.staffRole)?.extras ?? [])
