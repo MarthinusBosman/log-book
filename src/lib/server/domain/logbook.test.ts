@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { Database } from '../db/index.ts';
 import { logbookJumps } from '../db/schema.ts';
 import { isDomainError } from './errors.ts';
-import { addJump, assertJumpDateInRange, deleteJump, duplicateJumpNumbers, getJump, importJumps, jumpSequenceHints, listJumps, logbookTotals, nextJumpNumber, signJump, updateJump } from './logbook.ts';
+import { addJump, assertJumpDateInRange, deleteJump, duplicateJumpNumbers, getJump, importJumps, jumpSequenceHints, listJumps, logbookTotals, nextJumpNumber, outOfOrderJumpIds, signJump, updateJump } from './logbook.ts';
 import { setRatings } from './profile.ts';
 import { listNotifications } from './notifications.ts';
 import { addSlot, completeLoad, createLoads } from './loads.ts';
@@ -71,6 +71,36 @@ describe('numbering', () => {
 		await addJump(db, u.id, { jumpDate: '2026-06-11', jumpNumber: 13 });
 		expect(await duplicateJumpNumbers(db, u.id)).toEqual([13, 10]);
 		expect(await duplicateJumpNumbers(db, other.id)).toEqual([]);
+	});
+
+	test('outOfOrderJumpIds flags both sides of a date dip (same rule as the detail hints)', async () => {
+		const u = await makeUser(db);
+		const other = await makeUser(db);
+		const j10 = await addJump(db, u.id, { jumpDate: '2026-06-01', jumpNumber: 10 });
+		const j11 = await addJump(db, u.id, { jumpDate: '2026-06-05', jumpNumber: 11 });
+		const j12 = await addJump(db, u.id, { jumpDate: '2026-06-27', jumpNumber: 12 });
+		const j13 = await addJump(db, u.id, { jumpDate: '2026-06-11', jumpNumber: 13 });
+		const j15 = await addJump(db, u.id, { jumpDate: '2026-07-01', jumpNumber: 15 });
+		// other users' jumps never count (their #14 dated long ago would otherwise flag #15)
+		await addJump(db, other.id, { jumpDate: '2020-01-01', jumpNumber: 14 });
+		const all = [j10, j11, j12, j13, j15].map((j) => j.id);
+		expect([...(await outOfOrderJumpIds(db, u.id, all))].sort()).toEqual([j12.id, j13.id].sort());
+		// only the asked ids come back; ids of other users are ignored
+		expect([...(await outOfOrderJumpIds(db, u.id, [j13.id, j10.id]))]).toEqual([j13.id]);
+		expect((await outOfOrderJumpIds(db, other.id, all)).size).toBe(0);
+		expect((await outOfOrderJumpIds(db, u.id, [])).size).toBe(0);
+		// agrees with the detail page hints for every jump
+		for (const j of [j10, j11, j12, j13, j15]) {
+			const h = await jumpSequenceHints(db, u.id, j);
+			const flagged = (await outOfOrderJumpIds(db, u.id, [j.id])).has(j.id);
+			expect(flagged).toBe(!!(h.earlierNumberLaterDate || h.laterNumberEarlierDate));
+		}
+		// a repeated #11 dated after #12 dips against #12 (latest date of the number below)
+		const j11b = await addJump(db, u.id, { jumpDate: '2026-06-30', jumpNumber: 11 });
+		const set = await outOfOrderJumpIds(db, u.id, [...all, j11b.id]);
+		expect(set.has(j11b.id)).toBe(true);
+		expect(set.has(j12.id)).toBe(true);
+		expect(set.has(j11.id)).toBe(false);
 	});
 
 	test('form dates: not in the future (one day of time-zone slack)', () => {

@@ -259,6 +259,32 @@ export async function duplicateJumpNumbers(db: Database, userId: string, limit =
 	return rows.map((r) => r.n);
 }
 
+/**
+ * Which of `jumpIds` (a page of the logbook list) are dated out of order: the closest lower-numbered
+ * jump is dated AFTER it, or the closest higher-numbered one BEFORE it. Same rule as
+ * `jumpSequenceHints` (repeated numbers count with their latest date below / earliest date above),
+ * in one query: per-number date range, then LAG/LEAD over the numbers.
+ */
+export async function outOfOrderJumpIds(db: Database, userId: string, jumpIds: string[]): Promise<Set<string>> {
+	if (!jumpIds.length) return new Set();
+	const ids = sql.join(
+		jumpIds.slice(0, 90).map((id) => sql`${id}`),
+		sql`, `
+	);
+	const rows = (await db.all(sql`
+		with g as (
+			select jump_number as n, min(jump_date) as lo, max(jump_date) as hi
+			from logbook_jumps where user_id = ${userId} group by jump_number
+		), w as (
+			select n, lag(hi) over (order by n) as prev_hi, lead(lo) over (order by n) as next_lo from g
+		)
+		select j.id as id from logbook_jumps j join w on w.n = j.jump_number
+		where j.user_id = ${userId} and j.id in (${ids})
+			and (w.prev_hi > j.jump_date or w.next_lo < j.jump_date)
+	`)) as { id: string }[];
+	return new Set(rows.map((r) => r.id));
+}
+
 export type JumpFilters = {
 	from?: string;
 	to?: string;

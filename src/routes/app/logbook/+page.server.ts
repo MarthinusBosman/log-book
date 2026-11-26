@@ -1,4 +1,4 @@
-import { countJumps, duplicateJumpNumbers, listJumps, logbookBreakdown, logbookTotals } from '#lib/server/domain/logbook.ts';
+import { countJumps, duplicateJumpNumbers, listJumps, logbookBreakdown, logbookTotals, outOfOrderJumpIds } from '#lib/server/domain/logbook.ts';
 import { requireUser, todayAt } from '#lib/server/jumper/forms.ts';
 import { dzNameMap, filtersFromUrl, jumpRow } from '#lib/server/jumper/logbook.ts';
 import { JUMP_TYPE_LABELS, type JumpType } from '#lib/domain/constants.ts';
@@ -21,7 +21,14 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 	]);
 	// totalJumps = max(highest logged, declared count), the same rule as nextJumpNumber()
 	const next = totals.totalJumps + 1;
-	const names = await dzNameMap(locals.db, jumps);
+	const [names, outOfOrder] = await Promise.all([
+		dzNameMap(locals.db, jumps),
+		outOfOrderJumpIds(
+			locals.db,
+			user.id,
+			jumps.map((j) => j.id)
+		)
+	]);
 	const filtered = !!(filters.q || filters.jumpType || filters.dropzoneId || filters.location || filters.year);
 	return {
 		totals,
@@ -29,7 +36,7 @@ export const load: PageServerLoad = async ({ locals, url, parent }) => {
 			...breakdown,
 			byType: breakdown.byType.map((r) => ({ ...r, label: r.key ? (JUMP_TYPE_LABELS[r.key as JumpType] ?? r.key) : 'Not set' }))
 		},
-		jumps: jumps.map((j) => ({ ...jumpRow(j, names), duplicate: duplicates.includes(j.jumpNumber) })),
+		jumps: jumps.map((j) => ({ ...jumpRow(j, names), duplicate: duplicates.includes(j.jumpNumber), outOfOrder: outOfOrder.has(j.id) })),
 		matched,
 		filtered,
 		filters: { q: filters.q ?? '', type: filters.jumpType ?? '', place: url.searchParams.get('place') ?? '', year: filters.year ?? '' },

@@ -1208,4 +1208,17 @@ test('log a jump starts from the last jump at the chosen dropzone; switching dro
 	await page.goto('/app/logbook');
 	await expect(page.getByTestId('jump-card').filter({ hasText: 'Number repeated' })).toHaveCount(2);
 	await expect(page.getByTestId('jump-card').filter({ hasNotText: 'Number repeated' })).toHaveText(/^\s*Jump\s*1(?!\d)/);
+	expect(await page.getByTestId('jump-out-of-order').count()).toBe(0);
+
+	// #3 dated before the #2s: the dip is flagged on both sides in the list
+	await page.goto('/app/logbook/new');
+	await page.waitForLoadState('networkidle');
+	await page.getByLabel('Jump #').fill('3');
+	await page.locator('input[name=jumpDate]').fill('2025-01-01');
+	await page.getByTestId('save-jump').click();
+	await expect(page).toHaveURL(/\/app\/logbook\/[0-9a-f-]{36}(\?added=1)?$/);
+	await page.goto('/app/logbook');
+	await expect(page.getByTestId('jump-card')).toHaveCount(4);
+	await expect(page.getByTestId('jump-card').filter({ has: page.getByTestId('jump-out-of-order') })).toHaveCount(3);
+	await expect(page.getByTestId('jump-card').filter({ hasNot: page.getByTestId('jump-out-of-order') })).toHaveText(/^\s*Jump\s*1(?!\d)/);
 });

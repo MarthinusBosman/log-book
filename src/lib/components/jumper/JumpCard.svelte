@@ -5,7 +5,7 @@
 	import JIcon from './JIcon.svelte';
 	import { fmtDate, fmtFreefall, fmtNumber } from './format.ts';
 
-	let { jump: j, class: className }: { jump: JumpRow & { duplicate?: boolean }; class?: string } = $props();
+	let { jump: j, class: className }: { jump: JumpRow & { duplicate?: boolean; outOfOrder?: boolean }; class?: string } = $props();
 </script>
 
 <a
@@ -27,6 +27,7 @@
 			</span>
 			<span class="flex shrink-0 flex-wrap justify-end gap-1">
 				{#if j.duplicate}<Badge tone="warning"><JIcon name="alert" class="size-3" /> Number repeated</Badge>{/if}
+				{#if j.outOfOrder}<span class="contents" data-testid="jump-out-of-order"><Badge tone="warning"><JIcon name="alert" class="size-3" /> Date out of order</Badge></span>{/if}
 				{#if j.verified}<Badge tone="success"><JIcon name="badgeCheck" class="size-3.5" /> Verified</Badge>{/if}
 				{#if j.signedAt}<Badge tone="brand"><JIcon name="pen" class="size-3" /> Signed</Badge>{/if}
 			</span>
