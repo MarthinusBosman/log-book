@@ -107,7 +107,7 @@
 					{#if s.paid}
 						<p class="rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">This slot is paid — jump type, extras and price are locked.</p>
 					{:else}
-						<JumpFields idPrefix="ed" bind:jumpType bind:extras staffRole={s.staffRole} noTandem={s.jumpType !== 'tandem'} {currency} />
+						<JumpFields idPrefix="ed" bind:jumpType bind:extras staffRole={s.staffRole} noTandem={s.jumpType !== 'tandem'} {baseOverride} depositMinor={s.depositMinor} {currency} />
 						<Input label="Custom base price ({currency})" name="baseOverride" type="number" min="0" step="0.01" bind:value={baseOverride} hint="Leave empty for the price list. Replaces the base only." />
 					{/if}
 					<div class="grid grid-cols-2 gap-3">

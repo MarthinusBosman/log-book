@@ -5,7 +5,7 @@ import { freshDb, makeDropzone } from '../domain/testing.ts';
 import { zonedTime, wallClock } from './time.ts';
 import { displayTokenOf, newDisplayToken, publicDisplayDropzone, sameToken, setDisplayToken } from './display.ts';
 import { needsConfirm } from './context.ts';
-import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, rentalApplies, rentalLabel, rentalLine, teamOptionLabel, totalLabel, slotExtrasFor, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney } from '../../components/manifest/manifest.ts';
+import { callPhase, completeConfirm, confirmed, formAction, formatCountdown, loadTimesPreview, pageWithoutAction, pickedOverFree, rentalApplies, rentalLabel, rentalLine, teamOptionLabel, totalLabel, slotExtrasFor, tandemOverFree, tandemVideoHint, pilotOptions, removeSlotConfirm, friendlyError, nextStep, shiftDay, slotMoney, quoteQuery } from '../../components/manifest/manifest.ts';
 
 describe('confirmed (act confirm option)', () => {
 	test('no message = go ahead without asking', () => {
@@ -264,5 +264,19 @@ describe('gear rental from check-in (slotExtrasFor / rentalLabel)', () => {
 		expect(totalLabel(1, true)).toBe('Slot price');
 		expect(totalLabel(3)).toBe('Total × 3');
 		expect(totalLabel(3, true)).toBe('Total for 3 jumpers');
+		expect(totalLabel(1, false, true)).toBe('Total');
+	});
+	test('price preview query: custom base only when it reads as money, deposit only when paid', () => {
+		const q = (o: Parameters<typeof quoteQuery>[0]) => new URLSearchParams(quoteQuery(o));
+		const plain = q({ jumpType: 'belly', extras: ['gear_rental', 'extra_altitude'] });
+		expect(plain.get('jumpType')).toBe('belly');
+		expect(plain.getAll('extras')).toEqual(['gear_rental', 'extra_altitude']);
+		expect([...plain.keys()].filter((k) => k !== 'jumpType' && k !== 'extras')).toEqual([]);
+		expect(q({ jumpType: 'belly', extras: [], baseOverride: 500 }).get('override')).toBe('500');
+		expect(q({ jumpType: 'belly', extras: [], baseOverride: ' 450,50 ' }).get('override')).toBe('450,50');
+		for (const bad of ['', '  ', '-5', 'abc', null, undefined]) expect(q({ jumpType: 'belly', extras: [], baseOverride: bad }).has('override')).toBe(false);
+		expect(q({ jumpType: 'tandem', extras: ['handcam'], depositMinor: 50000 }).get('deposit')).toBe('50000');
+		expect(q({ jumpType: 'tandem', extras: [], depositMinor: 0 }).has('deposit')).toBe(false);
+		expect(q({ jumpType: 'belly', extras: [], staffRole: 'coach' }).get('staffRole')).toBe('coach');
 	});
 });

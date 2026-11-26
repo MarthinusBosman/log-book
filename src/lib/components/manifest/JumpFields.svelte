@@ -12,7 +12,7 @@
 	import { Select } from '#lib/ui/index.ts';
 	import { cn } from '#lib/ui/cn.ts';
 	import MIcon from './MIcon.svelte';
-	import { rentalLine, totalLabel } from './manifest.ts';
+	import { quoteQuery, rentalLine, totalLabel } from './manifest.ts';
 	import { EXTRA_ICONS } from './SlotTags.svelte';
 
 	type Props = {
@@ -27,6 +27,10 @@
 		/** Hide tandem from the jump-type list. */
 		noTandem?: boolean;
 		preview?: boolean;
+		/** Slot editor: the custom base price as typed (major units), so the preview follows it. */
+		baseOverride?: string | number | null;
+		/** Slot editor: deposit already paid (tandem), shown as a line and taken off the total. */
+		depositMinor?: number;
 		idPrefix: string;
 	};
 	let {
@@ -38,13 +42,15 @@
 		rentals = 0,
 		noTandem = true,
 		preview = true,
+		baseOverride = null,
+		depositMinor = 0,
 		idPrefix
 	}: Props = $props();
 
 	const types = $derived(JUMP_TYPES.filter((t) => !(noTandem && t === 'tandem')));
 	const extraList = $derived(jumpType === 'tandem' ? TANDEM_EXTRAS : SPORT_EXTRAS);
 
-	type Quote = { lines: { code: string; label: string; amountMinor: number }[]; totalMinor: number; rentalMinor?: number; currency: string };
+	type Quote = { lines: { code: string; label: string; amountMinor: number }[]; totalMinor: number; depositMinor?: number; rentalMinor?: number; currency: string };
 	let quote = $state<Quote | null>(null);
 	let loading = $state(false);
 	// Per-jumper gear rental (checked-in renters) on top of the shared slot price.
@@ -52,9 +58,7 @@
 
 	$effect(() => {
 		if (!preview) return;
-		const qs = new URLSearchParams({ jumpType });
-		for (const e of extras) qs.append('extras', e);
-		if (staffRole) qs.set('staffRole', staffRole);
+		const qs = quoteQuery({ jumpType, extras, staffRole, baseOverride, depositMinor });
 		const ctrl = new AbortController();
 		loading = true;
 		const t = setTimeout(async () => {
@@ -128,7 +132,7 @@
 					</p>
 				{/if}
 				<div class={cn('mt-2 flex items-baseline justify-between border-t border-border pt-2 font-semibold', loading && 'opacity-60')}>
-					<span>{totalLabel(count, rental > 0)}</span>
+					<span>{totalLabel(count, rental > 0, (quote.depositMinor ?? 0) > 0)}</span>
 					<span class="tabular-nums" data-testid="price-total">{formatMoney(quote.totalMinor * count + rental, quote.currency)}</span>
 				</div>
 			{:else}

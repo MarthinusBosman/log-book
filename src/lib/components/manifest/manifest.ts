@@ -3,6 +3,7 @@
  * call-timer phases and formatting. No server imports.
  */
 import { formatMoney, type JumpType, type LoadStatus, type SlotExtra } from '../../domain/constants.ts';
+import { parseMoney } from '../staffadmin/money.ts';
 
 export function friendlyError(code: string, message: string, details?: Record<string, unknown>, currency = 'USD'): string {
 	switch (code) {
@@ -304,6 +305,30 @@ export function teamOptionLabel(t: { name: string; discipline: string | null; pe
 /** Price preview line for the per-jumper rental: "Gear rental × 2". */
 export const rentalLine = (n: number) => (n > 1 ? `Gear rental × ${n}` : 'Gear rental');
 
-/** Preview total label: "Slot price", "Total × 3" (same price each), "Total for 3 jumpers" (renters pay more). */
-export const totalLabel = (count: number, mixed = false) =>
-	count <= 1 ? 'Slot price' : mixed ? `Total for ${count} jumpers` : `Total × ${count}`;
+/**
+ * Preview total label: "Slot price", "Total × 3" (same price each), "Total for 3 jumpers" (renters pay more).
+ * With a deposit already paid the figure is what is still owed: "Total", like the slot's own price card.
+ */
+export const totalLabel = (count: number, mixed = false, deposit = false) =>
+	count <= 1 ? (deposit ? 'Total' : 'Slot price') : mixed ? `Total for ${count} jumpers` : `Total × ${count}`;
+
+/**
+ * Query string for the live price preview (`/app/manifest/quote`). The slot editor passes the
+ * custom base price as typed (sent only when it parses as money, the way the save action reads it)
+ * and the deposit already paid, so the preview matches what saving would charge.
+ */
+export function quoteQuery(o: {
+	jumpType: string;
+	extras: readonly string[];
+	staffRole?: string | null;
+	baseOverride?: string | number | null;
+	depositMinor?: number;
+}): string {
+	const qs = new URLSearchParams({ jumpType: o.jumpType });
+	for (const e of o.extras) qs.append('extras', e);
+	if (o.staffRole) qs.set('staffRole', o.staffRole);
+	const ov = o.baseOverride == null ? '' : String(o.baseOverride).trim();
+	if (ov && parseMoney(ov) != null) qs.set('override', ov);
+	if (o.depositMinor && o.depositMinor > 0) qs.set('deposit', String(Math.round(o.depositMinor)));
+	return qs.toString();
+}

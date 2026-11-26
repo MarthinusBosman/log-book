@@ -360,8 +360,13 @@ test('slot editor: marking paid with unsaved price edits saves them first and ch
 	// nothing edited: plain "Mark paid"
 	await expect(editor.getByRole('button', { name: 'Mark paid', exact: true })).toBeVisible();
 	await expect(editor.getByTestId('slot-pay-note')).toHaveCount(0);
+	const preview = editor.getByTestId('price-preview');
+	await expect(preview.getByTestId('price-total')).toHaveText(/450[.,]00/);
 	// a new base price: Mark paid alone would charge R 450 and drop the edit
 	await editor.getByLabel(/Custom base price/).fill('500');
+	// the preview follows the custom base (it used to keep showing the price-list R 450)
+	await expect(preview).toContainText('Custom price');
+	await expect(preview.getByTestId('price-total')).toHaveText(/500[.,]00/);
 	await expect(editor.getByRole('button', { name: 'Mark paid', exact: true })).toHaveCount(0);
 	const both = editor.getByRole('button', { name: 'Save & mark paid' });
 	await expect(both).toHaveAccessibleDescription(/saves the slot first/);
